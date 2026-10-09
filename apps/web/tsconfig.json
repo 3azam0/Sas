@@ -1,0 +1,1 @@
+{ "extends": "../../tsconfig.json", "compilerOptions": { "incremental": true, "plugins": [{"name":"next"}], "paths": { "@saas/*": ["packages/*/index.ts"], "@web/*": ["apps/web/src/*"] } }, "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../../packages/**/*.ts"], "exclude": ["node_modules"] }

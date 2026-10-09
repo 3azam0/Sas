@@ -1,0 +1,16 @@
+{
+  "name": "restaurant-saas", "private": true, "version": "0.1.0",
+  "packageManager": "pnpm@11.25.0", "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "dev": "node scripts/next.mjs dev", "build": "node scripts/next.mjs build && node scripts/precache.mjs",
+    "start": "node scripts/next.mjs start", "typecheck": "tsc --noEmit",
+    "test": "vitest run", "test:e2e": "playwright test", "check": "pnpm typecheck && pnpm test",
+    "setup:check": "node scripts/environment.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.8", "next": "16.4.0", "react": "19.3.0", "react-dom": "19.3.0",
+    "dexie": "4.4.6", "dexie-react-hooks": "4.4.0", "decimal.js": "10.6.0",
+    "zustand": "5.0.15", "zod": "4.6.5", "react-hook-form": "7.89.0"
+  },
+  "devDependencies": { "typescript": "5.9.3", "@types/node": "24.10.1", "@types/react": "19.3.0", "@types/react-dom": "19.3.0", "vitest": "5.0.3", "fake-indexeddb": "6.2.5", "@playwright/test": "1.64.0" }
+}
