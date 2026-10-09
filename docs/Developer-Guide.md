@@ -202,9 +202,9 @@ Use one repository for Fodo's shared core and modules. Git branches organize cod
 | `hotfix/<topic>` | Urgent production repair based on the deployed release tag |
 | `vX.Y.Z` | Immutable release tag identifying a verified source commit |
 
-`main` is the intended convention. The existing local default branch is currently `master`; adopt the target name deliberately when setting up the remote and update scripts/protections together. Until then, use the actual default branch. A permanent `develop`, `demo` or `production` branch is not required. Staging and demo deploy selected source commits, and production deploys approved release tags.
+`main` is the integration branch selected for the initial GitHub publication. Earlier local checkpoints remain reachable through `master`; new work branches from `main`. A permanent `develop`, `demo` or `production` branch is not required. Staging and demo deploy selected source commits, and production deploys approved release tags.
 
-Repository status at this revision: local Git checkpoints exist; author identity is configured for `3azam0` with its GitHub no-reply address; no `origin` remote or remote branch protections are configured. Choose the GitHub repository and visibility explicitly before the first push. A browser login or local commit author does not by itself authenticate Git pushes.
+Repository: [3azam0/Sas](https://github.com/3azam0/Sas), with `origin` set to `https://github.com/3azam0/Sas.git` at the user's request. Author identity is configured for `3azam0` with its GitHub no-reply address. This publication uses the existing repository visibility; branch protections and deployment automation have not been configured. A browser login or local commit author does not by itself authenticate Git pushes. Verify each push against the remote commit before reporting it complete.
 
 ### 4.6 Daily branch, commit and push workflow
 
