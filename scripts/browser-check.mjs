@@ -19,7 +19,15 @@ try {
   const tests=spawn(process.execPath,[resolve('node_modules/@playwright/test/cli.js'),'test'],{stdio:'inherit',env:{...process.env,TEST_ORIGIN:origin}});
   result=await new Promise(r=>tests.on('exit',code=>r(code??1)));
 } finally {
-  if(process.platform==='win32')await new Promise(r=>{const cleanup=spawn('taskkill',['/pid',String(server.pid),'/t','/f'],{stdio:'ignore'});cleanup.on('exit',r);});
-  else server.kill('SIGTERM');
+  if(process.platform==='win32'){
+    const killCode=await new Promise(r=>{const cleanup=spawn('taskkill',['/pid',String(server.pid),'/t','/f'],{stdio:'ignore'});cleanup.once('error',()=>r(1));cleanup.once('exit',code=>r(code??1));});
+    // Restricted Windows sessions can deny taskkill even though this parent
+    // owns a process handle that can terminate its direct test-server child.
+    if(killCode!==0&&server.exitCode===null&&server.signalCode===null)server.kill('SIGTERM');
+  }else server.kill('SIGTERM');
+  if(server.exitCode===null&&server.signalCode===null){
+    const exited=await new Promise(r=>{const timer=setTimeout(()=>{server.removeListener('exit',onExit);r(false);},3000);function onExit(){clearTimeout(timer);r(true);}server.once('exit',onExit);});
+    if(!exited){console.error('The owned browser-test server did not stop; browser checks are incomplete.');server.unref();result=1;}
+  }
 }
 process.exitCode=result;

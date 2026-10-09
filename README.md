@@ -87,3 +87,9 @@ The selected Supabase project is `bkkxrptgwbrwredauopq`. Its public URL and publ
 Egyptian e-invoicing/e-receipts, other Arab country tax integrations, multi-currency accounting, production authorization, and SaaS billing are not implemented here. Tax settings must remain country adapters in the master plan. This local demo does not establish compliance.
 
 See [the environment report](docs/Environment-Setup.md), [the master plan](docs/Master-Plan.md), and [the developer guide](docs/Developer-Guide.md).
+
+## GitHub checks and releases
+
+Task branches use PRs into `main`. The prepared GitHub workflow runs type checking, unit/integration tests, production build, all offline/recovery/launcher browser scenarios and full-history secret scanning. `CI gate` requires both quality and secret jobs to pass. Version tags matching `package.json`, reviewed main history and committed release notes prepare a GitHub draft release with a source manifest; they do not deploy the application.
+
+Remote publication/protection is pending because Codex's Windows sandbox cannot read GitHub credentials. The workspace's **Configure-Fodo-GitHub.cmd** runs the owner-session helper to publish `chore/github-workflow`, open its PR, wait for CI, and configure/read back branch/tag protections and staging/demo/production registrations. Hosted services and environment secrets remain pending. See [GitHub setup and release runbook](docs/runbooks/GitHub-Setup.md) for exact controls, solo-owner review policy, validation and database/offline upgrade requirements.

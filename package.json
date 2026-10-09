@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "node scripts/next.mjs dev", "build": "node scripts/next.mjs build && node scripts/precache.mjs",
     "start": "node scripts/next.mjs start", "typecheck": "tsc --noEmit",
-    "test": "vitest run", "test:e2e": "playwright test", "check": "pnpm typecheck && pnpm test",
+    "test": "vitest run", "test:e2e": "playwright test", "test:browser": "node scripts/browser-check.mjs", "check": "pnpm typecheck && pnpm test",
     "setup:check": "node scripts/environment.mjs"
   },
   "dependencies": {

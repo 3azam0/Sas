@@ -4,7 +4,7 @@ Updated: 9 October 2026
 
 Status: planning baseline. Client-specific inputs are deferred. This document specifies intended behavior; it does not claim that integrations, compliance, or software have already been implemented.
 
-Delivery status on 9 October 2026: the local receiving/waste inventory prototype includes validated recovery, same-organization renewal, stable startup and tested local database restore. Verification passed 22 unit/integration tests and nine browser/process scenarios. These complete the local reliability checks; the full first restaurant release remains pending. The selected Supabase project is `bkkxrptgwbrwredauopq`; its Auth endpoint accepts the configured publishable key. Production tenant/access implementation still requires management access and migrations.
+Delivery status on 9 October 2026: the local receiving/waste inventory prototype includes validated recovery, same-organization renewal, stable startup and tested local database restore. Verification passed 27 unit/integration tests and nine browser/process scenarios, including the prepared release-validation checks. These complete the local reliability checks; the full first restaurant release remains pending. The selected Supabase project is `bkkxrptgwbrwredauopq`; its Auth endpoint accepts the configured publishable key. Production tenant/access implementation still requires management access and migrations.
 
 ## 1. Product objective
 
@@ -402,7 +402,7 @@ Monitor sync lag, pending/rejected operations, ledger discrepancies, stale repor
 
 ## 28. Delivery roadmap
 
-Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2.2 for the implementation order and environment/Git workflow.
+Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. GitHub CI, a PR template, versioned draft-release validation and an owner-session repository setup helper are prepared locally; remote publication, workflow execution and protection settings remain unverified until credential access succeeds. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2.3 for the implementation order and environment/Git workflow.
 
 
 | Stage | Outcome |
