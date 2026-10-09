@@ -14,6 +14,8 @@ The first release serves restaurants through inventory, purchasing, production, 
 
 The first client application is an offline-first web application. Mobile and desktop applications follow, sharing backend contracts, synchronization behavior, and business rules.
 
+Current delivery scope: complete working restaurant workflows for the first client in development, retaining the multi-tenant architecture. Membership management, invitations, role-administration screens, billing and additional-client onboarding are deferred. Demonstrate the development version to the client; do not provision a separate client-demo or hosted staging environment now. Preserve tenant scoping and existing offline/session protections. Production deployment and minimum real authenticated access are required before live business use, after the working development milestones.
+
 Foodics is a reference for restaurant workflows and usability. This specification defines the platform's own transaction, costing, and extensibility rules.
 
 ## 2. Product layers
@@ -386,9 +388,9 @@ Choose hosting/sync regions against market requirements. Verify dependencies and
 
 ### Environments and delivery
 
-Maintain one codebase with four isolated environments: development for feature work, staging for internal release validation, client demo for prospective-client trials using sample data, and production for real business operations. Use distinct application origins, databases, storage, auth/signing configuration and integration credentials. Hosted environments use separate Supabase projects; local development can use an isolated stack. Register the purpose and owner of every project before deployment. The supplied Supabase project has not yet been assigned an environment role.
+For the first client, use development for feature work and walkthroughs; provision isolated production when ready for real operations. Defer dedicated hosted staging and client-demo infrastructure. Future expansion may add those environments using the same codebase. Keep production origins, databases, storage, auth/signing configuration and integration credentials distinct from development. Register the purpose and owner of every project before deployment. The supplied Supabase project has not yet been assigned an environment role.
 
-Client demos use isolated, clearly labeled organizations with seeded data, limited accounts, expiry and a disclosed reset policy. Payments, notifications and fiscal integrations use sandboxes or remain disabled. A reset rotates a server-owned workspace generation so stale offline commands and imported archives cannot repopulate the reset ledger. Transition to production creates a new tenant and imports only approved setup data through validation; demo transactions and offline queues are not promoted. These hosted-demo controls remain planned.
+Client demos use isolated, clearly labeled organizations with seeded data, limited accounts, expiry and a disclosed reset policy. Payments, notifications and fiscal integrations use sandboxes or remain disabled. A reset rotates a server-owned workspace generation so stale offline commands and imported archives cannot repopulate the reset ledger. Transition to production creates a new tenant and imports only approved setup data through validation; demo transactions and offline queues are not promoted. These hosted-demo controls are deferred and are not part of the current first-client delivery.
 
 Use short-lived task branches and a protected releasable default branch, with immutable release tags. Environments are deployment targets, not separate product forks or permanent client branches. Commits include the relevant source, tests, migrations and documentation; pushes use the confirmed authorized remote. Review pull requests and validate migrations/offline compatibility before promoting a recorded source commit. Build environment-specific bundles when public configuration is compiled into the client, and record source SHA, environment, build ID and migration level for each deployment. See Developer Guide section 4 for branch naming, commit/push procedure, conflicts, reviews, releases and hotfixes.
 
@@ -402,24 +404,24 @@ Monitor sync lag, pending/rejected operations, ledger discrepancies, stale repor
 
 ## 28. Delivery roadmap
 
-Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2.3 for implementation order and environment/Git workflow.
+Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2.4 for implementation order and environment/Git workflow.
 
 
 | Stage | Outcome |
 |---|---|
 | 0 | Fix session renewal, stable startup, review resolution, recovery import, Git and verified backups |
-| 1 | Real tenant/entity/location foundation, production identity, permissions and sync contracts |
-| 2 | Offline prototype: persistent reload, outbox, retries, conflicts, scoped downloads |
-| 3 | Inventory/FIFO posting engine and reconciliation |
-| 4 | Opening imports, purchasing, receiving, transfers, waste, counts |
-| 5 | Recipes/BOMs, central/local production, yield, costing |
-| 6 | POS imports, consumption reconciliation, expenses, reports |
-| 7 | Egypt restaurant pilot, offline/recovery acceptance, production release |
-| 8 | Billing automation, mobile operations, supported integrations |
+| 1 | Editable item/unit/supplier/location setup for the first organization, retaining tenant scoping |
+| 2 | Opening stock, purchasing, receiving and returns using the existing offline/FIFO engine |
+| 3 | Multi-branch transfers, counts, reconciliation and offline recovery |
+| 4 | Recipes/BOMs, central/local production, yield and costing |
+| 5 | Sales imports, consumption reconciliation, expenses and reports |
+| 6 | Production configuration, minimum real authenticated access, migrations, backups and live-use acceptance |
+| 7 | Egypt restaurant pilot and supported market adapters |
+| 8 | Membership administration, additional-client onboarding, billing, mobile operations and optional hosted demo/staging |
 | 9 | Desktop/native POS and verified country fiscal workflows |
 | Ongoing | Restaurant operations, specialist modules, validated country expansion |
 
-Client-specific data gathering is deferred. Use labeled examples and configurable settings instead of blocking architecture work.
+Client-specific data gathering is deferred. Use labeled examples and configurable settings instead of blocking working development workflows. Membership administration and dedicated demo provisioning must not block the first-client development milestones. Cross-tenant protections remain part of the architecture and regression checks.
 
 ## 29. Acceptance criteria
 

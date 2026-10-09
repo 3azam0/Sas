@@ -1,6 +1,6 @@
 # Fodo SaaS Developer Guide
 
-Version 2.3 — 9 October 2026
+Version 2.4 — 9 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
@@ -11,6 +11,14 @@ This guide defines the implementation workflow and distinguishes the delivered l
 This version supersedes the original task order where it conflicts. Fodo is a working local inventory prototype: Arabic RTL web UI, seeded organizations/locations, receiving, waste, FIFO, durable local outbox, and reconnect synchronization. Production authentication, real master-data administration, transfers, recipes, production, country adapters and billing remain planned.
 
 Current adapters: Next.js/React; Zustand for UI state; React Hook Form/Zod; custom CSS; Dexie/IndexedDB; PGlite development PostgreSQL; complete tenant snapshots. Tailwind/shadcn, TanStack Query, PowerSync, managed PostgreSQL and production Auth are future decisions/integrations, not installed capabilities. Do not rewrite stable UI state merely to match an earlier technology proposal.
+
+### Current priority: working application for the first client
+
+The current delivery target is a working development version for one restaurant organization with multiple branches. Keep tenant IDs, tenant-qualified relationships, scoped commands and offline recovery intact. Defer membership management, invitations, role administration, subscriptions and platform onboarding; these are not prerequisites for completing the restaurant workflows in development. Use the existing local development session for walkthroughs. Do not open that session mechanism to public hosting or treat it as production authentication.
+
+Use development to show progress to the first client. Do not provision a dedicated client-demo or hosted staging environment now; their lifecycle specifications below are deferred. Production is a later deployment target with separate data/configuration and minimum real login/access checks before live use. Existing GitHub environment registrations can remain unused. Preserve the current application code, launcher and local data.
+
+The next working milestone is editable items, units, suppliers and stock locations, followed by opening stock and purchase/receiving documents. Acceptance: set up an item and supplier, receive stock into a branch, inspect its balance/value and history, record waste offline, then reconnect without duplicate effects. Sample development fixtures can be used until the client supplies their setup data. Transfers/counts and restaurant recipes/production/cost reports follow. Each milestone must work end to end before adding more SaaS administration.
 
 ### Verified reliability delivery
 
@@ -28,10 +36,12 @@ Selected cloud project: `bkkxrptgwbrwredauopq` at `https://bkkxrptgwbrwredauopq.
 | 0B | Stable local origin and single-instance launch | Repeated launch reuses the verified instance; unrelated port conflicts are explicit; one database owner |
 | 0C | Review, retry, cancel, correct and restore | Immutable operation history; changed data gets a new linked ID; restore validates scope and deduplicates |
 | 0D | Version control and backup/restore runbook | Git initialized with secrets/data ignored; a restore exercise proves database recovery |
-| 1 | Production tenant/access foundation | Real accounts, memberships, branch permissions, migrations, staging and tenant security tests |
-| 2 | Real inventory administration | Item/unit/supplier/branch setup, opening imports, purchasing, receiving and returns |
-| 3 | Two-branch inventory pilot | Counts, dispatch/receipt transfers, variance handling, offline recovery and backups |
+| 1 | Working inventory setup for the first client | Editable items, units, suppliers and locations; tenant-scoped persistence and reload |
+| 2 | Purchasing and opening stock | Opening stock, purchase documents, receiving and returns produce inspectable stock/value effects |
+| 3 | Multi-branch inventory flow | Counts, dispatch/receipt transfers, variance handling, offline recovery and backups |
 | 4 | Restaurant cost control | Immutable recipes, production, yield, sales imports, actual/theoretical consumption and profitability |
+| Before live use | Production deployment and minimum access | Real authenticated access for the configured organization, permission checks, isolated production data, migrations and verified restore; no public development-session bypass |
+| Later | Membership administration and broader SaaS operations | Invitations, role-management screens, additional client onboarding, billing and dedicated demo/staging configuration when needed |
 | 5 | Egypt pilot and market adapters | Supported device matrix, regional settings, applicable fiscal integration and operational acceptance |
 | Later | Specialist modules, mobile/desktop, native POS | Only after their prerequisite workflows and device tests pass |
 
@@ -134,7 +144,7 @@ Pure domain packages cannot import Next.js, browser APIs, Supabase clients, or U
 
 ## 4. Local development and environments
 
-Use one codebase with four separately configured environments: development, staging, client demo, and production. This is the target deployment policy; the current local prototype does not provision all four environments.
+Current scope uses development for implementation and first-client walkthroughs, with production as a later isolated deployment target. Dedicated hosted staging and client demo are deferred. The four-environment model below remains a future expansion policy; it does not require provisioning those environments now.
 
 ### 4.1 Environment responsibilities
 
@@ -153,7 +163,7 @@ Current setup: local development uses port 3109 and `.data-dev`; the optimized l
 
 The selected Supabase project `bkkxrptgwbrwredauopq` has a verified public connection configuration, but its environment role is unassigned. Assign its role before creating application tables or deploying users there. Provisioning additional hosted projects needs a separate infrastructure decision, including region, access and cost; this guide does not create them.
 
-### 4.2 Client-demo lifecycle
+### 4.2 Client-demo lifecycle — deferred
 
 - Seed a realistic restaurant organization with branches, stock, suppliers, recipes and sales examples as those workflows become available. Label sample data clearly. Each prospective client gets an isolated demo organization or workspace; never share one writable tenant between unrelated prospects.
 - Limit demo accounts to their workspace. Keep platform administration unavailable to them. Configure an expiry/renewal policy and a repeatable seed version. Automated demo resets must be a disclosed part of the demo lifecycle, with active sessions handled explicitly.
@@ -161,7 +171,7 @@ The selected Supabase project `bkkxrptgwbrwredauopq` has a verified public conne
 - Record reset events and show users the workspace's expiry/reset state. Keep exports and retention consistent with the demo policy; do not use real customer exports as fixtures.
 - When a prospect becomes a customer, create a production tenant with proper access and onboarding. Transfer only explicitly selected, validated setup data such as an approved catalog. Demo stock movements, balances, users' sessions and offline queues never become production records automatically.
 
-### 4.3 Offline isolation and demo resets
+### 4.3 Offline isolation and future demo resets
 
 Use a stable, distinct origin for each environment and namespace local databases, caches and outboxes by environment and tenant. Validate environment/tenant scope at the server; UI labels alone do not prevent cross-environment posting. Recovery files and offline grants must carry matching scope.
 
@@ -177,7 +187,7 @@ Bootstrap in this order:
 2. Pin a supported runtime; document setup in README.
 3. Configure a local PostgreSQL/Supabase development environment using the installed CLI's help and current documentation.
 4. Create migrations for foundation tables and access policies.
-5. Seed two tenants, two restaurant branches, a central location, and demo users.
+5. Use one configured restaurant organization with two branches and a central location for the development walkthrough; additional synthetic organizations may remain in isolation tests. Defer membership administration and client-demo provisioning.
 6. Add a working health endpoint and authenticated organization bootstrap endpoint.
 7. Add local database and sync prototype configuration.
 8. Run the first acceptance scenario before building broad CRUD screens.
