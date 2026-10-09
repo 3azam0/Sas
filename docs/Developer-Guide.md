@@ -1,6 +1,6 @@
 # Fodo SaaS Developer Guide
 
-Version 2.2 — 9 October 2026
+Version 2.3 — 9 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
@@ -14,7 +14,7 @@ Current adapters: Next.js/React; Zustand for UI state; React Hook Form/Zod; cust
 
 ### Verified reliability delivery
 
-Same-organization renewal with queued work, review retry/correction/cancellation, and archive preview/restore are implemented. The completed verification run passed 22 unit/integration tests and nine browser/process scenarios, including expired offline grants, exactly-once reconnect posting, repeated launch, stale builds, occupied ports, and recovery import. Database restore and tamper rejection are covered by the integration tests. TypeScript and the production build also pass.
+Same-organization renewal with queued work, review retry/correction/cancellation, and archive preview/restore are implemented. The latest application verification passed 27 unit/integration tests and nine browser/process scenarios, including expired offline grants, exactly-once reconnect posting, repeated launch, stale builds, occupied ports, recovery import and release-source validation. Database restore and tamper rejection are covered by the integration tests. TypeScript, the production build, workflow syntax validation and committed-history secret scanning also pass. Remote branch and PR CI passed at `42d8edf`. The latest setup-helper fix has 22 local regression checks passing in Windows PowerShell and PowerShell 7. Squash merging, cleanup, immutable tags and staging/demo/production registrations are verified; only main protection remains pending publication and remote verification of the request-payload fix.
 
 All production start paths (`pnpm start`, `run.ps1 start`, and the Windows launcher) now share the saved origin and `.data-local`. Development uses port 3109 and `.data-dev`. Build identity is baked into the workspace footer and health response; the launcher refuses an older verified build and instructs a same-origin restart. `run.ps1 backup` runs the manual cold-backup utility. Existing data directories remain preserved.
 
@@ -204,7 +204,7 @@ Use one repository for Fodo's shared core and modules. Git branches organize cod
 
 `main` is the integration branch selected for the initial GitHub publication. Earlier local checkpoints remain reachable through `master`; new work branches from `main`. A permanent `develop`, `demo` or `production` branch is not required. Staging and demo deploy selected source commits, and production deploys approved release tags.
 
-Repository: [3azam0/Sas](https://github.com/3azam0/Sas), with `origin` set to `https://github.com/3azam0/Sas.git` at the user's request. Author identity is configured for `3azam0` with its GitHub no-reply address. This publication uses the existing repository visibility; branch protections and deployment automation have not been configured. A browser login or local commit author does not by itself authenticate Git pushes. Verify each push against the remote commit before reporting it complete.
+Repository: [3azam0/Sas](https://github.com/3azam0/Sas). The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Use the [GitHub setup and release runbook](./runbooks/GitHub-Setup.md) to publish the fix and verify controls. Verify each push against the remote commit before reporting it complete.
 
 ### 4.6 Daily branch, commit and push workflow
 
@@ -238,7 +238,7 @@ Before remote setup, local branches and commits are valid checkpoints. Report a 
 
 ### 4.7 Reviews, conflicts and shared history
 
-Protect the default/release branches when the remote is configured: pull-request review, required relevant checks, restricted direct pushes, and no force pushes or deletion. Use separate protected deployment environments for live credentials. Routine branch previews receive test credentials and cannot access production secrets.
+Protect the default/release branches when the remote is configured: pull requests, required relevant checks, restricted direct pushes, and no force pushes or deletion. The repository's always-running `CI gate` requires typecheck, unit/integration tests, build, all offline/recovery/launcher browser scenarios and a full-history secret scan. Require the GitHub Actions check on an up-to-date base, resolve review conversations, and apply protection to administrators. Use squash merging and immutable `v*` tags. A solo owner starts with zero independent approving reviews because authors cannot approve their own PRs; increase this to one once a second maintainer is available. Use separate protected deployment environments for live credentials. Routine branch previews receive test credentials and cannot access production secrets.
 
 Resolve a non-fast-forward push by fetching, inspecting the new commits, and merging the actual base into the shared task branch. Rebase only unshared local work, or a branch whose owners explicitly agreed to rewriting it. Re-run checks affected by conflict resolution and inspect the resolved diff before pushing. Use `--force-with-lease` only for an explicitly authorized history rewrite on a task branch; never force-push the protected default/release branch. Never discard unrelated work with a hard reset or blanket checkout.
 
@@ -250,7 +250,9 @@ Promote a recorded source commit through staging, then to a stable client-demo r
 
 Pin the commit and lockfile for each environment build and record the environment, application version, commit SHA, build identifier, migration level and release time. Next.js public configuration is compiled into the browser bundle, so build separately for environments with different public URLs/keys. Promote the same reviewed source revision; do not copy a staging bundle containing staging configuration into production. Verify each deployed build's health, environment configuration and scoped smoke tests.
 
-Create an immutable release tag such as `v0.1.0` only after release validation. Push release tags explicitly when the release is authorized; do not use a blanket push of every local tag. Keep release notes and a prior compatible artifact available. Database migrations travel with their source revision and must tolerate previously deployed offline clients.
+Create an immutable release tag such as `v0.1.0` only after release validation. Commit release notes at `docs/releases/vX.Y.Z.md` and match the version in `package.json`. Push release tags explicitly when the release is authorized; do not use a blanket push of every local tag. The implemented draft workflow reruns checks, validates reviewed main history/version/notes, and prepares a draft with source SHA and lockfile digest. It does not deploy the application. Future production deployment jobs must reference the approved `production` environment and run scoped smoke tests. Keep release notes and a prior compatible artifact available. Database migrations travel with their source revision and must tolerate previously deployed offline clients.
+
+Use additive schema changes and overlapping command support before migrating data or retiring old contracts. Test a previously shipped client with queued operations against the new server. Retire old support only after the compatibility window. A source rollback requires the previous application to understand the current schema and pending commands; otherwise roll forward. See the [GitHub setup and release runbook](./runbooks/GitHub-Setup.md) for implemented automation, environment policies, local validation and remaining infrastructure work.
 
 For a production hotfix: branch from the deployed tag, reproduce the defect, make the smallest supported repair, run relevant checks, validate in staging, and release a new patch tag. Apply the repair back to the default branch through review, resolving any divergence. Never move the old tag to the new commit. Roll back to a compatible artifact or roll forward with a repair; preserve accepted stock operations and pending client commands.
 

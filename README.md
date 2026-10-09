@@ -87,3 +87,9 @@ The selected Supabase project is `bkkxrptgwbrwredauopq`. Its public URL and publ
 Egyptian e-invoicing/e-receipts, other Arab country tax integrations, multi-currency accounting, production authorization, and SaaS billing are not implemented here. Tax settings must remain country adapters in the master plan. This local demo does not establish compliance.
 
 See [the environment report](docs/Environment-Setup.md), [the master plan](docs/Master-Plan.md), and [the developer guide](docs/Developer-Guide.md).
+
+## GitHub checks and releases
+
+Task branches use PRs into `main`. The prepared GitHub workflow runs type checking, unit/integration tests, production build, all offline/recovery/launcher browser scenarios and full-history secret scanning. `CI gate` requires both quality and secret jobs to pass. Version tags matching `package.json`, reviewed main history and committed release notes prepare a GitHub draft release with a source manifest; they do not deploy the application.
+
+The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. See [GitHub setup and release runbook](docs/runbooks/GitHub-Setup.md) for the retry procedure. Hosted services and environment secrets remain pending.
