@@ -17,7 +17,7 @@ Fodo is a local restaurant inventory prototype with an Arabic RTL web interface,
 | Recovery was export-only | Validated, bounded preview/import with tenant and duplicate checks | Browser export/loss/restore scenario; unit conflict/validation checks |
 | Backups lacked restore verification | Cold database copy with SHA-256 manifest, empty directories and single-owner protection | Integration restore compares balances and rejects tampering |
 | PowerShell backup option did nothing | Backup task invokes the manual backup utility | Corrected task dispatch; underlying backup/restore integration coverage |
-| Git had no history | Repository initialized; local identity uses GitHub account 3azam0 and its no-reply address | Source is prepared for the first local checkpoint; verify git log after commit |
+| Git had no history | First local checkpoint a62857c created under GitHub account 3azam0 with its no-reply address | git log confirms the commit and author; environment/data files are excluded |
 | Documentation reported obsolete status | Master plan, developer guide, README and environment report updated | Current counts and implemented/planned boundary documented |
 
 The launcher never silently changes port or kills an unrelated listener. Development is explicitly separate at port 3109 with .data-dev. Earlier data directories and earlier browser origins are preserved. An old running server requires its console to be stopped and the launcher restarted at the saved address.
