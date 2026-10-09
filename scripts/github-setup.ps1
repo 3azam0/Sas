@@ -23,13 +23,17 @@ function Invoke-GitHubApi {
   param([string]$Method,[string]$Path,$Body=$null)
   $request=@{Method=$Method;Uri="https://api.github.com/$Path";Headers=$script:apiHeaders}
   if($null -ne $Body){$request.ContentType='application/json';$request.Body=ConvertTo-Json -InputObject $Body -Depth 20 -Compress}
-  Invoke-RestMethod @request
+  $response=Invoke-RestMethod @request
+  # Windows PowerShell emits REST arrays as a single pipeline object. Flatten
+  # them explicitly so an empty PR list has Count=0 instead of Count=1.
+  if($response -is [System.Collections.IEnumerable] -and $response -isnot [string] -and $response -isnot [System.Collections.IDictionary]){foreach($item in $response){if($null -ne $item){Write-Output $item}}}
+  elseif($null -ne $response){Write-Output $response}
 }
 
 function Set-RepositoryControl {
   param([string]$Name,[scriptblock]$Operation)
-  try { & $Operation; Write-Host "Configured and verified: $Name" }
-  catch { $script:setupFailures+=1; Write-Warning "$Name was not configured: $($_.Exception.Message)" }
+  try { & $Operation; $script:setupResult.controls+=@{name=$Name;status='verified'}; Write-Host "Configured and verified: $Name" }
+  catch { $script:setupFailures+=1; $script:setupResult.controls+=@{name=$Name;status='failed';message=$_.Exception.Message}; Write-Warning "$Name was not configured: $($_.Exception.Message)" }
 }
 
 Push-Location $projectRoot
@@ -38,6 +42,7 @@ $credentialLines=$null
 $accessToken=$null
 $script:apiHeaders=$null
 $script:setupFailures=0
+$script:setupResult=@{repository=$repoName;task=$Task;status='in_progress';commit=$null;publishedCommit=$null;pullRequestUrl=$null;ciGate=@();controls=@();pendingUi=@('Verify production administrator bypass in GitHub before live deployment.');updatedAt=$null}
 try {
   if((Invoke-FodoGit @('remote','get-url','origin')) -ne $expectedRemote){throw 'origin does not match the authorized Fodo repository.'}
   if(Invoke-FodoGit @('status','--porcelain')){throw 'Commit or preserve working-tree changes before publication.'}
@@ -45,6 +50,7 @@ try {
   if($Task -ne 'Configure' -and $currentBranch -ne $taskBranch){throw "Switch to $taskBranch before publishing this task."}
   if($Task -eq 'Configure' -and $currentBranch -notin @('main',$taskBranch)){throw "Configure controls from main or $taskBranch after the corresponding commit passes CI."}
   $head=Invoke-FodoGit @('rev-parse','HEAD')
+  $script:setupResult.commit=$head
 
   if($Task -ne 'Configure') {
     # Normal Git for Windows handles sign-in in the user's session.
@@ -58,6 +64,7 @@ try {
     Invoke-FodoGit @('push','-u','origin',$taskBranch) | Write-Host
     $remoteHead=(Invoke-FodoGit @('ls-remote','origin',"refs/heads/$taskBranch")) -split '\s+'
     if($remoteHead[0] -ne $head){throw 'Remote branch does not match the local commit.'}
+    $script:setupResult.publishedCommit=$head
     Write-Host "Verified branch publication: $head"
   }
 
@@ -80,6 +87,8 @@ try {
       $body=[System.IO.File]::ReadAllText((Join-Path $projectRoot 'docs/runbooks/github-workflow-pr.md'))
       $pull=Invoke-GitHubApi POST "repos/$repoName/pulls" @{title='Add GitHub quality checks and controlled release workflow';head=$taskBranch;base='main';body=$body}
     }
+    if(-not $pull.number -or $pull.html_url -notmatch '^https://github\.com/3azam0/Sas/pull/[0-9]+$'){throw 'GitHub did not return a valid pull request. Repository configuration has not started.'}
+    $script:setupResult.pullRequestUrl=$pull.html_url
     Write-Host "Pull request: $($pull.html_url)"
     [System.IO.Directory]::CreateDirectory((Join-Path $projectRoot '.cache')) | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $projectRoot '.cache/github-pull-request.json'),(ConvertTo-Json @{url=$pull.html_url;branch=$taskBranch;commit=$head}))
@@ -88,9 +97,13 @@ try {
   if($Task -ne 'Publish') {
     Write-Host 'Waiting for CI gate on the published commit. Production deployment is not part of this script.'
     $deadline=(Get-Date).AddMinutes($WaitMinutes)
+    $lastCiStatus=''
     do {
       $checks=Invoke-GitHubApi GET "repos/$repoName/commits/$head/check-runs?per_page=100"
       $gates=@($checks.check_runs | Where-Object {$_.name -eq 'CI gate' -and $_.app.slug -eq 'github-actions'})
+      $script:setupResult.ciGate=@($gates | Select-Object status,conclusion,html_url)
+      $ciStatus=if($gates.Count){($gates | ForEach-Object {"$($_.status)/$($_.conclusion)"}) -join ', '}else{'No CI gate reported yet'}
+      if($ciStatus -ne $lastCiStatus){Write-Host "CI: $ciStatus | https://github.com/$repoName/actions";$lastCiStatus=$ciStatus}
       if($gates.Count -and @($gates | Where-Object {$_.status -ne 'completed'}).Count -eq 0) {
         if(@($gates | Where-Object {$_.conclusion -ne 'success'}).Count){throw 'CI gate failed. Inspect GitHub Actions and fix the checks before configuring protection.'}
         break
@@ -163,8 +176,16 @@ try {
     Write-Host 'Before live deployment, disable administrator bypass in GitHub Settings > Environments > production where the account plan supports it. That switch is not exposed by the supported environment API.'
     Write-Host 'Environment registrations contain no hosting resources or application secrets.'
   }
+  $script:setupResult.status=if($Task -eq 'Publish'){'published'}else{'api_controls_verified'}
+} catch {
+  $script:setupResult.status='failed'
+  $script:setupResult.message=$_.Exception.Message
+  throw
 } finally {
   $credentialLines=$null;$accessToken=$null;$script:apiHeaders=$null
   $env:GIT_TERMINAL_PROMPT=$previousPrompt
+  $script:setupResult.updatedAt=[DateTime]::UtcNow.ToString('o')
+  [System.IO.Directory]::CreateDirectory((Join-Path $projectRoot '.cache')) | Out-Null
+  [System.IO.File]::WriteAllText((Join-Path $projectRoot '.cache/github-setup-result.json'),(ConvertTo-Json -InputObject $script:setupResult -Depth 8))
   Pop-Location
 }

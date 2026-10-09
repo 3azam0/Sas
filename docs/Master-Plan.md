@@ -402,7 +402,7 @@ Monitor sync lag, pending/rejected operations, ledger discrepancies, stale repor
 
 ## 28. Delivery roadmap
 
-Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. GitHub CI, a PR template, versioned draft-release validation and an owner-session repository setup helper are prepared locally; remote publication, workflow execution and protection settings remain unverified until credential access succeeds. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2.3 for the implementation order and environment/Git workflow.
+Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. Initial main/workflow branches are published and GitHub CI passed at `919c319`. The owner-session setup helper has a tested follow-up fix for skipped PR creation; publishing that fix and verifying the PR/protection settings remain pending. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2.3 for the implementation order and environment/Git workflow.
 
 
 | Stage | Outcome |
