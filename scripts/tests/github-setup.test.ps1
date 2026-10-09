@@ -3,17 +3,24 @@ $helper=Join-Path (Split-Path $PSScriptRoot -Parent) 'github-setup.ps1'
 $parseErrors=$null;$tokens=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseFile($helper,[ref]$tokens,[ref]$parseErrors)
 if($parseErrors.Count){throw 'GitHub setup script has syntax errors.'}
-$definition=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Invoke-GitHubApi'},$true)
-if(-not $definition){throw 'GitHub API helper was not found.'}
-. ([scriptblock]::Create($definition.Extent.Text))
+foreach($functionName in @('Invoke-GitHubApi','Test-FodoReviewConflict')) {
+  $definition=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $functionName},$true)
+  if(-not $definition){throw "Helper function was not found: $functionName"}
+  . ([scriptblock]::Create($definition.Extent.Text))
+}
 $script:apiHeaders=@{}
 $script:fixture=$null
 $script:failRequest=$false
+$script:errorDetails=$null
 
 # Reproduce Invoke-RestMethod's non-enumerated array output in Windows PowerShell.
 function Invoke-RestMethod {
   param($Method,$Uri,$Headers,$ContentType,$Body)
-  if($script:failRequest){throw 'Simulated GitHub access failure'}
+  if($script:failRequest){
+    $failure=[System.Management.Automation.ErrorRecord]::new([System.Exception]::new('Simulated GitHub access failure'),'GitHubFailure',[System.Management.Automation.ErrorCategory]::PermissionDenied,$null)
+    if($script:errorDetails){$failure.ErrorDetails=[System.Management.Automation.ErrorDetails]::new($script:errorDetails)}
+    throw $failure
+  }
   Write-Output -NoEnumerate $script:fixture
 }
 function Assert-Result {param($Condition,[string]$Message) if(-not $Condition){throw $Message}}
@@ -42,4 +49,26 @@ $script:failRequest=$true
 $failed=$false
 try {Invoke-GitHubApi GET 'repos/example/project'} catch {$failed=$_.Exception.Message -eq 'Simulated GitHub access failure'}
 Assert-Result $failed 'API errors must propagate rather than appear as empty lists.'
-Write-Host 'GitHub setup regression checks: 6 passed.'
+$script:errorDetails='{"message":"Repository protection is unavailable","documentation_url":"https://docs.github.com/rest"}'
+try {Invoke-GitHubApi GET 'repos/example/project'} catch {$apiFailure=$_}
+Assert-Result ($apiFailure.Exception.Data['GitHubMessage'] -eq 'Repository protection is unavailable' -and $apiFailure.Exception.Data['GitHubDocumentation'] -eq 'https://docs.github.com/rest') 'GitHub error explanations and documentation must be retained.'
+$script:errorDetails='Non-JSON gateway failure'
+try {Invoke-GitHubApi GET 'repos/example/project'} catch {$apiFailure=$_}
+Assert-Result ($apiFailure.Exception.Message -eq 'Simulated GitHub access failure') 'Invalid error JSON must not replace the original API failure.'
+$ownerReviewer=[pscustomobject]@{type='User';reviewer=[pscustomobject]@{id=1}}
+$otherReviewer=[pscustomobject]@{type='User';reviewer=[pscustomobject]@{id=2}}
+$teamReviewer=[pscustomobject]@{type='Team';reviewer=[pscustomobject]@{id=1}}
+$reviewCases=@(
+  @{label='missing environment';environment=$null;conflict=$false},
+  @{label='empty rules';environment=[pscustomobject]@{protection_rules=@()};conflict=$false},
+  @{label='wait timer only';environment=[pscustomobject]@{protection_rules=@([pscustomobject]@{type='wait_timer';wait_timer=10})};conflict=$false},
+  @{label='missing reviewer array';environment=[pscustomobject]@{protection_rules=@([pscustomobject]@{type='required_reviewers'})};conflict=$false},
+  @{label='same owner';environment=[pscustomobject]@{protection_rules=@([pscustomobject]@{type='required_reviewers';reviewers=@($ownerReviewer)})};conflict=$false},
+  @{label='different reviewer';environment=[pscustomobject]@{protection_rules=@([pscustomobject]@{type='required_reviewers';reviewers=@($otherReviewer)})};conflict=$true},
+  @{label='team reviewer';environment=[pscustomobject]@{protection_rules=@([pscustomobject]@{type='required_reviewers';reviewers=@($teamReviewer)})};conflict=$true},
+  @{label='independent review required';environment=[pscustomobject]@{protection_rules=@([pscustomobject]@{type='required_reviewers';reviewers=@($ownerReviewer);prevent_self_review=$true})};conflict=$true},
+  @{label='multiple reviewers';environment=[pscustomobject]@{protection_rules=@([pscustomobject]@{type='required_reviewers';reviewers=@($ownerReviewer,$otherReviewer)})};conflict=$true},
+  @{label='null entries';environment=[pscustomobject]@{protection_rules=@($null,[pscustomobject]@{type='required_reviewers';reviewers=@($null,$ownerReviewer)})};conflict=$false}
+)
+foreach($case in $reviewCases){Assert-Result ((Test-FodoReviewConflict $case.environment 1) -eq $case.conflict) "Incorrect reviewer conflict for $($case.label)."}
+Write-Host 'GitHub setup regression checks: 18 passed.'

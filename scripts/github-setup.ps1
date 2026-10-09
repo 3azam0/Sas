@@ -23,17 +23,49 @@ function Invoke-GitHubApi {
   param([string]$Method,[string]$Path,$Body=$null)
   $request=@{Method=$Method;Uri="https://api.github.com/$Path";Headers=$script:apiHeaders}
   if($null -ne $Body){$request.ContentType='application/json';$request.Body=ConvertTo-Json -InputObject $Body -Depth 20 -Compress}
-  $response=Invoke-RestMethod @request
+  try {$response=Invoke-RestMethod @request} catch {
+    # Keep the original HTTP exception/Response so callers can still handle
+    # 404, but retain GitHub's explanation instead of only "403 Forbidden".
+    if($_.Exception.Response){$_.Exception.Data['GitHubStatusCode']=[int]$_.Exception.Response.StatusCode}
+    if($_.ErrorDetails.Message){
+      try {
+        $details=$_.ErrorDetails.Message | ConvertFrom-Json
+        if($details.message){$_.Exception.Data['GitHubMessage']=[string]$details.message}
+        if($details.documentation_url){$_.Exception.Data['GitHubDocumentation']=[string]$details.documentation_url}
+      } catch { }
+    }
+    throw
+  }
   # Windows PowerShell emits REST arrays as a single pipeline object. Flatten
   # them explicitly so an empty PR list has Count=0 instead of Count=1.
   if($response -is [System.Collections.IEnumerable] -and $response -isnot [string] -and $response -isnot [System.Collections.IDictionary]){foreach($item in $response){if($null -ne $item){Write-Output $item}}}
   elseif($null -ne $response){Write-Output $response}
 }
 
+function Test-FodoReviewConflict {
+  param($Environment,[long]$OwnerId)
+  foreach($rule in @($Environment.protection_rules)) {
+    if($null -eq $rule -or $rule.type -ne 'required_reviewers'){continue}
+    if($rule.prevent_self_review){return $true}
+    foreach($reviewer in @($rule.reviewers)) {
+      if($null -ne $reviewer -and ($reviewer.type -ne 'User' -or $reviewer.reviewer.id -ne $OwnerId)){return $true}
+    }
+  }
+  return $false
+}
+
 function Set-RepositoryControl {
   param([string]$Name,[scriptblock]$Operation)
   try { & $Operation; $script:setupResult.controls+=@{name=$Name;status='verified'}; Write-Host "Configured and verified: $Name" }
-  catch { $script:setupFailures+=1; $script:setupResult.controls+=@{name=$Name;status='failed';message=$_.Exception.Message}; Write-Warning "$Name was not configured: $($_.Exception.Message)" }
+  catch {
+    $script:setupFailures+=1
+    $failure=@{name=$Name;status='failed';message=$_.Exception.Message}
+    if($_.Exception.Data['GitHubStatusCode']){$failure.httpStatus=$_.Exception.Data['GitHubStatusCode']}
+    if($_.Exception.Data['GitHubMessage']){$failure.message=$_.Exception.Data['GitHubMessage']}
+    if($_.Exception.Data['GitHubDocumentation']){$failure.documentationUrl=$_.Exception.Data['GitHubDocumentation']}
+    $script:setupResult.controls+=$failure
+    Write-Warning "$Name was not configured: $($failure.message)"
+  }
 }
 
 Push-Location $projectRoot
@@ -154,12 +186,11 @@ try {
       $owner=Invoke-GitHubApi GET 'users/3azam0'
       $previousEnvironment=$null
       try {$previousEnvironment=Invoke-GitHubApi GET "repos/$repoName/environments/production"} catch {if([int]$_.Exception.Response.StatusCode -ne 404){throw}}
-      $previousReviews=@($previousEnvironment.protection_rules | Where-Object {$_.type -eq 'required_reviewers'})
-      if(@($previousReviews.reviewers | Where-Object {$_.type -ne 'User' -or $_.reviewer.id -ne $owner.id}).Count -or @($previousReviews | Where-Object {$_.prevent_self_review}).Count){throw 'Existing production review requirements need review; they will not be replaced by the solo-owner policy.'}
+      if(Test-FodoReviewConflict $previousEnvironment $owner.id){throw 'Existing production review requirements need review; they will not be replaced by the solo-owner policy.'}
       $waitTimer=0
       if($previousEnvironment){
         $oldPolicies=Invoke-GitHubApi GET "repos/$repoName/environments/production/deployment-branch-policies"
-        if(@($oldPolicies.branch_policies | Where-Object {$_.name -ne 'v*' -or $_.type -ne 'tag'}).Count){throw 'Existing production branch/tag policies need review before replacement.'}
+        if(@($oldPolicies.branch_policies | Where-Object {$null -ne $_ -and ($_.name -ne 'v*' -or $_.type -ne 'tag')}).Count){throw 'Existing production branch/tag policies need review before replacement.'}
         $timer=@($previousEnvironment.protection_rules | Where-Object {$_.type -eq 'wait_timer'})
         if($timer.Count){$waitTimer=$timer[0].wait_timer}
       }
@@ -171,7 +202,10 @@ try {
       $reviewRules=@($savedEnvironment.protection_rules | Where-Object {$_.type -eq 'required_reviewers'})
       if(-not $reviewRules.Count -or -not @($reviewRules[0].reviewers | Where-Object {$_.reviewer.id -eq $owner.id}).Count -or -not $savedEnvironment.deployment_branch_policy.custom_branch_policies -or $savedEnvironment.deployment_branch_policy.protected_branches -or -not @($policies.branch_policies | Where-Object {$_.name -eq 'v*' -and $_.type -eq 'tag'}).Count){throw 'Production approval/tag policy read-back failed.'}
     }
-    if($script:setupFailures){throw "$script:setupFailures control(s) remain pending. GitHub plan or token permissions may limit private-repository protections; no plan or access level was changed."}
+    if($script:setupFailures){
+      $failureSummary=($script:setupResult.controls | Where-Object {$_.status -eq 'failed'} | ForEach-Object {"$($_.name): $($_.message)"}) -join '; '
+      throw "$script:setupFailures control(s) remain pending. $failureSummary. Details saved in .cache/github-setup-result.json."
+    }
     Write-Host 'API-supported repository controls verified. Review and merge the PR in GitHub after its checks pass.'
     Write-Host 'Before live deployment, disable administrator bypass in GitHub Settings > Environments > production where the account plan supports it. That switch is not exposed by the supported environment API.'
     Write-Host 'Environment registrations contain no hosting resources or application secrets.'
