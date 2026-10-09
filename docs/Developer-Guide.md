@@ -1,6 +1,6 @@
 # Fodo SaaS Developer Guide
 
-Version 2.1 — 9 October 2026
+Version 2.2 — 9 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
@@ -134,7 +134,42 @@ Pure domain packages cannot import Next.js, browser APIs, Supabase clients, or U
 
 ## 4. Local development and environments
 
-Establish development, staging, and production separately. Use separate databases, storage, credentials, and integration registrations. Production copies must not become routine development fixtures.
+Use one codebase with four separately configured environments: development, staging, client demo, and production. This is the target deployment policy; the current local prototype does not provision all four environments.
+
+### 4.1 Environment responsibilities
+
+| Environment | Purpose | Data and access | Release policy |
+|---|---|---|---|
+| Development | Build features and debug locally | Synthetic fixtures; developer accounts; isolated local database or development cloud project | Task branches; frequent disposable test deployments |
+| Staging | Validate release candidates, migrations, roles and offline upgrades | Representative synthetic data; internal testers; payment/fiscal/message sandboxes | Deploy a recorded candidate commit after checks pass |
+| Client demo | Let prospective clients explore stable restaurant workflows | Separate demo organizations; seeded restaurants and branches; restricted demo accounts | Promote a tested version; keep demonstrations stable during client sessions |
+| Production | Operate paying customers' businesses | Real tenant data; real permissions; monitored backups and controlled integrations | Release an approved, tested commit/tag through the release workflow |
+
+Keep distinct URLs, databases, object storage, auth configuration, signing keys, integration credentials and deployment permissions. For hosted environments, use separate Supabase projects; local development may use an isolated local stack. Tenant separation inside one shared database is not a substitute for separating production from test/demo infrastructure.
+
+Register each environment in the deployment runbook: owner, purpose, app URL, backend project reference, region, configuration-variable names, backup policy, deployed commit/tag and allowed external integrations. Store secret values in environment configuration or a secret store, never in the runbook or repository. Display an obvious Demo/Staging label in non-production user interfaces and include environment plus build identity in diagnostics.
+
+Current setup: local development uses port 3109 and `.data-dev`; the optimized local demo uses the saved launcher origin, normally port 3108, and `.data-local`. Automated browser tests use isolated test data. A production build on a laptop remains a local demo. Hosted staging, client demo and production deployment are pending.
+
+The selected Supabase project `bkkxrptgwbrwredauopq` has a verified public connection configuration, but its environment role is unassigned. Assign its role before creating application tables or deploying users there. Provisioning additional hosted projects needs a separate infrastructure decision, including region, access and cost; this guide does not create them.
+
+### 4.2 Client-demo lifecycle
+
+- Seed a realistic restaurant organization with branches, stock, suppliers, recipes and sales examples as those workflows become available. Label sample data clearly. Each prospective client gets an isolated demo organization or workspace; never share one writable tenant between unrelated prospects.
+- Limit demo accounts to their workspace. Keep platform administration unavailable to them. Configure an expiry/renewal policy and a repeatable seed version. Automated demo resets must be a disclosed part of the demo lifecycle, with active sessions handled explicitly.
+- Use sandbox or disabled payment, fiscal, delivery and notification adapters. Demo actions must not produce live charges, tax submissions or messages to real customers.
+- Record reset events and show users the workspace's expiry/reset state. Keep exports and retention consistent with the demo policy; do not use real customer exports as fixtures.
+- When a prospect becomes a customer, create a production tenant with proper access and onboarding. Transfer only explicitly selected, validated setup data such as an approved catalog. Demo stock movements, balances, users' sessions and offline queues never become production records automatically.
+
+### 4.3 Offline isolation and demo resets
+
+Use a stable, distinct origin for each environment and namespace local databases, caches and outboxes by environment and tenant. Validate environment/tenant scope at the server; UI labels alone do not prevent cross-environment posting. Recovery files and offline grants must carry matching scope.
+
+For resettable demo workspaces, introduce a server-owned generation/epoch. Include it in grants, snapshots, commands, sync checkpoints and recovery archives. On reset, rotate the generation and revoke old demo sessions/grants. Reject commands or restored archives from a prior generation; never rewrite them to the new generation. Keep stale queued work available for inspection/export and explain that the demo was reset. Refresh the local snapshot only through an explicit reset/re-enrollment flow. This prevents an offline device from repopulating a freshly reset demo.
+
+Required checks: environment A's grants/commands/archives cannot post into B; two demo clients cannot read each other; expired demos cannot enroll/post; a device reconnecting after reset retains old work for review but cannot change the new demo ledger. Environment scoping and demo-generation contracts remain implementation work; today's version-1 commands and version-2 recovery archives do not yet provide them.
+
+### 4.4 Development bootstrap
 
 Bootstrap in this order:
 
@@ -152,6 +187,72 @@ Provide `.env.example` with placeholders. Typical configuration categories: publ
 Commit migrations and fixture seeds. Never commit keys, customer exports, signing material, or production credentials.
 
 Define project scripts such as `dev`, `lint`, `typecheck`, `test`, `test:integration`, `test:e2e`, and `build`. These names are the proposed project convention; implement them before documenting them as runnable commands.
+
+### 4.5 Git branches and repository ownership
+
+Use one repository for Fodo's shared core and modules. Git branches organize code changes; environment configuration determines deployment. Do not maintain independent product code forks for development, demos or individual clients.
+
+| Branch/ref | Purpose and lifetime |
+|---|---|
+| `main` | Target protected default branch; keep it releasable |
+| `feat/<topic>` | One feature or vertical slice; branch from the current default branch and remove after merge |
+| `fix/<topic>` | One defect and relevant regression checks |
+| `docs/<topic>` / `chore/<topic>` | Documentation or maintenance with focused validation |
+| `release/<version>` | Optional short-lived stabilization branch when parallel work requires it |
+| `hotfix/<topic>` | Urgent production repair based on the deployed release tag |
+| `vX.Y.Z` | Immutable release tag identifying a verified source commit |
+
+`main` is the intended convention. The existing local default branch is currently `master`; adopt the target name deliberately when setting up the remote and update scripts/protections together. Until then, use the actual default branch. A permanent `develop`, `demo` or `production` branch is not required. Staging and demo deploy selected source commits, and production deploys approved release tags.
+
+Repository status at this revision: local Git checkpoints exist; author identity is configured for `3azam0` with its GitHub no-reply address; no `origin` remote or remote branch protections are configured. Choose the GitHub repository and visibility explicitly before the first push. A browser login or local commit author does not by itself authenticate Git pushes.
+
+### 4.6 Daily branch, commit and push workflow
+
+1. Inspect `git status`, the current branch and configured remotes. Preserve unrelated/uncommitted work. Fetch the intended remote, then create a focused task branch from the actual default branch. Reuse an existing task branch when continuing that task.
+2. Implement one coherent change. Include related tests, migrations and documentation; keep unrelated refactoring separate. Write commits at useful, working checkpoints rather than after every small edit.
+3. Run checks appropriate to the change. For code, use the implemented typecheck/unit checks and build/browser scenarios where affected; documentation-only changes need link/content and diff checks. Record actual results and any remaining limitation.
+4. Review the diff, then stage explicit task files. Inspect `git diff --cached` and `git diff --cached --check`. Exclude environment files, credentials, customer exports, device archives, databases, backups, dependency directories and generated build files. Commit migrations and the package lockfile when applicable.
+5. Commit using an outcome-oriented message: `feat(inventory): add branch transfer receipts`, `fix(sync): preserve queued work during renewal`, or `docs(workflow): define environments and Git releases`. A larger commit body should explain the reason and material compatibility limits.
+6. Push the task branch to the confirmed remote when pushing is within the user's authorized task or agreed project workflow. Reuse that authorization for subsequent task updates; ask only when the destination, visibility or scope materially changes. Verify the remote branch points to the intended commit. Local commits and remote pushes are separate completion states.
+7. Open/update the pull request with the problem, resulting behavior, validation, migration/offline implications and deployment target. Complete required checks and review, then merge using the repository policy. Default to squash merging focused task branches, with a useful final commit message. Remove the merged task branch only after verifying merge and preserving any remaining work.
+
+Example only: after `origin` and `main` exist, with a clean checkout and an authorized branch push. Replace the topic and staged paths with the actual task; do not run this block blindly against a different base or existing work.
+
+```powershell
+git fetch origin
+git switch main
+git pull --ff-only origin main
+git switch -c feat/branch-transfers
+# Implement the task and run its relevant checks before staging.
+git add packages/domain/index.ts tests/posting.test.ts
+git diff --cached
+git diff --cached --check
+git commit -m "feat(inventory): add branch transfer receipts"
+git push -u origin feat/branch-transfers
+git fetch origin
+git rev-parse HEAD
+git rev-parse origin/feat/branch-transfers
+```
+
+Before remote setup, local branches and commits are valid checkpoints. Report a push as pending instead of inventing a repository URL or claiming the code is backed up on GitHub. For automation, record the final branch, commit SHA, remote URL/push result and pull-request link when one exists. Hosted demo or production deployment is a separate authorized release step; pushing a branch must not silently deploy production.
+
+### 4.7 Reviews, conflicts and shared history
+
+Protect the default/release branches when the remote is configured: pull-request review, required relevant checks, restricted direct pushes, and no force pushes or deletion. Use separate protected deployment environments for live credentials. Routine branch previews receive test credentials and cannot access production secrets.
+
+Resolve a non-fast-forward push by fetching, inspecting the new commits, and merging the actual base into the shared task branch. Rebase only unshared local work, or a branch whose owners explicitly agreed to rewriting it. Re-run checks affected by conflict resolution and inspect the resolved diff before pushing. Use `--force-with-lease` only for an explicitly authorized history rewrite on a task branch; never force-push the protected default/release branch. Never discard unrelated work with a hard reset or blanket checkout.
+
+Prefer `git revert` for a bad commit already shared with others. A source-code revert does not reverse inventory postings or undo database migrations safely; follow the deployment/database recovery plan as well.
+
+### 4.8 Source promotion, releases and hotfixes
+
+Promote a recorded source commit through staging, then to a stable client-demo release and/or production when their acceptance criteria pass. Demo validation supplements internal staging; a client demo is not the sole production release gate. Production and demo may remain on different approved versions without diverging codebases.
+
+Pin the commit and lockfile for each environment build and record the environment, application version, commit SHA, build identifier, migration level and release time. Next.js public configuration is compiled into the browser bundle, so build separately for environments with different public URLs/keys. Promote the same reviewed source revision; do not copy a staging bundle containing staging configuration into production. Verify each deployed build's health, environment configuration and scoped smoke tests.
+
+Create an immutable release tag such as `v0.1.0` only after release validation. Push release tags explicitly when the release is authorized; do not use a blanket push of every local tag. Keep release notes and a prior compatible artifact available. Database migrations travel with their source revision and must tolerate previously deployed offline clients.
+
+For a production hotfix: branch from the deployed tag, reproduce the defect, make the smallest supported repair, run relevant checks, validate in staging, and release a new patch tag. Apply the repair back to the default branch through review, resolving any divergence. Never move the old tag to the new commit. Roll back to a compatible artifact or roll forward with a repair; preserve accepted stock operations and pending client commands.
 
 ## 5. Foundation schema
 
@@ -456,6 +557,8 @@ Logs include safe correlation IDs and operation IDs, not credentials or full cus
 
 Before release:
 
+- Record the source commit/tag, destination environment and backend project; verify configuration belongs to that environment.
+- Confirm reviewed changes and required checks passed; identify the prior compatible artifact and rollback/roll-forward owner.
 - Review migrations and apply to staging; test previous-client compatibility.
 - Run type/lint/build and the relevant domain/integration/offline checks.
 - Run access checks for tables, views, routines, files, sync streams, and costs.
@@ -466,6 +569,8 @@ Before release:
 - Verify permission expiry, device revocation, and tenant switching.
 - Confirm fiscal responsibility and market hosting/privacy requirements.
 - Record known provisional/offline constraints and support procedure.
+- For client-demo releases, verify isolated client workspaces, disabled/sandbox integrations, expiry and stale-generation rejection after a reset.
+- After deployment, verify the served build identity and scoped smoke tests; record the migration level and deployment result.
 
 Deploy additive schema changes before clients require them. Keep compatible command handlers during rollout. Rollback must preserve accepted operations and queued older clients; avoid destructive database rollback as the default recovery mechanism.
 
@@ -475,6 +580,8 @@ Deploy additive schema changes before clients require them. Keep compatible comm
 Task:
 User outcome:
 Master-plan requirement:
+Branch and base revision:
+Target environment and backend project:
 Domain owner and dependencies:
 Database constraints/migration:
 API/command contract:
@@ -485,7 +592,9 @@ Arabic UI states:
 Failure and recovery behavior:
 Acceptance scenarios:
 Validation evidence:
+Commit SHA and push/PR status:
 Rollout/compatibility notes:
+Rollback or roll-forward approach:
 ```
 
 A task is done when its behavior, error recovery, access scope, offline effects, and evidence are reviewable. Mock screens alone are not completed business workflows.

@@ -384,6 +384,16 @@ Choose hosting/sync regions against market requirements. Verify dependencies and
 
 ## 27. SaaS operations and security
 
+### Environments and delivery
+
+Maintain one codebase with four isolated environments: development for feature work, staging for internal release validation, client demo for prospective-client trials using sample data, and production for real business operations. Use distinct application origins, databases, storage, auth/signing configuration and integration credentials. Hosted environments use separate Supabase projects; local development can use an isolated stack. Register the purpose and owner of every project before deployment. The supplied Supabase project has not yet been assigned an environment role.
+
+Client demos use isolated, clearly labeled organizations with seeded data, limited accounts, expiry and a disclosed reset policy. Payments, notifications and fiscal integrations use sandboxes or remain disabled. A reset rotates a server-owned workspace generation so stale offline commands and imported archives cannot repopulate the reset ledger. Transition to production creates a new tenant and imports only approved setup data through validation; demo transactions and offline queues are not promoted. These hosted-demo controls remain planned.
+
+Use short-lived task branches and a protected releasable default branch, with immutable release tags. Environments are deployment targets, not separate product forks or permanent client branches. Commits include the relevant source, tests, migrations and documentation; pushes use the confirmed authorized remote. Review pull requests and validate migrations/offline compatibility before promoting a recorded source commit. Build environment-specific bundles when public configuration is compiled into the client, and record source SHA, environment, build ID and migration level for each deployment. See Developer Guide section 4 for branch naming, commit/push procedure, conflicts, reviews, releases and hotfixes.
+
+### Operations
+
 Platform administration covers onboarding, plans, limits, trials, entitlement changes, subscription records, support, and integration health. Subscription payments are separate from merchant customer payments.
 
 Use scoped access, protected secrets, secure backups, audit retention, exports/offboarding, monitoring, and incident response. Assess privacy, data residency, transfer, and retention requirements per market; do not assume one region works universally.
@@ -392,7 +402,7 @@ Monitor sync lag, pending/rejected operations, ledger discrepancies, stale repor
 
 ## 28. Delivery roadmap
 
-Current status: the local receiving/waste/FIFO prototype and Fodo UI are delivered. Complete the recovery and reliability gate before expanding business modules. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2 for the implementation order.
+Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2.2 for the implementation order and environment/Git workflow.
 
 
 | Stage | Outcome |
