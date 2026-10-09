@@ -42,6 +42,22 @@ function Invoke-GitHubApi {
   elseif($null -ne $response){Write-Output $response}
 }
 
+function New-FodoStatusChecks {
+  param($Existing,[long]$AppId)
+  $checks=@($Existing.checks | Where-Object {$null -ne $_ -and $_.context -ne 'CI gate'} | ForEach-Object {
+    $check=@{context=$_.context}
+    if($null -ne $_.app_id){$check.app_id=$_.app_id}
+    $check
+  })
+  foreach($context in @($Existing.contexts)) {
+    if($context -and $context -ne 'CI gate' -and -not @($checks | Where-Object {$_.context -eq $context}).Count){$checks+=@{context=$context}}
+  }
+  $checks+=@{context='CI gate';app_id=$AppId}
+  # GitHub accepts either contexts or checks, not both. Use checks to bind
+  # CI gate to GitHub Actions while preserving other required checks.
+  return @{strict=$true;checks=$checks}
+}
+
 function Test-FodoReviewConflict {
   param($Environment,[long]$OwnerId)
   foreach($rule in @($Environment.protection_rules)) {
@@ -152,10 +168,8 @@ try {
       $existingProtection=$null
       try {$existingProtection=Invoke-GitHubApi GET "repos/$repoName/branches/main/protection"} catch {if([int]$_.Exception.Response.StatusCode -ne 404){throw}}
       if($existingProtection.restrictions -or $existingProtection.required_pull_request_reviews.require_code_owner_reviews -or $existingProtection.required_pull_request_reviews.required_approving_review_count -gt $RequiredApprovals){throw 'Existing main protection is stricter or has scoped access rules. Preserve it and review the policy before rerunning; this helper will not weaken it.'}
-      $requiredChecks=@($existingProtection.required_status_checks.checks | Where-Object {$null -ne $_ -and $_.context -ne 'CI gate'} | ForEach-Object {@{context=$_.context;app_id=$_.app_id}})
-      $requiredChecks+=@{context='CI gate';app_id=$gates[0].app.id}
       $protection=@{
-        required_status_checks=@{strict=$true;contexts=@();checks=$requiredChecks}
+        required_status_checks=(New-FodoStatusChecks $existingProtection.required_status_checks $gates[0].app.id)
         enforce_admins=$true
         required_pull_request_reviews=@{dismiss_stale_reviews=$true;require_code_owner_reviews=$false;required_approving_review_count=$RequiredApprovals}
         restrictions=$null;required_conversation_resolution=$true;allow_force_pushes=$false;allow_deletions=$false
