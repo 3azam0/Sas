@@ -5,7 +5,7 @@ const port=process.env.TEST_PORT || '3101';
 const origin=`http://127.0.0.1:${port}`;
 const dataDir=process.env.TEST_DATA_DIR || '.data-browser-test';
 const build=JSON.parse(readFileSync('apps/web/.next/fodo-build.json','utf8'));
-const server=spawn(process.execPath,[resolve('node_modules/next/dist/bin/next'),'start','--hostname','127.0.0.1','--port',port],{cwd:resolve('apps/web'),env:{...process.env,FODO_BUILD_LABEL:build.buildVersion,SAAS_DEMO_MODE:'1',SAAS_APP_ORIGIN:origin,SAAS_DATA_DIR:resolve(dataDir)},stdio:'inherit'});
+const server=spawn(process.execPath,[resolve('node_modules/next/dist/bin/next'),'start','--hostname','127.0.0.1','--port',port],{cwd:resolve('apps/web'),env:{...process.env,FODO_BUILD_LABEL:build.buildVersion,SAAS_DEMO_MODE:'1',SAAS_INITIAL_COSTING_METHOD:process.env.TEST_COSTING_METHOD||'fifo',SAAS_APP_ORIGIN:origin,SAAS_DATA_DIR:resolve(dataDir)},stdio:'inherit'});
 let result=1;
 try {
   let ready=false;

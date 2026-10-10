@@ -10,7 +10,7 @@ const access:Access={organizationId:'grills',userId:'owner',deviceId:randomUUID(
 async function fixture(){const locationId=randomUUID();await postSetupCommand(db,access,{operationId:randomUUID(),organizationId:'grills',type:'location.save',expectedRevision:0,capturedAt:now(),schemaVersion:1,record:{id:locationId,name:'فرع افتتاحي',kind:'مطعم',active:true}});return locationId;}
 function document(locationId:string,extra:Partial<OpeningDocument>={}):OpeningDocument{return {operationId:randomUUID(),organizationId:'grills',locationId,type:'opening.post',businessDate:'2026-10-09',reason:'رصيد أول المدة',capturedAt:now(),schemaVersion:1,currency:'EGP',lines:[{lineId:randomUUID(),itemId:'beef',unitId:'كجم',quantity:'10',unitCost:'20'}],...extra};}
 function stock(locationId:string,type:Command['type']='waste.post',quantity='2'):Command{return{operationId:randomUUID(),organizationId:'grills',locationId,itemId:'beef',type,quantity,unitCost:type==='receipt.post'?'99':undefined,businessDate:'2026-10-09',reason:'اختبار حركة',capturedAt:now(),schemaVersion:1};}
-beforeAll(async()=>{db=await createDatabase();await seed(db);});afterAll(async()=>{await db.close();});
+beforeAll(async()=>{db=await createDatabase();await seed(db,'fifo');});afterAll(async()=>{await db.close();});
 it('posts a multi-line baseline atomically with layers, document history and actor audit',async()=>{
  const site=await fixture(),doc=document(site);doc.lines.push({lineId:randomUUID(),itemId:'rice',unitId:'كجم',quantity:'3',unitCost:'0'});
  expect((await postOpening(db,access,doc)).amount).toBe('200.000000000000');

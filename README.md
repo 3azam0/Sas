@@ -5,25 +5,25 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 ## What works
 
 - Separate organizations, shared item catalog, and stock per location: Cairo, Alexandria, and a combined central warehouse/preparation kitchen.
-- Material receipts and waste capture, movement history, stock quantity/value, and inspectable FIFO layers.
+- Material receipts and waste capture, movement history, stock quantity/value, and inspectable source layers and moving-average/FIFO costing.
 - IndexedDB outbox, provisional local quantities, automatic reconnect sync, and server acceptance without duplicate stock effects.
 - Offline reopening after the application shell and initial data have downloaded.
-- Atomic PostgreSQL posting: command receipt, stock movement, FIFO allocation, balance, and audit record commit together. Insufficient stock rolls back and remains visible for review.
+- Atomic PostgreSQL posting: command receipt, stock movement, selected-policy allocation, balance, and audit record commit together. Insufficient stock rolls back and remains visible for review.
 - Responsive web interface and a downloadable JSON recovery archive with preview, validation, and idempotent import.
 - Review queue for rejected offline operations, including retry, correction, and cancellation with linked history.
 - Stable local origin, single-process database ownership, startup health checks, and verified local backup/restore helpers.
 - Inventory setup: create/edit items, units, suppliers and restaurant/warehouse/preparation locations; deactivate records while preserving their history.
 - Durable offline setup changes, revision-conflict review, supplier-linked receiving and item-specific purchase packs with server-validated base quantities.
 - Opening stock documents: multi-material base quantities/costs, bounded CSV mapping/preview, all-or-nothing acceptance, FIFO layers and immutable review history.
-- Offline opening documents synchronize before dependent stock operations. Format-8 recovery includes count/transfer/return/purchase/opening/setup/stock records and linked recount/corrections; formats 1–7 remain readable.
+- Offline opening documents synchronize before dependent stock operations. Format-9 recovery includes count/transfer/return/purchase/opening/setup/stock records and linked recount/corrections; formats 1–8 are parseable, but pre-reset generations cannot restore into a new ledger.
 
-- Transfers: atomic FIFO dispatch, in-transit quantities/value, partial receiving at original costs, explicit transit loss, offline capture/review/correction and recovery.
+- Transfers: atomic selected-policy dispatch, in-transit quantities/value, partial receiving at original costs, explicit transit loss, offline capture/review/correction and recovery.
 - Supplier returns: source-layer availability, original-cost deductions, atomic multi-line posting, duplicate protection and durable offline review/correction. Gross received order quantities remain unchanged.
 - Purchase orders: offline drafts and submitted revisions, partial pack-based receiving, immutable costs/source links, outstanding quantities, cancellation and full-receipt reversal against untouched original layers.
 
-- Stock counts: partial physical quantities, reviewed atomic FIFO shortages and explicit-cost surpluses, strict stale-sequence checks, independent reconciliation and linked offline recount/recovery.
+- Stock counts: partial physical quantities, reviewed atomic selected-policy shortages and explicit-cost surpluses, strict stale-sequence checks, independent reconciliation and linked offline recount/recovery.
 
-Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for original-cost returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Open **التحويلات** for dispatch, partial receiving and explicit transit loss; see the [transfers walkthrough](docs/runbooks/Transfers.md). Counts/reconciliation are delivered locally in **الجرد والتسوية**; see the [stock counts walkthrough](docs/runbooks/Stock-Counts.md). Recipes/BOMs are next; membership administration and dedicated demo infrastructure are deferred.
+Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for source-linked returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Open **التحويلات** for dispatch, partial receiving and explicit transit loss; see the [transfers walkthrough](docs/runbooks/Transfers.md). Counts/reconciliation are delivered locally in **الجرد والتسوية**; see the [stock counts walkthrough](docs/runbooks/Stock-Counts.md). Recipes/BOMs are next; membership administration and dedicated demo infrastructure are deferred.
 
 ## Run on this Windows machine
 
@@ -105,3 +105,5 @@ See [the environment report](docs/Environment-Setup.md), [the master plan](docs/
 Task branches use PRs into `main`. The prepared GitHub workflow runs type checking, unit/integration tests, production build, all offline/recovery/launcher browser scenarios and full-history secret scanning. `CI gate` requires both quality and secret jobs to pass. Version tags matching `package.json`, reviewed main history and committed release notes prepare a GitHub draft release with a source manifest; they do not deploy the application.
 
 The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. See [GitHub setup and release runbook](docs/runbooks/GitHub-Setup.md) for the retry procedure. Hosted services and environment secrets remain pending.
+
+Inventory costing now defaults to moving weighted average per material/location. FIFO can be selected in inventory setup using an explicit development sample reset. Setup is retained; old transaction queues/archives are invalidated by generation. See [Costing methods](docs/runbooks/Costing-Methods.md).

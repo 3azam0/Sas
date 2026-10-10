@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 async function newSite(page:Page){
  await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();
  const id=crypto.randomUUID(),name=`فرع افتتاح ${Date.now()}`;
- const response=await page.request.post('/api/v1/setup',{headers:{Origin:new URL(page.url()).origin},data:{operationId:crypto.randomUUID(),organizationId:'grills',type:'location.save',expectedRevision:0,capturedAt:new Date().toISOString(),schemaVersion:1,record:{id,name,kind:'مطعم',active:true}}});expect(response.ok(),await response.text()).toBe(true);
+ const response=await page.request.post('/api/v1/setup',{headers:{Origin:new URL(page.url()).origin,'X-Fodo-Generation':(await(await page.request.get('/api/v1/bootstrap')).json()).generation},data:{operationId:crypto.randomUUID(),organizationId:'grills',type:'location.save',expectedRevision:0,capturedAt:new Date().toISOString(),schemaVersion:1,record:{id,name,kind:'مطعم',active:true}}});expect(response.ok(),await response.text()).toBe(true);
  await page.getByRole('button',{name:'مزامنة الآن',exact:true}).first().click();
  await expect(page.getByLabel('الموقع',{exact:true}).locator('option').filter({hasText:name})).toHaveCount(1);
  await page.getByLabel('الموقع',{exact:true}).selectOption(id);return id;
@@ -19,7 +19,7 @@ test('multi-line opening survives offline reload, precedes waste and posts once'
  await expect.poll(async()=>{const s=await(await page.request.get('/api/v1/bootstrap')).json();return s.balances.find((b:any)=>b.locationId===site&&b.itemId==='beef')?.quantity;},{timeout:30000}).toBe('8.000000');
  const snapshot=await(await page.request.get('/api/v1/bootstrap')).json(),doc=snapshot.openings.find((d:any)=>d.document.locationId===site).document;
  expect(snapshot.balances.find((b:any)=>b.locationId===site&&b.itemId==='beef').value).toBe('160.000000000000');expect(snapshot.entries.filter((e:any)=>e.locationId===site)).toHaveLength(3);
- expect((await page.request.post('/api/v1/openings',{headers:{Origin:new URL(page.url()).origin},data:doc})).ok()).toBe(true);await page.getByRole('button',{name:'مزامنة الآن',exact:true}).first().click();await expect(page.locator('.opening-document summary')).toContainText('مقبول');
+ expect((await page.request.post('/api/v1/openings',{headers:{Origin:new URL(page.url()).origin,'X-Fodo-Generation':(await(await page.request.get('/api/v1/bootstrap')).json()).generation},data:doc})).ok()).toBe(true);await page.getByRole('button',{name:'مزامنة الآن',exact:true}).first().click();await expect(page.locator('.opening-document summary')).toContainText('مقبول');
  await page.getByRole('button',{name:'سجل الحركات',exact:true}).click();await expect(page.getByRole('cell',{name:'رصيد افتتاحي',exact:true})).toHaveCount(2);
  await page.getByRole('button',{name:'الرصيد الافتتاحي',exact:true}).click();await page.screenshot({path:'test-results/fodo-opening-desktop.png',fullPage:true});
 });

@@ -17,7 +17,7 @@ describe('durable offline outbox and convergence',()=>{
  it('preserves queued operations when posting loses authorization',async()=>{
   await acceptSnapshot(snapshot);await saveCommand(command);
   vi.stubGlobal('navigator',{});
-  vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({message:'Forbidden'},{status:403})));
+  vi.stubGlobal('fetch',vi.fn(async(url)=>url==='/api/v1/bootstrap'?Response.json(snapshot):Response.json({message:'Forbidden'},{status:403})));
   await expect(sync('grills')).rejects.toThrow('العمليات محفوظة');
   expect((await local.commands.get(command.operationId))?.status).toBe('pending');
  });

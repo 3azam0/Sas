@@ -1,7 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 async function fixture(page:Page,multi=false){
  await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();const origin=new URL(page.url()).origin,locationId=crypto.randomUUID(),supplierId=crypto.randomUUID(),orderId=crypto.randomUUID();
- async function post(url:string,data:unknown){const r=await page.request.post(url,{headers:{Origin:origin},data});expect(r.ok(),await r.text()).toBe(true);}
+ async function post(url:string,data:unknown){const r=await page.request.post(url,{headers:{Origin:origin,'X-Fodo-Generation':(await(await page.request.get('/api/v1/bootstrap')).json()).generation},data});expect(r.ok(),await r.text()).toBe(true);}
  const envelope=(expectedRevision:number)=>({operationId:crypto.randomUUID(),organizationId:'grills',orderId,expectedRevision,capturedAt:new Date().toISOString(),schemaVersion:1});
  for(const [type,record] of [['location.save',{id:locationId,name:'فرع مرتجع '+Date.now(),kind:'مطعم',active:true}],['supplier.save',{id:supplierId,name:'مورد مرتجع '+Date.now(),phone:'',email:'',address:'',active:true}]])await post('/api/v1/setup',{...envelope(0),type,record});
  const lines=[{lineId:crypto.randomUUID(),itemId:'rice',unitId:'كجم',unitName:'كجم',factor:'1',quantity:'10',enteredQuantity:'10',unitCost:'20'}];if(multi)lines.push({...lines[0],lineId:crypto.randomUUID(),itemId:'beef'});

@@ -17,7 +17,7 @@ async function fixture(){
  for(const c of [unit,supplier,location,item])await postSetupCommand(db,access,c);
  return {unit,supplier,location,item,pack};
 }
-beforeAll(async()=>{db=await createDatabase();await seed(db);});
+beforeAll(async()=>{db=await createDatabase();await seed(db,'fifo');});
 afterAll(async()=>{await db.close();});
 
 it('creates scoped setup, receives packs into a new location and consumes FIFO',async()=>{

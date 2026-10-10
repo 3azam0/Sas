@@ -1,3 +1,4 @@
+import {assertGeneration,planIssue,applyIssue} from './valuation';
 import type {PGlite} from '@electric-sql/pglite';
 import {createHash} from 'node:crypto';
 import {BusinessError,countCommandSchema,type Access,type CommandResult,type CountDefinition,type CountChange,type FinalizedCount,type StockCount,type StockReconciliation,type Layer} from '@saas/contracts';
@@ -21,7 +22,7 @@ CREATE INDEX IF NOT EXISTS stock_location_item_lookup ON stock_entries(organizat
 export async function reconcileStock(tx:Pick<PGlite,'query'>,org:string):Promise<StockReconciliation[]>{
  const balances=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",quantity::text,value::text FROM stock_balances WHERE organization_id=$1',[org])).rows;
  const ledger=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",sum(quantity)::text AS quantity,sum(amount)::text AS value FROM stock_entries WHERE organization_id=$1 GROUP BY location_id,item_id',[org])).rows;
- const layers=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",sum(remaining)::text AS quantity,sum(remaining*unit_cost)::text AS value FROM cost_layers WHERE organization_id=$1 GROUP BY location_id,item_id',[org])).rows;
+ const layers=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",sum(remaining)::text AS quantity,sum(COALESCE(remaining_value,remaining*unit_cost))::text AS value FROM cost_layers WHERE organization_id=$1 GROUP BY location_id,item_id',[org])).rows;
  const key=(r:{locationId:string;itemId:string})=>JSON.stringify([r.locationId,r.itemId]);const b=new Map(balances.map(r=>[key(r),r])),e=new Map(ledger.map(r=>[key(r),r])),l=new Map(layers.map(r=>[key(r),r]));
  return [...new Set([...b.keys(),...e.keys(),...l.keys()])].map(k=>{const row=b.get(k)??e.get(k)??l.get(k)!;const balanceQuantity=b.get(k)?.quantity??'0',balanceValue=b.get(k)?.value??'0',ledgerQuantity=e.get(k)?.quantity??'0',ledgerValue=e.get(k)?.value??'0',layerQuantity=l.get(k)?.quantity??'0',layerValue=l.get(k)?.value??'0';return {locationId:row.locationId,itemId:row.itemId,balanceQuantity,balanceValue,ledgerQuantity,ledgerValue,layerQuantity,layerValue,matches:decimal(balanceQuantity).eq(ledgerQuantity)&&decimal(balanceQuantity).eq(layerQuantity)&&decimal(balanceValue).eq(ledgerValue)&&decimal(balanceValue).eq(layerValue)};});
 }
@@ -39,6 +40,7 @@ export async function postCount(db:PGlite,access:Access,input:unknown):Promise<C
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');
  return db.transaction(async tx=>{
   await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[c.organizationId]);
+ await assertGeneration(tx,c.organizationId,c.generation);
   const prior=(await tx.query<{payload_hash:string;result:CommandResult}>('SELECT payload_hash,result FROM command_receipts WHERE organization_id=$1 AND operation_id=$2',[c.organizationId,c.operationId])).rows[0];
   if(prior){if(prior.payload_hash!==hash)throw new BusinessError('PAYLOAD_CONFLICT','معرّف العملية مستخدم لبيانات مختلفة.');return prior.result;}
   if((await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND operation_id=$2',[c.organizationId,c.operationId])).rows.length)throw new BusinessError('PAYLOAD_CONFLICT','المعرّف مستخدم لحركة مخزون.');
@@ -66,10 +68,10 @@ export async function postCount(db:PGlite,access:Access,input:unknown):Promise<C
     for(const line of d.lines){
      const reconciliation=before.find(r=>r.locationId===d.locationId&&r.itemId===line.itemId);if(reconciliation&&!reconciliation.matches)throw new BusinessError('RECONCILIATION_MISMATCH','الرصيد والحركات وطبقات التكلفة غير متطابقة. أوقف الاعتماد وراجع السجل.');
      const expected=reconciliation?.balanceQuantity??'0';if(!decimal(expected).eq(line.expectedQuantity))throw new BusinessError('BASELINE_MISMATCH','كمية الأساس لا تطابق الرصيد المقبول. زامن وأعد العد.');
-     const variance=decimal(line.countedQuantity).sub(expected),movementId=c.lines.find(l=>l.lineId===line.lineId)!.movementId;let allocation:ReturnType<typeof allocateFIFO>|undefined;
+     const variance=decimal(line.countedQuantity).sub(expected),movementId=c.lines.find(l=>l.lineId===line.lineId)!.movementId;let allocation:Awaited<ReturnType<typeof planIssue>>|undefined;
      if(variance.gt(0)&&line.surplusUnitCost===undefined)throw new BusinessError('COST_REQUIRED','أدخل تكلفة وحدة صريحة لكل زيادة قبل اعتماد الجرد.');
      if(variance.lt(0)){
-      const layers=(await tx.query<Layer>('SELECT id,location_id AS "locationId",item_id AS "itemId",remaining::text,unit_cost::text AS "unitCost",sequence FROM cost_layers WHERE organization_id=$1 AND location_id=$2 AND item_id=$3 AND remaining>0 ORDER BY sequence,id FOR UPDATE',[c.organizationId,d.locationId,line.itemId])).rows;allocation=allocateFIFO(layers,variance.neg().toString());
+      allocation=await planIssue(tx,c.organizationId,d.locationId,line.itemId,variance.neg().toString());
      }
      const value=variance.lt(0)?decimal(allocation!.amount).neg().toFixed(12):variance.gt(0)?variance.mul(line.surplusUnitCost!).toFixed(12):'0.000000000000';prepared.push({line,movementId,variance,allocation,value});
     }
@@ -78,9 +80,9 @@ export async function postCount(db:PGlite,access:Access,input:unknown):Promise<C
      total=total.add(value);
      if(variance.gt(0))await addIncomingStock(tx,{organizationId:c.organizationId,operationId:movementId,locationId:d.locationId,itemId:line.itemId,quantity:variance.toString(),unitCost:line.surplusUnitCost!,type:'count.adjust',reason:d.reason,businessDate:d.businessDate});
      if(variance.lt(0)){
-      for(const part of allocation!.allocations){await tx.query('UPDATE cost_layers SET remaining=remaining-$3::numeric WHERE organization_id=$1 AND id=$2',[c.organizationId,part.layerId,part.quantity]);await tx.query('INSERT INTO layer_allocations VALUES($1,$2,$3,$4,$5)',[c.organizationId,movementId,part.layerId,part.quantity,part.amount]);}
+      await applyIssue(tx,c.organizationId,d.locationId,line.itemId,movementId,variance.neg().toString(),allocation!);
       await tx.query('INSERT INTO stock_entries(organization_id,operation_id,location_id,item_id,quantity,amount,type,reason,business_date) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[c.organizationId,movementId,d.locationId,line.itemId,variance.toString(),value,'count.adjust',d.reason,d.businessDate]);
-      await tx.query('UPDATE stock_balances SET quantity=quantity+$4::numeric,value=value+$5::numeric WHERE organization_id=$1 AND location_id=$2 AND item_id=$3',[c.organizationId,d.locationId,line.itemId,variance.toString(),value]);
+
      }
      if(!variance.isZero())await tx.query('UPDATE stock_entries SET count_id=$3,count_line_id=$4 WHERE organization_id=$1 AND operation_id=$2',[c.organizationId,movementId,c.countId,line.lineId]);
      const change:CountChange={lineId:line.lineId,movementId,itemId:line.itemId,expected:line.expectedQuantity,counted:line.countedQuantity,variance:variance.toString(),amount:value,surplusUnitCost:variance.gt(0)?line.surplusUnitCost:undefined};changes.push(change);

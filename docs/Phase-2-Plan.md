@@ -4,7 +4,7 @@ Revision: 10 October 2026. Phase 2A opening stock, 2B purchasing and 2C supplier
 
 ## Scope and delivery order
 
-Use the existing Arabic web application, tenant scoping, development session, FIFO engine, Dexie outboxes and recovery workflow. Work for one restaurant organization with multiple branches; retain a second isolated organization only as a regression fixture. Do not add memberships, billing, onboarding or separate demo infrastructure to this phase. Do not reset existing development data to make a new workflow pass.
+Use the existing Arabic web application, tenant scoping, development session, FIFO engine, Dexie outboxes and recovery workflow. Work for one restaurant organization with multiple branches; retain a second isolated organization only as a regression fixture. Do not add memberships, billing, onboarding or separate demo infrastructure to this phase. Routine workflow checks use isolated data. The later user-authorized costing sample reset keeps setup and is described in the costing runbook.
 
 Deliver 2A before 2B, and 2B before 2C. Each slice needs its working screen, durable offline capture, server validation, movement history, recovery compatibility and relevant tests. Complete its acceptance scenarios before starting the next slice. Development settings use EGP, Arabic RTL and Africa/Cairo as current defaults; document values retain their captured currency, unit conversion and business date.
 
@@ -53,7 +53,7 @@ Delivered locally: accepted purchase-document receipt sources, original-cost ato
 Return accepted quantities against their originating receipt lines. Require supplier, source receipt, location, business date, reason and positive base quantities. A return is a stock movement with a financial reference; it is not a deletion of the original purchase.
 
 - Cap cumulative returns by the original accepted quantity minus earlier accepted returns. Reversed receipts cannot be returned. Also require the originating cost layer quantity still available in the source location.
-- Return the selected receipt's available layers at their original captured cost. Do not substitute another receipt's FIFO layer. Stock that was consumed or moved cannot be returned through this slice; bring transfers/traceability into scope later with an explicit policy.
+- Return the selected receipt's available source quantity; retain its original supplier reference value separately from inventory deduction under the selected costing policy. Do not substitute another receipt's FIFO layer. Stock that was consumed or moved cannot be returned through this slice; bring transfers/traceability into scope later with an explicit policy.
 - Validate and deduct all lines atomically. Keep quantity, value, source allocations, result receipt and actor audit in the same transaction. Repeated delivery cannot deduct twice.
 - Capture a supplier credit-note reference where available, but leave its payment/accounting settlement separate from inventory acceptance.
 - Save offline as pending; stale availability becomes review rather than negative stock. Preserve the rejected command for retry/correction/cancellation using the existing immutable-history rules.

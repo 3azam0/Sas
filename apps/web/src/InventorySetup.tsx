@@ -36,7 +36,7 @@ function SetupEditor({section,initial,snapshot,close,saved}:{section:Section;ini
  useEffect(()=>{dialog.current?.showModal();},[]);
  function field<K extends keyof RecordData>(key:K,value:RecordData[K]){setRecord(r=>({...r,[key]:value}));}
  async function submit(e:React.FormEvent){e.preventDefault();setSaving(true);setError('');try{
-  const base={operationId:crypto.randomUUID(),organizationId:snapshot.organizationId,expectedRevision:initial?.revision??0,capturedAt:new Date().toISOString(),schemaVersion:1};
+  const base={operationId:crypto.randomUUID(),organizationId:snapshot.organizationId,generation:snapshot.generation,expectedRevision:initial?.revision??0,capturedAt:new Date().toISOString(),schemaVersion:1};
   const command=setupCommandSchema.parse({...base,type:types[section],record});await saveSetup(command);saved();
  }catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'تحقق من الحقول: الاسم حرفان على الأقل، والكميات موجبة، والكود مطلوب، والبريد الإلكتروني صالح.');}finally{setSaving(false);}}
  const packs=record.purchaseUnits??[];

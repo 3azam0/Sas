@@ -12,7 +12,7 @@ Implemented in Phase 2B on `feat/purchase-documents`, stacked on local `feat/ope
 ## Partial receiving
 
 1. On a submitted order, choose **استلام مقابل الأمر**. Enter a receipt reference, date and quantities in the order's captured purchase units. Leave untouched lines blank or zero.
-2. Receive 8 kg of a 20-kg order. After acceptance, the order shows 8 kg received and 12 kg outstanding; stock and FIFO value increase by 8 kg and its captured cost.
+2. Receive 8 kg of a 20-kg order. After acceptance, the order shows 8 kg received and 12 kg outstanding; stock quantity/value increase by 8 kg and its captured cost.
 3. Receive the remaining 12 kg. The order becomes fully received. Additional quantities are rejected. Multi-line receipt posting is atomic: one failing line rejects the entire receipt.
 4. Review accepted receipts under the order and **سجل الحركات**. Supplier, pack, entered quantity, receipt and order-line links remain stored. Expand **سجل إصدارات الأمر** to inspect earlier captured definitions, prices and quantities.
 
@@ -33,10 +33,13 @@ IndexedDB version 4 adds the purchase outbox without removing setup/opening/stoc
 
 Receipt reversal can be saved offline, but its quantity/order effects are shown after server acceptance; synchronize the reversal before capturing its replacement. Posting sequence determines FIFO; backdated business dates do not reorder accepted layers.
 
-Recovery format 8 includes count/transfer/purchase/return actions, movement IDs and linked return corrections alongside all earlier outboxes. Formats 1–7 remain readable. Import validates scope, references, IDs and payload conflicts, then restores atomically. Exported acceptance is never trusted without server reconciliation. Older application builds cannot read format 8; retain the current build when restoring a new archive.
+Recovery format 9 includes count/transfer/purchase/return actions, movement IDs and linked return corrections alongside all earlier outboxes. Formats 1–8 are parseable, but archives from before a sample reset cannot restore into the new generation. Import validates scope, references, IDs and payload conflicts, then restores atomically. Exported acceptance is never trusted without server reconciliation. Older application builds cannot read format 9; retain the current build when restoring a new archive.
 
 ## Financial and release boundaries
 
 This slice records EGP net inventory cost for development. It does not calculate supplier payments, recoverable tax, discounts or freight, and its documents are not compliant tax invoices. Set and implement the client's financial allocation rules and real authentication before live operation. Membership/billing and separate demo infrastructure remain deferred. Phase 2C source-linked supplier returns are delivered; see [Supplier returns](./Supplier-Returns.md). They are separate from reversing an erroneous entire receipt and do not reopen order receiving.
 
 Checks cover stock-free drafts, 8+12 partial receiving, competing revisions, same-ID retry, pack conversion, tenant scope, atomic receipt/reversal rollback, original layer availability, migrations, offline reload, ordered sync, recovery and phone layouts. Use isolated browser data and port 3114, leaving `.data-local` untouched.
+
+
+Current default is moving weighted average; FIFO remains selectable. Examples explicitly using FIFO retain their FIFO assumptions. See [Costing methods and development reset](./Costing-Methods.md) for selected-policy valuation, source reference differences and generation-bound recovery.

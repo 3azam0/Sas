@@ -1,7 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 async function fixture(page:Page){
  await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();const origin=new URL(page.url()).origin,locationId=crypto.randomUUID();
- async function post(url:string,data:unknown){const r=await page.request.post(url,{headers:{Origin:origin},data});expect(r.ok(),await r.text()).toBe(true);}
+ async function post(url:string,data:unknown){const r=await page.request.post(url,{headers:{Origin:origin,'X-Fodo-Generation':(await(await page.request.get('/api/v1/bootstrap')).json()).generation},data});expect(r.ok(),await r.text()).toBe(true);}
  await post('/api/v1/setup',{operationId:crypto.randomUUID(),organizationId:'grills',expectedRevision:0,type:'location.save',capturedAt:new Date().toISOString(),schemaVersion:1,record:{id:locationId,name:'موقع الجرد '+Date.now(),kind:'مخزن',active:true}});
  async function move(type='receipt.post',quantity='1',unitCost='20'){await post('/api/v1/commands',{operationId:crypto.randomUUID(),organizationId:'grills',locationId,type,itemId:'rice',quantity,unitCost,reason:'Count fixture',businessDate:'2026-10-09',capturedAt:new Date().toISOString(),schemaVersion:1});}
  await move('receipt.post','2','20');await move('receipt.post','8','30');await page.getByRole('button',{name:'مزامنة الآن',exact:true}).first().click();await expect(page.getByLabel('الموقع',{exact:true}).locator(`option[value="${locationId}"]`)).toHaveCount(1);await page.getByLabel('الموقع',{exact:true}).selectOption(locationId);await page.getByRole('button',{name:'الجرد والتسوية',exact:true}).click();return {locationId,move};

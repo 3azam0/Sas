@@ -1,3 +1,4 @@
+import {assertGeneration,planIssue,applyIssue} from './valuation';
 import type {PGlite} from '@electric-sql/pglite';
 import {createHash} from 'node:crypto';
 import {setupCommandSchema,BusinessError,type Access,type CommandResult,type PurchaseUnit} from '@saas/contracts';
@@ -10,6 +11,7 @@ export async function postSetupCommand(db:PGlite,access:Access,input:unknown):Pr
   const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');
   try{return await db.transaction(async tx=>{
     const organization=await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);
+ await assertGeneration(tx,c.organizationId,c.generation);
     if(!organization.rows.length)throw new BusinessError('FORBIDDEN','المؤسسة غير متاحة.',403);
     const prior=(await tx.query<{payload_hash:string;result:CommandResult}>('SELECT payload_hash,result FROM command_receipts WHERE organization_id=$1 AND operation_id=$2',[org,c.operationId])).rows[0];
     if(prior){if(prior.payload_hash!==hash)throw new BusinessError('PAYLOAD_CONFLICT','معرّف العملية مستخدم لبيانات مختلفة.');return prior.result;}

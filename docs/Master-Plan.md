@@ -4,7 +4,7 @@ Updated: 10 October 2026
 
 Status: planning baseline. Client-specific inputs are deferred. This document specifies intended behavior; it does not claim that integrations, compliance, or software have already been implemented.
 
-Delivery status on 10 October 2026: local inventory setup includes editable items, units, suppliers, stock locations and fixed purchase packs, connected to receiving, waste, FIFO, offline outboxes and recovery. Opening stock now supports multi-material documents and bounded CSV mapping/preview, atomic baseline posting, offline dependency sequencing and version-4 recovery. Purchase orders now support offline drafts/submission, revisions, partial receiving, immutable source-linked receipts, cancellation of unreceived quantities and original-stock reversal. Source-linked supplier returns now deduct original layers/costs atomically, preserve gross receiving and support offline review/correction. Verification passed 120 unit/integration tests and twenty-four browser/process scenarios. Transfers now support dispatch, original-cost partial receiving, transit loss and offline revision sequencing. Stock counts now support partial physical capture, explicit review, FIFO shortages, explicit-cost surpluses, strict location-sequence rejection, independent reconciliation and linked offline recount. Recovery format 8 includes counts/transfers and reads formats 1–7. Recipes, production and the full restaurant release remain pending. The selected Supabase project is `bkkxrptgwbrwredauopq`; its Auth endpoint accepts the configured publishable key. Production tenant/access implementation still requires management access and migrations; it is deferred while restaurant workflows are completed in development.
+Delivery status on 10 October 2026: local inventory setup includes editable items, units, suppliers, stock locations and fixed purchase packs, connected to receiving, waste, moving-average/FIFO costing, offline outboxes and recovery. Opening stock now supports multi-material documents and bounded CSV mapping/preview, atomic baseline posting, offline dependency sequencing and version-4 recovery. Purchase orders now support offline drafts/submission, revisions, partial receiving, immutable source-linked receipts, cancellation of unreceived quantities and original-stock reversal. Source-linked supplier returns now trace original source quantities and deduct selected-policy inventory values atomically, preserve gross receiving and support offline review/correction. Verification passed 136 unit/integration tests and twenty-seven browser/process scenarios. Transfers now support dispatch, original-cost partial receiving, transit loss and offline revision sequencing. Stock counts now support partial physical capture, explicit review, shortages under the selected costing policy, explicit-cost surpluses, strict location-sequence rejection, independent reconciliation and linked offline recount. Recovery format 9 includes all outboxes and a reset generation; formats 1–8 are parseable but pre-reset archives cannot restore into a new generation. Recipes, production and the full restaurant release remain pending. The selected Supabase project is `bkkxrptgwbrwredauopq`; its Auth endpoint accepts the configured publishable key. Production tenant/access implementation still requires management access and migrations; it is deferred while restaurant workflows are completed in development.
 
 ## 1. Product objective
 
@@ -16,7 +16,7 @@ The first client application is an offline-first web application. Mobile and des
 
 Current delivery scope: complete working restaurant workflows for the first client in development, retaining the multi-tenant architecture. Membership management, invitations, role-administration screens, billing and additional-client onboarding are deferred. Demonstrate the development version to the client; do not provision a separate client-demo or hosted staging environment now. Preserve tenant scoping and existing offline/session protections. Production deployment and minimum real authenticated access are required before live business use, after the working development milestones.
 
-Phase 2A opening stock, 2B purchase documents/partial receiving and 2C source-linked supplier returns are delivered locally. Phase 3A transfers and 3B counts/reconciliation are also delivered locally. Next: versioned recipes/BOMs and sub-recipes; see the [Phase 3 plan](./Phase-3-Plan.md). Complete each slice with offline persistence, server validation, recovery and acceptance checks. See the [Phase 2 implementation plan](./Phase-2-Plan.md). Recipes, production and restaurant cost control come after the delivered stock movements and count integrity. No further client planning inputs are needed to start the development slices with labeled examples.
+Phase 2A opening stock, 2B purchase documents/partial receiving and 2C source-linked supplier returns are delivered locally. Phase 3A transfers and 3B counts/reconciliation are also delivered locally. Moving-average costing with FIFO selection is delivered before recipes. Next: versioned recipes/BOMs and sub-recipes; see the [Phase 3 plan](./Phase-3-Plan.md). Complete each slice with offline persistence, server validation, recovery and acceptance checks. See the [Phase 2 implementation plan](./Phase-2-Plan.md). Recipes, production and restaurant cost control come after the delivered stock movements and count integrity. No further client planning inputs are needed to start the development slices with labeled examples.
 
 Foodics is a reference for restaurant workflows and usability. This specification defines the platform's own transaction, costing, and extensibility rules.
 
@@ -94,7 +94,7 @@ Enable modules at organization level and assign them to outlets. Validate depend
 
 ## 6. First-release scope
 
-Include multi-branch access, central locations, catalog and units, suppliers, opening imports, purchasing, receiving, returns, FIFO, transfers, recipes/BOMs, production, yield, waste, counts, external POS imports, consumption reconciliation, basic expenses, dashboards, and audit history.
+Include multi-branch access, central locations, catalog and units, suppliers, opening imports, purchasing, receiving, returns, moving-average/FIFO costing, transfers, recipes/BOMs, production, yield, waste, counts, external POS imports, consumption reconciliation, basic expenses, dashboards, and audit history.
 
 Offline-first applies to operational reading and capture from the first release. Authoritative stock posting follows the synchronization policy below.
 
@@ -228,7 +228,7 @@ Two disconnected devices cannot guarantee exclusive access to the same stock. V1
 
 Example: two devices both see 10 kg and request 8 kg. Both may save locally; the server can accept only what the stock policy permits. The other operation remains reviewable. Physical activity already performed must be reconciled explicitly, not erased from history.
 
-V1 authoritative FIFO follows a deterministic server posting sequence. Retain business dates separately for reporting. Late uploads do not silently reallocate finalized costs or rewrite closed periods. Counts and period closure require resolution of known pending work and a defined late-arrival process.
+V1 issue valuation uses organization-level moving average by default, with FIFO selectable. Source quantity tracing and FIFO valuation follow a deterministic server posting sequence. Retain business dates separately for reporting. Late uploads do not silently reallocate finalized costs or rewrite closed periods. Counts and period closure require resolution of known pending work and a defined late-arrival process.
 
 If a customer requires final posting during long disconnections, add either preallocated stock authority or a branch-local posting service with a controlled authority handover. That is a future deployment mode, not an assumed capability of basic sync.
 
@@ -264,7 +264,7 @@ Derive quantities, values, and price indicators from transactions. Normalize pos
 
 ## 16. Inventory and purchasing
 
-Maintain posted ledger, balances, cost layers, and allocations. Atomic server posting validates, locks stock, consumes FIFO, writes movements, updates balances, and audits. Block negative authoritative stock in V1.
+Maintain posted ledger, balances, cost layers, and allocations. Atomic server posting validates, locks stock, values issues under the organization policy, writes movements, updates balances, and audits. Block negative authoritative stock in V1.
 
 Purchases support approvals, partial receiving, discounts, charges, tax treatment, price history, and receipt-linked supplier returns. Only accepted posted receiving increases authoritative stock.
 
@@ -300,7 +300,7 @@ V1 supports one primary production output. Co-products/by-products require a def
 
 ## 20. Costing
 
-Provide actual FIFO transaction cost, latest-purchase replacement estimate, and remaining-stock weighted-average estimate.
+Provide actual transaction cost under the selected policy, latest-purchase replacement estimate, and current remaining-stock average. Distinguish recipe estimates from finalized transaction costs.
 
 Prepared-item replacement estimates derive from definitions. Show scope, timestamp, missing costs, and fallback source. Keep latest/previous receipt price history. Recalculate affected estimates after prices, layers, or definitions change.
 
@@ -308,7 +308,7 @@ Retain historical transaction allocations. Offline cost views explicitly disting
 
 ## 21. Counts and consumption reconciliation
 
-Counts capture partial physical observations offline against a consistent accepted location snapshot. Blank materials are uncounted; zero is physically absent. Online finalization requires the exact saved location movement sequence and expected quantities, with known local stock work resolved first. Any intervening accepted location movement rejects the count, even if quantity returns to the same number. Recount physically at a fresh baseline with new linked IDs; never silently overwrite current balances. Negative adjustments use FIFO; positive adjustments require an explicit per-base-unit cost. Ledger, balances and remaining layers reconcile independently before/after atomic posting. Transit is excluded. Business date does not backdate costs. Late uploads after finalization remain subsequent movements; device acknowledgments, closed periods and historical correction policies remain future work. See [Stock counts walkthrough](./runbooks/Stock-Counts.md).
+Counts capture partial physical observations offline against a consistent accepted location snapshot. Blank materials are uncounted; zero is physically absent. Online finalization requires the exact saved location movement sequence and expected quantities, with known local stock work resolved first. Any intervening accepted location movement rejects the count, even if quantity returns to the same number. Recount physically at a fresh baseline with new linked IDs; never silently overwrite current balances. Negative adjustments use the selected costing policy; positive adjustments require an explicit per-base-unit cost. Ledger, balances and remaining layers reconcile independently before/after atomic posting. Transit is excluded. Business date does not backdate costs. Late uploads after finalization remain subsequent movements; device acknowledgments, closed periods and historical correction policies remain future work. See [Stock counts walkthrough](./runbooks/Stock-Counts.md).
 
 Imported sales generate theoretical consumption without a second physical issue in V1. Compare production actuals against standards separately from sales residual depletion.
 
@@ -406,16 +406,17 @@ Monitor sync lag, pending/rejected operations, ledger discrepancies, stale repor
 
 ## 28. Delivery roadmap
 
-Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. Editable inventory setup, opening stock with bounded CSV preview and purchase documents/partial receiving and supplier returns are delivered locally. Transfers/partial receiving/transit loss are delivered locally. Partial stock counts and independent reconciliation are delivered locally. The next milestone is versioned recipes/BOMs, followed by production/yield and restaurant cost control. See Developer Guide version 2.11 for implementation order and environment/Git workflow.
+Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. Editable inventory setup, opening stock with bounded CSV preview and purchase documents/partial receiving and supplier returns are delivered locally. Transfers/partial receiving/transit loss are delivered locally. Partial stock counts and independent reconciliation are delivered locally. The next milestone is versioned recipes/BOMs, followed by production/yield and restaurant cost control. See Developer Guide version 2.12 for implementation order and environment/Git workflow.
 
 
 | Stage | Outcome |
 |---|---|
 | 0 | Fix session renewal, stable startup, review resolution, recovery import, Git and verified backups |
 | 1 — delivered locally | Editable item/unit/supplier/location setup, supplier receiving and purchase packs; tenant scoping retained |
-| 2 — delivered locally | Opening stock, purchasing, receiving and returns using the existing offline/FIFO engine |
+| 2 — delivered locally | Opening stock, purchasing, receiving and returns using the offline engine and selected inventory costing policy |
 | 3A — delivered locally | Multi-branch transfers, partial receiving, transit loss and offline recovery |
-| 3B — delivered locally | Partial physical counts, strict baseline, reviewed FIFO/explicit-cost adjustments, reconciliation and offline recount |
+| 3B — delivered locally | Partial physical counts, strict baseline, reviewed selected-policy/explicit-cost adjustments, reconciliation and offline recount |
+| 3C — delivered locally | Moving-average/FIFO policy, exact valuation and development generation reset |
 | 4 | Recipes/BOMs, central/local production, yield and costing |
 | 5 | Sales imports, consumption reconciliation, expenses and reports |
 | 6 | Production configuration, minimum real authenticated access, migrations, backups and live-use acceptance |
@@ -467,3 +468,10 @@ Use Egypt as the first market, Arabic as the default, one-or-many entities/branc
 Define the final stock acceptance, count cutoff, tax/landed-cost, refund, lot/expiry, browser/device, retention, and fiscal responsibility configurations before live onboarding. Actual files, volumes, branches, and next-country priorities can be supplied later.
 
 This plan establishes one offline-first regional SaaS with shared business foundations, optional specialist modules, and verified country releases. It does not promise fully disconnected global stock authority or blanket compliance across Arab countries.
+
+
+## Moving weighted-average costing — development scope
+
+Moving weighted average is the default organization policy; FIFO remains selectable. Valuation pools are per material/location, with exact decimal quantity and value. Inbound transactions add their accepted value; issues use current pool value divided by quantity, with rounding residual consumed on full depletion. Receipt/source quantity tracing stays separate from pooled valuation. Transfers preserve dispatched value; destination receipts blend it into the destination pool. Source-linked returns retain original supplier reference value and separately record inventory deduction and valuation difference. Reconciliation compares ledger, balances and current layer values.
+
+This is a development-only sample reset/reseed, not migration of real client financial history. Reset preserves setup/catalog, clears transaction documents and audit/queues for the reset generation, reseeds samples under the chosen method, and rotates an organization generation. Browsers clear the matching organization's old snapshot/outboxes atomically and stale archives/API generations are rejected. The local origin stays unchanged. Method changes with posted stock require explicit development reset acknowledgment; production history conversion remains deferred. Offline quantities remain durable; costs finalize only at acceptance. Costing policy is delivered before recipes/production. See [Costing methods walkthrough](./runbooks/Costing-Methods.md). `feat/moving-average-costing` is stacked on stock-count commit `549aa4f`; commit locally after checks and follow the existing authorized publication/PR workflow.

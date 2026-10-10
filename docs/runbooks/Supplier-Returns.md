@@ -6,7 +6,7 @@ Delivered locally on 10 October 2026. Use the existing development organization 
 
 1. In **المشتريات**, create and submit an order, then accept a receipt at the selected stock location. A draft order creates no stock. This slice supports purchase-document receipts; simple unlinked receipts do not appear as return sources.
 2. Open **مرتجعات الموردين** and choose **مرتجع مورد جديد**. Select the original receipt. Supplier, location, source lines and original costs come from that receipt.
-3. Enter the return business date, reason and optional supplier credit-note reference. Quantities use the base inventory unit. Review the original quantity, previously accepted returns, remaining source availability and expected return value.
+3. Enter the return business date, reason and optional supplier credit-note reference. Quantities use the base inventory unit. Review the original quantity, previously accepted returns, remaining source availability and expected supplier reference value. Inventory deduction uses the selected method at acceptance and may differ when costs are mixed.
 4. Save. Offline capture remains durable after reload and reserves provisional source availability. Confirmed inventory changes only after server acceptance.
 5. Synchronize and inspect return history, stock value and movements. Receiving 10 kg at EGP 20/kg and returning 3 kg leaves 7 kg valued at EGP 140. The return document displays EGP 60; its stock movement deducts EGP 60. Gross received order quantities remain unchanged.
 
@@ -26,10 +26,13 @@ Connectivity/authentication failures retain pending capture. Another device may 
 - **تصحيح المرتجع** uses the refreshed source/revision, creates fresh document/movement IDs, and preserves the rejected record as **تم التصحيح** with links between both records.
 - **إلغاء المرتجع المرفوض** cancels only a known rejected local record; it never reverses accepted stock.
 
-Recovery format 8 includes counts, transfers, returns and linked corrections together with purchase, opening, setup and stock outboxes. Formats 1–7 remain readable. Preview validates tenant/source references, payloads, IDs and correction links before atomic restore. Identical records are skipped and conflicting records abort restoration. Exported acceptance states require server reconciliation. Older builds cannot read format 8. Preserve the local origin and export device-only work before moving devices or addresses; database backups do not include unsynchronized browser commands.
+Recovery format 9 includes counts, transfers, returns and linked corrections together with purchase, opening, setup and stock outboxes. Formats 1–8 are parseable, but archives from before a sample reset cannot restore into the new generation. Preview validates tenant/source references, payloads, IDs and correction links before atomic restore. Identical records are skipped and conflicting records abort restoration. Exported acceptance states require server reconciliation. Older builds cannot read format 9. Preserve the local origin and export device-only work before moving devices or addresses; database backups do not include unsynchronized browser commands.
 
 ## Verification and next work
 
 82 unit/integration tests and eighteen Chrome browser/process scenarios pass, along with type checking and the production build. Return checks cover original cost, fractional arithmetic, competing revisions, duplicate IDs, cumulative limits, consumed source stock despite aggregate availability, full rollback, tenant isolation, offline reload, correction history, recovery and Arabic mobile layout. Tests use isolated data/ports, preserving the client's local database.
 
 Transfers, in-transit receiving and explicit transit loss are delivered; see [Transfers](./Transfers.md). Next: stock counts and reconciliation. Returns after transfers need an explicit source-traceability policy. Recipes, production and restaurant cost control follow reliable stock movements.
+
+
+Current default is moving weighted average; FIFO remains selectable. Examples explicitly using FIFO retain their FIFO assumptions. See [Costing methods and development reset](./Costing-Methods.md) for selected-policy valuation, source reference differences and generation-bound recovery.

@@ -1,6 +1,6 @@
 # Phase 3 — Transfers, counts and reconciliation
 
-Revision: 10 October 2026. Builds on locally delivered setup and Phase 2 opening, purchasing and supplier returns. Use the existing development organization, tenant isolation, Arabic RTL, EGP, Africa/Cairo, decimal arithmetic and stable local origin. Preserve existing data; no memberships, billing or separate demo infrastructure in this phase.
+Revision: 10 October 2026. Builds on locally delivered setup and Phase 2 opening, purchasing and supplier returns. Use the existing development organization, tenant isolation, Arabic RTL, EGP, Africa/Cairo, decimal arithmetic and stable local origin. The user-authorized costing development reset supersedes the earlier sample-preservation assumption; preserve setup/catalog; no memberships, billing or separate demo infrastructure in this phase.
 
 ## 3A — Stock transfers
 
@@ -9,7 +9,7 @@ Delivered locally: Arabic dispatch, original-cost partial receiving, explicit tr
 Implement a complete dispatch → in transit → partial receiving → resolution slice before counts. Transfer requests/approval routing, unmatched receipt observations, accepted-document reversals and returns to sender remain later extensions; this slice requires a known dispatch and the existing organization-owner development session.
 
 - Dispatch contains separate document/transfer/line IDs, source, destination, date, reason and positive base-unit quantities. Source and destination must be distinct active locations of the same organization; items/units must match accepted or synchronized setup.
-- A bounded dispatch validates all lines and allocates available FIFO layers atomically. Deduct source quantity/value once. Preserve each allocated source layer's quantity and cost as transit segments. Destination stock remains unchanged until receiving.
+- A bounded dispatch validates all lines and traces available source quantities and uses the selected costing method atomically. Deduct source quantity/value once. Preserve each allocated source layer's quantity and cost as transit segments. Destination stock remains unchanged until receiving.
 - Receiving references the known dispatch and its lines, with expected revision. Accept some or all outstanding quantities; preserve original cost segments and their FIFO order in destination stock. Deactivated records may still receive an already dispatched physical shipment. Never invent a dispatch or blend source costs into a new approximate layer.
 - Remaining quantity/value stays in transit. Consolidated quantity/value equals stock at locations plus transit, with transit counted once. A short receipt leaves the remainder unresolved.
 - Transit loss is an explicit document with a date, reason and original segment cost. It consumes only the remaining transit quantity/value and records allocations/audit. It does not deduct source stock a second time or add destination stock. This is inventory evidence, not a financial settlement or carrier claim.
@@ -24,7 +24,7 @@ Acceptance: receive 2 kg at EGP 20 and 8 kg at EGP 30 at source. Dispatch 5 kg f
 
 Capture physical counts at an explicit location/cutoff; display expected quantity, counted quantity and variance. A draft count has no stock effects. Use a defined treatment for concurrent/late/offline movements before finalization; do not silently overwrite balances from a stale snapshot.
 
-Post justified adjustments through the shared ledger/layer engine. Negative differences allocate FIFO; positive differences need an explicit approved cost policy. Preserve count lines, evidence, actor, revisions, expected/actual snapshots and linked adjustment movements. Reconcile ledger, balances and layer values after posting. Counts do not erase original purchases, waste, transfers or in-transit stock.
+Post justified adjustments through the shared ledger/layer engine. Negative differences use the selected costing method; positive differences need an explicit approved cost policy. Preserve count lines, evidence, actor, revisions, expected/actual snapshots and linked adjustment movements. Reconcile ledger, balances and layer values after posting. Counts do not erase original purchases, waste, transfers or in-transit stock.
 
 Delivered: count.save/finalize/cancel API, partial physical entry, explicit acknowledgment, tenant/revision/ID validation, atomic FIFO shortage and explicit-cost surplus, durable Dexie schema 6 outbox, stock-before-count sync, linked rejected recount, recovery format 8 (reads 1–7), Arabic responsive UI and independent ledger/balance/layer checks. Current suite: 120 unit/integration tests and twenty-four browser/process scenarios; type checking/build pass. See [Stock counts walkthrough](./runbooks/Stock-Counts.md).
 
@@ -37,3 +37,6 @@ Next Phase 4A: immutable recipes/BOM versions, base-unit ingredient conversions,
 ## Git and completion
 
 `feat/stock-transfers` is stacked on supplier-return commit `b50d7e1`; `feat/stock-counts` is stacked on transfer commit `f427942`. Keep feature commits reviewable and record verified checks; publication follows the developer guide's authorized remote/PR workflow. No merge or production deployment is implied. Test on isolated ports/data and retain the client's `.data-local` and IndexedDB. Real authentication and isolated production configuration remain required before live operations.
+
+
+Moving-average costing is now delivered before Phase 4A, with FIFO selectable. The authorized development-only sample reset keeps setup, rotates generation and invalidates old queues/archives. See [Costing methods](./runbooks/Costing-Methods.md).
