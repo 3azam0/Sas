@@ -10,6 +10,8 @@ After a new build, stop the old Fodo console with Ctrl+C and start the same laun
 
 ## Working scenario
 
+Suppliers are available directly from the main menu under **الموردون → إضافة مورد**. The supplier tab in **إعداد المخزون** accesses the same records. You can add/edit contact details, search, deactivate suppliers and review rejected changes from the direct page; offline saves use the existing setup outbox.
+
 1. Open **إعداد المخزون**. Add a missing base unit in **وحدات المخزون**.
 2. Add a supplier with optional phone, email and address.
 3. Add a restaurant branch, warehouse, preparation kitchen or combined storage/preparation location.

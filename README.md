@@ -4,6 +4,7 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 
 ## What works
 
+- Direct **الموردون** menu: add/edit supplier details, search, deactivate and synchronize offline changes, sharing records with inventory setup and purchasing.
 - Separate organizations, a shared item catalog within each organization, and stock per configured restaurant, warehouse or preparation location.
 - Material receipts and waste capture, movement history, stock quantity/value, and inspectable source layers and moving-average/FIFO costing.
 - IndexedDB outbox, provisional local quantities, automatic reconnect sync, and server acceptance without duplicate stock effects.
