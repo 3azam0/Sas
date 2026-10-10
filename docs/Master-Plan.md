@@ -1,6 +1,6 @@
 # Fodo — Modular Business Management SaaS Master Plan
 
-Updated: 9 October 2026
+Updated: 10 October 2026
 
 Status: planning baseline. Client-specific inputs are deferred. This document specifies intended behavior; it does not claim that integrations, compliance, or software have already been implemented.
 
@@ -15,6 +15,8 @@ The first release serves restaurants through inventory, purchasing, production, 
 The first client application is an offline-first web application. Mobile and desktop applications follow, sharing backend contracts, synchronization behavior, and business rules.
 
 Current delivery scope: complete working restaurant workflows for the first client in development, retaining the multi-tenant architecture. Membership management, invitations, role-administration screens, billing and additional-client onboarding are deferred. Demonstrate the development version to the client; do not provision a separate client-demo or hosted staging environment now. Preserve tenant scoping and existing offline/session protections. Production deployment and minimum real authenticated access are required before live business use, after the working development milestones.
+
+Next planned phase: 2A opening stock, then 2B purchase documents/partial receiving, then 2C source-linked supplier returns. Complete each slice with offline persistence, server validation, recovery and acceptance checks before moving forward. These remain planned, not implemented. See the [Phase 2 implementation plan](./Phase-2-Plan.md). Transfers/counts follow; recipes, production and restaurant cost control come after reliable stock movements. No further client planning inputs are needed to start the development slices with labeled examples.
 
 Foodics is a reference for restaurant workflows and usability. This specification defines the platform's own transaction, costing, and extensibility rules.
 
@@ -404,7 +406,7 @@ Monitor sync lag, pending/rejected operations, ledger discrepancies, stale repor
 
 ## 28. Delivery roadmap
 
-Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. Editable inventory setup with supplier receiving and purchase packs is delivered locally. The next milestone is opening stock and purchasing documents/returns, followed by the multi-branch inventory pilot and restaurant cost control. See Developer Guide version 2.5 for implementation order and environment/Git workflow.
+Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. Editable inventory setup with supplier receiving and purchase packs is delivered locally. The next milestone is opening stock and purchasing documents/returns, followed by the multi-branch inventory pilot and restaurant cost control. See Developer Guide version 2.6 for implementation order and environment/Git workflow.
 
 
 | Stage | Outcome |

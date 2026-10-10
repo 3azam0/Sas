@@ -1,12 +1,12 @@
 # Fodo SaaS Developer Guide
 
-Version 2.5 — 10 October 2026
+Version 2.6 — 10 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
 This guide defines the implementation workflow and distinguishes the delivered local prototype from pending production features. Code snippets and API names below remain proposed contracts unless the implementation-status section states otherwise.
 
-## Implementation status and revised delivery order — 9 October 2026
+## Implementation status and revised delivery order — 10 October 2026
 
 This version supersedes the original task order where it conflicts. Fodo is a working local inventory application: Arabic RTL web UI, editable items/units/suppliers/stock locations, purchase packs, receiving, waste, FIFO, durable local outboxes, recovery archives and reconnect synchronization. Production authentication, opening imports/purchasing documents, transfers, recipes, production, country adapters and billing remain planned.
 
@@ -20,7 +20,7 @@ Use development to show progress to the first client. Do not provision a dedicat
 
 The inventory setup milestone is delivered. Items, units, suppliers and stock locations can be created/edited offline. Receiving can reference a supplier and an item-specific purchase pack; inventory quantities are converted to the base unit, with cost explicitly entered per base unit. Prior pack definitions and an item's base unit are immutable, preserving queued operations and stock history. Records can be deactivated without deletion. Setup uploads precede dependent stock commands; stale revisions and duplicate codes enter review. Recovery version 3 includes setup and stock outboxes while older archives remain supported. See [Inventory setup walkthrough](./runbooks/Inventory-Setup.md).
 
-The next working milestone is opening stock and purchase documents/returns. Sample development fixtures can be used until the client supplies their setup data. Transfers/counts and restaurant recipes/production/cost reports follow. Each milestone must work end to end before adding more SaaS administration.
+The next working milestone is opening stock and purchase documents/returns, delivered in three complete slices: 2A opening stock, 2B purchasing/receiving, and 2C supplier returns. This is a planned milestone, not delivered functionality. Sample development fixtures can be used until the client supplies their setup data. Transfers/counts and restaurant recipes/production/cost reports follow. Each milestone must work end to end before adding more SaaS administration. See [Phase 2 implementation plan](./Phase-2-Plan.md) for contracts, scope and acceptance scenarios.
 
 ### Verified reliability delivery
 
@@ -39,7 +39,9 @@ Selected cloud project: `bkkxrptgwbrwredauopq` at `https://bkkxrptgwbrwredauopq.
 | 0C | Review, retry, cancel, correct and restore | Immutable operation history; changed data gets a new linked ID; restore validates scope and deduplicates |
 | 0D | Version control and backup/restore runbook | Git initialized with secrets/data ignored; a restore exercise proves database recovery |
 | 1 — delivered locally | Working inventory setup for the first client | Editable items, units, suppliers and locations; tenant-scoped persistence and reload; purchase packs and supplier receiving |
-| 2 | Purchasing and opening stock | Opening stock, purchase documents, receiving and returns produce inspectable stock/value effects |
+| 2A — next | Opening stock | Previewed baseline posts once to a pristine item/location; offline save/reload/retry preserves quantity, value and audit |
+| 2B | Purchase documents and receiving | Draft orders have no stock effects; partial receiving posts immutable line quantities, pack conversions and costs exactly once |
+| 2C | Supplier returns | Linked returns cannot exceed accepted receipt quantities or available source layers; reversal/retry retains inspectable cost and audit |
 | 3 | Multi-branch inventory flow | Counts, dispatch/receipt transfers, variance handling, offline recovery and backups |
 | 4 | Restaurant cost control | Immutable recipes, production, yield, sales imports, actual/theoretical consumption and profitability |
 | Before live use | Production deployment and minimum access | Real authenticated access for the configured organization, permission checks, isolated production data, migrations and verified restore; no public development-session bypass |
