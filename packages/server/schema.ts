@@ -50,6 +50,13 @@ DO $$ BEGIN
     ALTER TABLE stock_entries ADD CONSTRAINT stock_supplier_scope FOREIGN KEY(organization_id,supplier_id) REFERENCES suppliers(organization_id,id);
   END IF;
 END $$;
+CREATE TABLE IF NOT EXISTS receipt_documents(organization_id text NOT NULL REFERENCES organizations(id),operation_id uuid NOT NULL,payload jsonb NOT NULL,amount numeric(38,12) NOT NULL,posted_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(organization_id,operation_id));
+ALTER TABLE stock_entries ADD COLUMN IF NOT EXISTS receipt_document_id uuid;
+DO $$ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='stock_receipt_document_scope') THEN
+  ALTER TABLE stock_entries ADD CONSTRAINT stock_receipt_document_scope FOREIGN KEY(organization_id,receipt_document_id) REFERENCES receipt_documents(organization_id,operation_id);
+ END IF;
+END $$;
 ${purchaseTables}
 ${returnTables}
 ${transferTables}

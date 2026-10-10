@@ -6,7 +6,7 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 
 - Direct **الموردون** menu: add/edit supplier details, search, deactivate and synchronize offline changes, sharing records with inventory setup and purchasing.
 - Separate organizations, a shared item catalog within each organization, and stock per configured restaurant, warehouse or preparation location.
-- Material receipts and waste capture, movement history, stock quantity/value, and inspectable source layers and moving-average/FIFO costing.
+- Multi-item direct receipt documents (up to 200 items, optional supplier, pack conversion, totals and atomic offline posting) and waste capture, movement history, stock quantity/value, and inspectable source layers and moving-average/FIFO costing.
 - IndexedDB outbox, provisional local quantities, automatic reconnect sync, and server acceptance without duplicate stock effects.
 - Offline reopening after the application shell and initial data have downloaded.
 - Atomic PostgreSQL posting: command receipt, stock movement, selected-policy allocation, balance, and audit record commit together. Insufficient stock rolls back and remains visible for review.
@@ -16,7 +16,7 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 - Inventory setup: create/edit items, units, suppliers and restaurant/warehouse/preparation locations; deactivate records while preserving their history.
 - Durable offline setup changes, revision-conflict review, supplier-linked receiving and item-specific purchase packs with server-validated base quantities.
 - Opening stock documents: multi-material base quantities/costs, bounded CSV mapping/preview, all-or-nothing acceptance, FIFO layers and immutable review history.
-- Offline opening documents synchronize before dependent stock operations. Format-9 recovery includes count/transfer/return/purchase/opening/setup/stock records and linked recount/corrections; formats 1–8 are parseable, but pre-reset generations cannot restore into a new ledger.
+- Offline opening documents synchronize before dependent stock operations. Format-10 recovery includes receipt/count/transfer/return/purchase/opening/setup/stock records and linked recount/corrections; formats 1–9 are parseable, but pre-reset generations cannot restore into a new ledger.
 
 - Transfers: atomic selected-policy dispatch, in-transit quantities/value, partial receiving at original costs, explicit transit loss, offline capture/review/correction and recovery.
 - Supplier returns: source-layer availability, original-cost deductions, atomic multi-line posting, duplicate protection and durable offline review/correction. Gross received order quantities remain unchanged.
@@ -26,7 +26,7 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 
 Normal startup contains no sample catalog or stock. The authorized one-time development reset removes old setup and transaction data; later restarts preserve your entries. Browser synchronization replaces old snapshots and queues with the current generation. Automated fixture data is isolated and requires SAAS_SEED_FIXTURES=1.
 
-Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for source-linked returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Open **التحويلات** for dispatch, partial receiving and explicit transit loss; see the [transfers walkthrough](docs/runbooks/Transfers.md). Counts/reconciliation are delivered locally in **الجرد والتسوية**; see the [stock counts walkthrough](docs/runbooks/Stock-Counts.md). Recipes/BOMs are next; membership administration and dedicated demo infrastructure are deferred.
+Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Use **استلام مواد → إضافة مادة أخرى** for direct multi-item receiving; see [direct receiving](docs/runbooks/Direct-Receiving.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for source-linked returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Open **التحويلات** for dispatch, partial receiving and explicit transit loss; see the [transfers walkthrough](docs/runbooks/Transfers.md). Counts/reconciliation are delivered locally in **الجرد والتسوية**; see the [stock counts walkthrough](docs/runbooks/Stock-Counts.md). Recipes/BOMs are next; membership administration and dedicated demo infrastructure are deferred.
 
 ## Run on this Windows machine
 

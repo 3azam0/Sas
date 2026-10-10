@@ -23,8 +23,8 @@ export type Item = { id: string; name: string; sku: string; category: string; un
 export type Location = {id:string;name:string;kind:string;active?:boolean;revision?:number};
 export type Balance = {locationId:string;itemId:string;quantity:string;value:string;average:string|null};
 export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;remainingValue?:string;sequence:number};
-export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;referenceAmount?:string|null;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null;countId?:string|null;countLineId?:string|null};
-export type Snapshot = {generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
+export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;receiptDocumentId?:string|null;referenceAmount?:string|null;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null;countId?:string|null;countLineId?:string|null};
+export type Snapshot = {generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];receipts?:PostedReceiptDocument[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
 export type CommandResult = {operationId:string;outcome:'accepted'|'needs_review';code?:string;message?:string;amount?:string};
 export class BusinessError extends Error { constructor(public code:string, message:string,public status=409){super(message);} }
 export const messages: Record<string,string> = {INSUFFICIENT_STOCK:'الرصيد المتاح لا يكفي. راجع العملية قبل إعادة إرسالها.',FORBIDDEN:'ليس لديك صلاحية لهذه المؤسسة أو الموقع.',PAYLOAD_CONFLICT:'معرّف العملية مستخدم لبيانات مختلفة.',INVALID_COMMAND:'تحقق من بيانات العملية.',AUTH_REQUIRED:'انتهت الجلسة. اتصل بالإنترنت وسجل الدخول مرة أخرى.'};
@@ -52,6 +52,17 @@ export const openingSchema=z.object({
 });
 export type OpeningDocument=z.infer<typeof openingSchema>;
 export type PostedOpening={document:OpeningDocument;amount:string;postedAt:string};
+
+export const receiptDocumentSchema=z.object({
+ generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),locationId:recordId,type:z.literal('receipt.document'),
+ businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),supplierId:recordId.optional(),
+ lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative,purchaseUnitId:z.uuid().optional(),enteredQuantity:quantitySchema.optional()})).min(1).max(200)
+}).superRefine((doc,ctx)=>{
+ if(new Set(doc.lines.map(l=>l.itemId)).size!==doc.lines.length||new Set([doc.operationId,...doc.lines.map(l=>l.lineId)]).size!==doc.lines.length+1)ctx.addIssue({code:'custom',message:'المادة ومعرّفات السطور يجب ألا تتكرر'});
+ if(doc.lines.some(l=>!!l.purchaseUnitId!==!!l.enteredQuantity))ctx.addIssue({code:'custom',message:'بيانات وحدة الشراء غير مكتملة'});
+});
+export type ReceiptDocument=z.infer<typeof receiptDocumentSchema>;
+export type PostedReceiptDocument={document:ReceiptDocument;amount:string;postedAt:string};
 
 const purchaseEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),orderId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
 export const purchaseLineSchema=z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,purchaseUnitId:z.uuid().optional(),unitName:recordName,factor:quantitySchema,enteredQuantity:quantitySchema,quantity:quantitySchema,unitCost:nonNegative});
