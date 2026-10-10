@@ -4,6 +4,14 @@ Delivered locally on 10 October 2026. Open **الوصفات والتكاليف**
 
 ## Create a recipe
 
+### Start from an inventory item
+
+In **إعداد المخزون → المواد والمكونات**, choose **مكونات الصنف** beside an active item. This opens its existing stocked recipe, or prepares a new definition with the item's name, a proposed unique `BOM-` code, output item and locked base unit. Nothing is saved automatically. Enter the complete batch ingredients and usable output, save the draft and publish its version when ready.
+
+When adding or editing an item, enable **فتح إعداد المكونات بعد الحفظ** to continue into the same workflow after the item is saved locally. It also works offline: setup acceptance precedes recipe acceptance. The inventory table identifies items with a linked definition as **صنف مركّب**. Categories remain independent, single-level classifications.
+
+For example, a stocked kofta item can consist of beef and spices. Enter their quantities and the resulting kilograms of kofta. Published sub-recipes can also be components under the existing version, unit and cycle rules. Defining components leaves all balances unchanged; record the actual batch in **الإنتاج والتحضير** to issue the ingredients once and add the resulting stock. The same item can still be received from a supplier. This entry point does not create fictitious ingredients, quantities or recipes in the client's catalog.
+
 1. Add your materials and measurement units in **إعداد المخزون**. A supplier or stock location is not required to save a recipe. Choose a location with accepted stock/receiving later to obtain prices.
 2. Choose **إضافة وصفة**. Enter a unique code/name, output unit, batch output quantity and effective date.
 3. Choose a non-stocked meal or a stocked preparation. A stocked preparation links an existing inventory material and its base unit; the linked item needs to be distinct from its inputs.

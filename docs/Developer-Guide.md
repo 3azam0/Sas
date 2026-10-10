@@ -1,6 +1,6 @@
 # Fodo SaaS Developer Guide
 
-Version 2.18 — 10 October 2026
+Version 2.19 — 11 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
@@ -13,6 +13,10 @@ This version supersedes the original task order where it conflicts. Fodo is a wo
 Current adapters: Next.js/React; Zustand for UI state; React Hook Form/Zod; custom CSS; Dexie/IndexedDB; PGlite development PostgreSQL; complete tenant snapshots. Tailwind/shadcn, TanStack Query, PowerSync, managed PostgreSQL and production Auth are future decisions/integrations, not installed capabilities. Do not rewrite stable UI state merely to match an earlier technology proposal.
 
 ### Current priority: working application for the first client
+
+Inventory setup now exposes **مكونات الصنف**. An inventory item may be produced from other items through the existing stocked recipe definition, with component quantities and batch output. An optional action after item save opens composition setup, prefilling the output item and its base unit; an existing linked recipe is reopened rather than duplicated. Composition remains tenant-scoped, offline-capable and versioned. Definitions stay stock-neutral; only accepted production consumes inputs and creates the output. Ingredients can include published sub-recipes under the existing cycle and stocked-boundary rules. This uses the existing BOM model and retains the catalog's single-level categories.
+
+Delivered on `feat/stocked-item-composition`, stacked from local sales-import checkpoint `6360994`. Verification on 11 October 2026: 202 unit/integration tests, TypeScript and production build/offline manifest passed; three targeted browser scenarios passed for item composition, recipe/version costing and inventory setup/receiving. The new scenario verifies new-item/offline setup, existing-recipe reopening without a duplicate, output-unit linkage, self-input exclusion, cost per output unit and unchanged stock; desktop/mobile views were inspected. No client catalog data, local launcher, database schema or offline storage format was changed. Restart the existing Fodo server at its saved address to load this build. See [Recipes walkthrough](./runbooks/Recipes.md).
 
 The current delivery target is a working development version for one restaurant organization with multiple branches. Keep tenant IDs, tenant-qualified relationships, scoped commands and offline recovery intact. Defer membership management, invitations, role administration, subscriptions and platform onboarding; these are not prerequisites for completing the restaurant workflows in development. Use the existing local development session for walkthroughs. Do not open that session mechanism to public hosting or treat it as production authentication.
 

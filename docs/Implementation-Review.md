@@ -1,6 +1,14 @@
 # Fodo implementation review
 
-## Current checkpoint — menu mapping and sales import, 10 October 2026
+## Current checkpoint — inventory item composition, 11 October 2026
+
+Inventory setup now exposes **مكونات الصنف** and optional **فتح إعداد المكونات بعد الحفظ**. These open an existing stocked recipe for the item, or prefill a new definition with its name, proposed unique BOM code, output item and locked base unit. Users enter batch inputs/output and explicitly save/publish. Linked definitions are identified in the catalog as **صنف مركّب**. The route is organization/generation-scoped and handles an item saved offline before its recipe. Existing recipe versioning, nested components, costing and production provide the underlying behavior; definition changes remain stock-neutral. No new item schema, duplicate BOM engine or offline storage migration is introduced.
+
+Local branch `feat/stocked-item-composition` starts from `6360994`. Developer guide is version 2.19. Verification passed: 202 unit/integration tests in 33 files, TypeScript, production build/offline manifest and three targeted browser scenarios. The new test checks offline create/reload/acceptance, output unit, self-input exclusion, output cost, existing-definition reopening without duplication and unchanged stock. Desktop/mobile screenshots are saved in the output directory. Client inventory data, the launcher and cloud project were preserved; the isolated browser database contains test fixtures only. Restart the current local server at its saved address to load the new build. See [Recipe composition walkthrough](./runbooks/Recipes.md).
+
+The next functional phase remains 4C2 sales consumption/refund and void rules, followed by consumption variance reports. This usability change does not enable sales stock posting, membership, billing or production hosting.
+
+## Earlier checkpoint — menu mapping and sales import, 10 October 2026
 
 Phase 4C1 is delivered on local branch `feat/sales-import-mapping`, starting from production checkpoint `3addd0e`. **المبيعات** separates source-specific menu codes from inventory materials, pins exact recipe versions/output-per-sale, and accepts completed-sales CSV imports with explicit column mapping/confirmation. Invalid or unmapped rows and refund/void statuses block capture. Sale details use tenant/source/location/business-date/transaction/line identity: identical repeats add zero, overlaps add only new details, and changed repeats roll back the whole import. CSV re-imports retain accepted mappings after later menu edits/deactivation. Names, versions, ratios and revisions are preserved in accepted history.
 
