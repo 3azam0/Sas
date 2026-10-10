@@ -18,7 +18,7 @@ After a new build, stop the old Fodo console with Ctrl+C and start the same laun
 6. Record waste in the base unit. Inspect confirmed/local quantities, FIFO layers and movement history; the receipt retains supplier and pack metadata.
 7. Repeat setup and receipt capture offline after the app/data have downloaded, reload, then reconnect and synchronize. Setup uploads in dependency order before stock commands. Only server acceptance changes confirmed stock/value.
 
-Creating a material/location does not create stock. Use **الرصيد الافتتاحي** for a pristine item/location; see the [opening stock walkthrough](./Opening-Stock.md). Purchasing documents/returns are next.
+Creating a material/location does not create stock. Use **الرصيد الافتتاحي** for a pristine item/location; see the [opening stock walkthrough](./Opening-Stock.md). Use **المشتريات** for orders and partial receiving; see [Purchasing](./Purchasing.md). Supplier returns are next.
 
 ## Editing and review
 

@@ -1,6 +1,6 @@
 # Phase 2 — Opening stock, purchasing and supplier returns
 
-Revision: 10 October 2026. Phase 2A opening stock is delivered locally; 2B purchasing and 2C returns remain planned. This follows inventory setup and precedes transfers/counts and restaurant cost control.
+Revision: 10 October 2026. Phase 2A opening stock and 2B purchasing are delivered locally; 2C supplier returns remain planned. This follows inventory setup and precedes transfers/counts and restaurant cost control.
 
 ## Scope and delivery order
 
@@ -28,6 +28,8 @@ The user selects a stock location, opening business date and reference, then ent
 Acceptance: create a new material and branch; save 10 kg at EGP 20/kg offline; reload; reconnect; verify one opening movement, 10 kg confirmed and EGP 200 value. Retry the same ID and confirm unchanged stock. Reject a second baseline even after all stock was consumed. Reject a document containing one invalid line without posting its valid lines. Verify concurrent duplicate baselines, another organization's references, import preview and archive restore.
 
 ## 2B — Purchase documents and receiving
+
+Delivered locally: stock-free drafts, submission/revisions, bounded atomic partial receipts using captured conversions/costs, remainder cancellation, linked full-receipt reversal requiring untouched source layers, offline revision sequencing and version-5 recovery. Definition edits are blocked after any receiving; fully reverse untouched receipts before changing the definition. Pending reversal effects require server synchronization before replacement capture. See the [purchasing walkthrough](./runbooks/Purchasing.md). Current verification: 67 unit/integration tests and fifteen browser/process scenarios; type checking and production build pass. Tax/freight/discount allocation and supplier settlement remain deferred for development.
 
 Keep ordering and stock receiving separate. A draft purchase order contains supplier, destination, reference, business date and lines. Saving or changing a draft order does not alter stock or create FIFO layers.
 
@@ -68,7 +70,7 @@ Use existing Zustand UI state and React Hook Form/Zod; retain decimal arithmetic
 
 ## Git, environments and completion
 
-Inventory setup is local on `feat/inventory-setup`; Phase 2A is on `feat/opening-stock`, stacked after planning commit `4c89131`. Neither new feature is claimed published or merged. Submit inventory setup separately and document the stacked relationship when publishing Phase 2A. Keep the three Phase 2 slices as reviewable commits/PRs; run applicable checks before pushing. Publishing uses the selected repository, `3azam0/Sas`, and the developer guide's Git workflow. Do not merge or deploy as part of an implementation checkpoint.
+Inventory setup is local on `feat/inventory-setup`; Phase 2A is on `feat/opening-stock`, stacked after planning commit `4c89131`. These features are not claimed published or merged. Phase 2B is on `feat/purchase-documents`, stacked on `feat/opening-stock` at `8de87cc`. Submit inventory setup separately and document the stacked relationship when publishing Phase 2A. Keep the three Phase 2 slices as reviewable commits/PRs; run applicable checks before pushing. Publishing uses the selected repository, `3azam0/Sas`, and the developer guide's Git workflow. Do not merge or deploy as part of an implementation checkpoint.
 
 Use isolated test data and ports. Check the compiled production build for the new screens before telling the client they are available. Record exact verified checks and current commit; do not reuse earlier test totals as evidence for new functionality. Do not clear the user's local database or IndexedDB during testing.
 

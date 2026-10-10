@@ -1,3 +1,4 @@
+import {purchaseTables} from './purchasing';
 export const schema = `
 CREATE TABLE IF NOT EXISTS organizations (id text PRIMARY KEY, name text NOT NULL);
 CREATE TABLE IF NOT EXISTS locations (organization_id text REFERENCES organizations(id), id text, name text NOT NULL, kind text NOT NULL, PRIMARY KEY(organization_id,id));
@@ -39,4 +40,5 @@ DO $$ BEGIN
     ALTER TABLE stock_entries ADD CONSTRAINT stock_supplier_scope FOREIGN KEY(organization_id,supplier_id) REFERENCES suppliers(organization_id,id);
   END IF;
 END $$;
+${purchaseTables}
 `;

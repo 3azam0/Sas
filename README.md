@@ -15,9 +15,11 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 - Inventory setup: create/edit items, units, suppliers and restaurant/warehouse/preparation locations; deactivate records while preserving their history.
 - Durable offline setup changes, revision-conflict review, supplier-linked receiving and item-specific purchase packs with server-validated base quantities.
 - Opening stock documents: multi-material base quantities/costs, bounded CSV mapping/preview, all-or-nothing acceptance, FIFO layers and immutable review history.
-- Offline opening documents synchronize before dependent stock operations. Version-4 recovery includes opening/setup/stock records; versions 1–3 remain readable.
+- Offline opening documents synchronize before dependent stock operations. Version-5 recovery includes purchase/opening/setup/stock records; versions 1–4 remain readable.
 
-Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Purchase documents/partial receiving and supplier returns are next; membership administration and dedicated demo infrastructure are deferred.
+- Purchase orders: offline drafts and submitted revisions, partial pack-based receiving, immutable costs/source links, outstanding quantities, cancellation and full-receipt reversal against untouched original layers.
+
+Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Supplier returns are next; membership administration and dedicated demo infrastructure are deferred.
 
 ## Run on this Windows machine
 
@@ -84,11 +86,11 @@ The selected Supabase project is `bkkxrptgwbrwredauopq`. Its public URL and publ
 
 ## Next implementation stages
 
-1. Production Supabase authentication, memberships, permissions, RLS, managed PostgreSQL migrations, and integration checks.
-2. Production sync adapter (PowerSync as planned), incremental data distribution, schema upgrades, and permission changes.
-3. Suppliers, purchase orders, receiving documents, unit conversions, stock counts, and transfers with shipment/receipt reconciliation.
-4. Separate location capabilities for warehouse and preparation kitchen; recipes, batch production, yield/waste, ingredient costing, and actual versus theoretical consumption.
-5. Sales integration/POS, profitability, subscription/module entitlements, and country-specific fiscal adapters.
+1. Source-linked supplier returns (Phase 2C).
+2. Transfers and stock counts with shipment/receipt reconciliation.
+3. Recipes, batch production, yield/waste, sales imports and actual versus theoretical cost control.
+4. Real authentication, managed database/access controls and isolated production configuration before live operation.
+5. Later: production sync scaling, POS, memberships, subscription/module entitlements and country adapters. Dedicated demo infrastructure remains deferred.
 
 Egyptian e-invoicing/e-receipts, other Arab country tax integrations, multi-currency accounting, production authorization, and SaaS billing are not implemented here. Tax settings must remain country adapters in the master plan. This local demo does not establish compliance.
 

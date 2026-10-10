@@ -29,10 +29,10 @@ A document is posted as one transaction, including its lines, FIFO layers, balan
 
 Use the opening document's review controls to retry unchanged data, cancel a known rejection, or create a corrected document with fresh document/line IDs. The old rejected document remains linked and inspectable. Accepted documents cannot be edited or cancelled in place. A physical correction to accepted stock belongs to the upcoming count/adjustment workflow.
 
-Recovery version 4 contains opening documents, setup changes and stock commands. Import previews and validates all records/IDs together, deduplicates known records and commits local restoration atomically. Exported acceptance is never trusted without server reconciliation. Versions 1–3 remain readable by this build; older builds cannot read version 4. Keep the origin unchanged to retain the browser's existing offline records.
+Recovery version 5 contains purchase actions, opening documents, setup changes and stock commands. Import previews and validates all records/IDs together, deduplicates known records and commits local restoration atomically. Exported acceptance is never trusted without server reconciliation. Versions 1–4 remain readable by this build; older builds cannot read version 5. Keep the origin unchanged to retain the browser's existing offline records.
 
 ## Current boundaries
 
 Only EGP development costing and the current local session are supported here. The document date uses Africa/Cairo; FIFO ordering follows server acceptance sequence rather than silently reordering history by date. Accepted document history in the snapshot shows the latest 100 organization documents; stock movement history shows the latest 100 movements. Baseline eligibility uses all server history, not these display limits.
 
-Large/XLSX import jobs, production access, purchase documents/partial receiving, supplier returns, posted-document reversals and stock counts remain separate work. Do not treat this development build as a live fiscal/accounting system.
+Large/XLSX import jobs, production access, supplier returns, posted-opening reversals and stock counts remain separate work. Purchase documents and partial receiving are delivered; see [Purchasing](./Purchasing.md). Do not treat this development build as a live fiscal/accounting system.
