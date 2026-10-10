@@ -14,11 +14,11 @@ Source prices stay immutable for inspection and supplier reference. Source quant
 
 Source-linked returns still require available quantity from the selected receipt. The return records the original supplier reference amount separately from the inventory deduction. For example, returning 1 kg from a EGP 20/kg receipt while the pool average is EGP 28/kg gives EGP 20 reference value, EGP 28 inventory deduction and EGP 8 valuation difference. Receipt reversals use the same inventory policy and retain their original reference amount. Supplier settlement/accounting entries are not implemented by this slice.
 
-## Reset the sample data
+## Start empty and select costing
 
-All current data is development data. The first startup of this build resets old sample transactions once and reseeds moving-average samples; it keeps setup/catalog. Rice samples use the example above. This behavior is guarded by `SAAS_DEMO_MODE=1` and the organization's development-baseline marker. It is not a production history migration.
+All current data is development data. The authorized one-time empty-baseline reset clears transaction history and all catalog/setup records, preserving tenant identities and selecting moving average. It is guarded by SAAS_DEMO_MODE=1 and development_empty_baseline; entered data survives subsequent restarts. New normal accounts contain no sample materials, units, suppliers, locations or stock. Open **ابدأ إعداد المخزون**, add a location, unit, material and supplier, then enter opening stock or a receipt.
 
-To select either method, connect online, choose it in inventory setup, acknowledge sample reset and apply. The transaction clears this organization's stock/purchase/return/transfer/count documents, command receipts and prior audit, keeps materials/units/purchase packs/suppliers/locations, rotates its generation and reseeds active materials at active locations. The reset itself is audited. Selecting the current method also explicitly resets samples. Other organizations are unaffected by this settings action.
+To select either method, connect online, choose it in inventory setup, acknowledge transaction reset and apply. The transaction clears this organization's stock/purchase/return/transfer/count documents, command receipts and prior audit, keeps materials/units/purchase packs/suppliers/locations, rotates its generation and leaves stock empty. The reset itself is audited. Selecting the current method also explicitly clears transactions. Other organizations are unaffected by this settings action.
 
 Before uploading saved work, browsers download the current generation. A changed generation atomically clears that organization's six old outboxes and replaces its snapshot; other organizations and device preferences stay. Every stock/setup/document API checks `X-Fodo-Generation` against the current organization, so an older device cannot post old operations after reset. Keep the same local address. A disconnected device notices the reset when it reconnects.
 
@@ -26,6 +26,6 @@ Recovery format **9** carries the generation. A matching archive can be restored
 
 ## Development checks and later work
 
-Legacy FIFO regressions deliberately seed FIFO. Normal fresh development data seeds moving average. Browser tests use separate data and cover both choices, reset acknowledgment, responsive layout, offline waste and stale-device prevention. The unit suite also covers fractional depletion, transfer residuals, supplier valuation differences, reversal, reconciliation, tenant isolation and recovery generations.
+Legacy FIFO regressions deliberately seed FIFO. Normal development starts empty with moving average. Automated fixture seeding is explicit via SAAS_SEED_FIXTURES=1 in isolated test directories. Two dedicated browser checks use TEST_EMPTY_WORKSPACE=1 to exercise blank startup, setup, first receiving and safe navigation with no locations. Browser tests use separate data and cover both choices, reset acknowledgment, responsive layout, offline waste and stale-device prevention. The unit suite also covers fractional depletion, transfer residuals, supplier valuation differences, reversal, reconciliation, tenant isolation and recovery generations.
 
-Recipes/BOMs are next and must consume this selected costing policy. Real tenant authentication, production migrations, production method-change/history conversion, memberships and billing are deferred. Do not expose sample-reset controls in a production client deployment.
+Recipes/BOMs are next and must consume this selected costing policy. Real tenant authentication, production migrations, production method-change/history conversion, memberships and billing are deferred. Do not expose development-reset controls in a production client deployment.

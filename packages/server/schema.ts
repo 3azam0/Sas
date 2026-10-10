@@ -8,6 +8,7 @@ ALTER TABLE organizations ADD COLUMN IF NOT EXISTS costing_method text NOT NULL 
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS costing_revision integer NOT NULL DEFAULT 1;
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS generation uuid NOT NULL DEFAULT gen_random_uuid();
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS development_baseline boolean NOT NULL DEFAULT false;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS development_empty_baseline boolean NOT NULL DEFAULT false;
 CREATE TABLE IF NOT EXISTS locations (organization_id text REFERENCES organizations(id), id text, name text NOT NULL, kind text NOT NULL, PRIMARY KEY(organization_id,id));
 CREATE TABLE IF NOT EXISTS items (organization_id text REFERENCES organizations(id), id text, name text NOT NULL, sku text NOT NULL, category text NOT NULL, unit text NOT NULL, minimum numeric(18,6) NOT NULL, PRIMARY KEY(organization_id,id), UNIQUE(organization_id,sku));
 CREATE TABLE IF NOT EXISTS command_receipts (organization_id text REFERENCES organizations(id), operation_id uuid, payload_hash text NOT NULL, result jsonb NOT NULL, PRIMARY KEY(organization_id,operation_id));

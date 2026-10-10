@@ -1,10 +1,10 @@
 # Fodo — modular restaurant SaaS foundation
 
-This is a working local development slice of the master plan, with Arabic RTL screens and Egyptian demo data. It is not the complete restaurant release or a production deployment.
+This is a working local development slice of the master plan, with Arabic RTL screens, EGP costing and empty development accounts. It is not the complete restaurant release or a production deployment.
 
 ## What works
 
-- Separate organizations, shared item catalog, and stock per location: Cairo, Alexandria, and a combined central warehouse/preparation kitchen.
+- Separate organizations, a shared item catalog within each organization, and stock per configured restaurant, warehouse or preparation location.
 - Material receipts and waste capture, movement history, stock quantity/value, and inspectable source layers and moving-average/FIFO costing.
 - IndexedDB outbox, provisional local quantities, automatic reconnect sync, and server acceptance without duplicate stock effects.
 - Offline reopening after the application shell and initial data have downloaded.
@@ -23,6 +23,8 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 
 - Stock counts: partial physical quantities, reviewed atomic selected-policy shortages and explicit-cost surpluses, strict stale-sequence checks, independent reconciliation and linked offline recount/recovery.
 
+Normal startup contains no sample catalog or stock. The authorized one-time development reset removes old setup and transaction data; later restarts preserve your entries. Browser synchronization replaces old snapshots and queues with the current generation. Automated fixture data is isolated and requires SAAS_SEED_FIXTURES=1.
+
 Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for source-linked returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Open **التحويلات** for dispatch, partial receiving and explicit transit loss; see the [transfers walkthrough](docs/runbooks/Transfers.md). Counts/reconciliation are delivered locally in **الجرد والتسوية**; see the [stock counts walkthrough](docs/runbooks/Stock-Counts.md). Recipes/BOMs are next; membership administration and dedicated demo infrastructure are deferred.
 
 ## Run on this Windows machine
@@ -39,7 +41,7 @@ Open PowerShell in this directory. Dependencies are already installed in this wo
 
 Open the `READY` address printed by the launcher (normally **http://127.0.0.1:3108**) and select “فتح مجموعة المشاوي”. Keep this hostname and port: the server validates the configured origin and browser offline data is scoped to it. Stop the server with Ctrl+C.
 
-`pnpm start`, `run.ps1 start`, and `Start-Fodo.cmd` all use this launcher and `.data-local`. `pnpm dev` uses port 3109 and `.data-dev` to keep development fixtures separate. Older `.data` directories are retained. The workspace footer and `/api/v1/health` show the build version. A verified instance serving an older build is refused with instructions to stop its console and restart at the same URL.
+`pnpm start`, `run.ps1 start`, and `Start-Fodo.cmd` all use this launcher and `.data-local`. `pnpm dev` uses port 3109 and `.data-dev` to keep development data separate. Older `.data` directories are retained. The workspace footer and `/api/v1/health` show the build version. A verified instance serving an older build is refused with instructions to stop its console and restart at the same URL.
 
 `-SandboxCompat` enables a narrowly scoped filesystem fallback needed by this Codex Windows sandbox. On a normal workstation, try the same commands without that switch. It handles EPERM from native asynchronous path resolution by retrying standard synchronous filesystem calls; access errors still propagate. The build uses webpack and Babel because the native SWC path resolver failed in this sandbox.
 
@@ -57,7 +59,7 @@ On a fresh workstation: install Node.js 24 and pnpm 11.25.0, then run `pnpm inst
 
 ## Try offline behavior
 
-1. Enter the demo online and wait for “التطبيق جاهز للفتح دون اتصال”.
+1. Enter online, add your location/unit/material and initial stock, then wait for “التطبيق جاهز للفتح دون اتصال”.
 2. Disconnect the browser using DevTools Network → Offline. Record one unit of waste.
 3. The confirmed quantity stays unchanged; the provisional quantity decreases. Reload while offline: the operation remains in the sync center.
 4. Reconnect. Sync accepts the movement and updates confirmed quantity/value once.
