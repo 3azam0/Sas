@@ -1,6 +1,6 @@
 # Fodo SaaS Developer Guide
 
-Version 2.4 — 9 October 2026
+Version 2.5 — 10 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
@@ -8,7 +8,7 @@ This guide defines the implementation workflow and distinguishes the delivered l
 
 ## Implementation status and revised delivery order — 9 October 2026
 
-This version supersedes the original task order where it conflicts. Fodo is a working local inventory prototype: Arabic RTL web UI, seeded organizations/locations, receiving, waste, FIFO, durable local outbox, and reconnect synchronization. Production authentication, real master-data administration, transfers, recipes, production, country adapters and billing remain planned.
+This version supersedes the original task order where it conflicts. Fodo is a working local inventory application: Arabic RTL web UI, editable items/units/suppliers/stock locations, purchase packs, receiving, waste, FIFO, durable local outboxes, recovery archives and reconnect synchronization. Production authentication, opening imports/purchasing documents, transfers, recipes, production, country adapters and billing remain planned.
 
 Current adapters: Next.js/React; Zustand for UI state; React Hook Form/Zod; custom CSS; Dexie/IndexedDB; PGlite development PostgreSQL; complete tenant snapshots. Tailwind/shadcn, TanStack Query, PowerSync, managed PostgreSQL and production Auth are future decisions/integrations, not installed capabilities. Do not rewrite stable UI state merely to match an earlier technology proposal.
 
@@ -18,11 +18,13 @@ The current delivery target is a working development version for one restaurant 
 
 Use development to show progress to the first client. Do not provision a dedicated client-demo or hosted staging environment now; their lifecycle specifications below are deferred. Production is a later deployment target with separate data/configuration and minimum real login/access checks before live use. Existing GitHub environment registrations can remain unused. Preserve the current application code, launcher and local data.
 
-The next working milestone is editable items, units, suppliers and stock locations, followed by opening stock and purchase/receiving documents. Acceptance: set up an item and supplier, receive stock into a branch, inspect its balance/value and history, record waste offline, then reconnect without duplicate effects. Sample development fixtures can be used until the client supplies their setup data. Transfers/counts and restaurant recipes/production/cost reports follow. Each milestone must work end to end before adding more SaaS administration.
+The inventory setup milestone is delivered. Items, units, suppliers and stock locations can be created/edited offline. Receiving can reference a supplier and an item-specific purchase pack; inventory quantities are converted to the base unit, with cost explicitly entered per base unit. Prior pack definitions and an item's base unit are immutable, preserving queued operations and stock history. Records can be deactivated without deletion. Setup uploads precede dependent stock commands; stale revisions and duplicate codes enter review. Recovery version 3 includes setup and stock outboxes while older archives remain supported. See [Inventory setup walkthrough](./runbooks/Inventory-Setup.md).
+
+The next working milestone is opening stock and purchase documents/returns. Sample development fixtures can be used until the client supplies their setup data. Transfers/counts and restaurant recipes/production/cost reports follow. Each milestone must work end to end before adding more SaaS administration.
 
 ### Verified reliability delivery
 
-Same-organization renewal with queued work, review retry/correction/cancellation, and archive preview/restore are implemented. The latest application verification passed 27 unit/integration tests and nine browser/process scenarios, including expired offline grants, exactly-once reconnect posting, repeated launch, stale builds, occupied ports, recovery import and release-source validation. Database restore and tamper rejection are covered by the integration tests. TypeScript, the production build, workflow syntax validation and committed-history secret scanning also pass. Remote branch and PR CI passed at `42d8edf`. The latest setup-helper fix has 22 local regression checks passing in Windows PowerShell and PowerShell 7. Squash merging, cleanup, immutable tags and staging/demo/production registrations are verified; only main protection remains pending publication and remote verification of the request-payload fix.
+Same-organization renewal with queued work, review retry/correction/cancellation, and archive preview/restore are implemented. Application verification passed 39 unit/integration tests and ten browser/process scenarios, including setup revisions, tenant isolation, pack conversion validation, inactive records, migration reruns, combined setup/stock recovery and offline setup through receiving/waste in a new branch. Database restore and tamper rejection remain covered. TypeScript and the production build pass. Browser checks use a separate test database; they do not modify the client's local data. Remote branch and PR CI passed at `42d8edf` for the earlier workflow work; the new inventory setup is not yet published. The setup-helper fix has 22 local regression checks passing in both PowerShell versions. Squash merging, cleanup, immutable tags and staging/demo/production registrations are verified; main-protection payload correction still needs remote verification.
 
 All production start paths (`pnpm start`, `run.ps1 start`, and the Windows launcher) now share the saved origin and `.data-local`. Development uses port 3109 and `.data-dev`. Build identity is baked into the workspace footer and health response; the launcher refuses an older verified build and instructs a same-origin restart. `run.ps1 backup` runs the manual cold-backup utility. Existing data directories remain preserved.
 
@@ -36,7 +38,7 @@ Selected cloud project: `bkkxrptgwbrwredauopq` at `https://bkkxrptgwbrwredauopq.
 | 0B | Stable local origin and single-instance launch | Repeated launch reuses the verified instance; unrelated port conflicts are explicit; one database owner |
 | 0C | Review, retry, cancel, correct and restore | Immutable operation history; changed data gets a new linked ID; restore validates scope and deduplicates |
 | 0D | Version control and backup/restore runbook | Git initialized with secrets/data ignored; a restore exercise proves database recovery |
-| 1 | Working inventory setup for the first client | Editable items, units, suppliers and locations; tenant-scoped persistence and reload |
+| 1 — delivered locally | Working inventory setup for the first client | Editable items, units, suppliers and locations; tenant-scoped persistence and reload; purchase packs and supplier receiving |
 | 2 | Purchasing and opening stock | Opening stock, purchase documents, receiving and returns produce inspectable stock/value effects |
 | 3 | Multi-branch inventory flow | Counts, dispatch/receipt transfers, variance handling, offline recovery and backups |
 | 4 | Restaurant cost control | Immutable recipes, production, yield, sales imports, actual/theoretical consumption and profitability |

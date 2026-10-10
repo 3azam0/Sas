@@ -4,7 +4,7 @@ Updated: 9 October 2026
 
 Status: planning baseline. Client-specific inputs are deferred. This document specifies intended behavior; it does not claim that integrations, compliance, or software have already been implemented.
 
-Delivery status on 9 October 2026: the local receiving/waste inventory prototype includes validated recovery, same-organization renewal, stable startup and tested local database restore. Verification passed 27 unit/integration tests and nine browser/process scenarios, including the prepared release-validation checks. These complete the local reliability checks; the full first restaurant release remains pending. The selected Supabase project is `bkkxrptgwbrwredauopq`; its Auth endpoint accepts the configured publishable key. Production tenant/access implementation still requires management access and migrations.
+Delivery status on 10 October 2026: local inventory setup now includes editable items, units, suppliers, stock locations and fixed purchase-pack conversions, connected to receiving, waste, FIFO, offline outboxes and recovery. Verification passed 39 unit/integration tests and ten browser/process scenarios. Opening imports, purchasing documents/returns, transfers, recipes and the full restaurant release remain pending. The selected Supabase project is `bkkxrptgwbrwredauopq`; its Auth endpoint accepts the configured publishable key. Production tenant/access implementation still requires management access and migrations; it is deferred while the working restaurant flows are completed in development.
 
 ## 1. Product objective
 
@@ -404,13 +404,13 @@ Monitor sync lag, pending/rejected operations, ledger discrepancies, stale repor
 
 ## 28. Delivery roadmap
 
-Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. The next usable milestone is a two-branch inventory pilot; full restaurant cost control follows with recipes, production and consumption reconciliation. See Developer Guide version 2.4 for implementation order and environment/Git workflow.
+Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. Editable inventory setup with supplier receiving and purchase packs is delivered locally. The next milestone is opening stock and purchasing documents/returns, followed by the multi-branch inventory pilot and restaurant cost control. See Developer Guide version 2.5 for implementation order and environment/Git workflow.
 
 
 | Stage | Outcome |
 |---|---|
 | 0 | Fix session renewal, stable startup, review resolution, recovery import, Git and verified backups |
-| 1 | Editable item/unit/supplier/location setup for the first organization, retaining tenant scoping |
+| 1 — delivered locally | Editable item/unit/supplier/location setup, supplier receiving and purchase packs; tenant scoping retained |
 | 2 | Opening stock, purchasing, receiving and returns using the existing offline/FIFO engine |
 | 3 | Multi-branch transfers, counts, reconciliation and offline recovery |
 | 4 | Recipes/BOMs, central/local production, yield and costing |

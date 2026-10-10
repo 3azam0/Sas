@@ -3,7 +3,7 @@ import { createHash,randomUUID } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { resolve,join } from 'node:path';
 import {acquireFileLock} from '../../scripts/file-lock.mjs';
-import { commandSchema,BusinessError,type Access,type Command,type Snapshot,type Layer,type Item,type Location,type Balance,type Entry,type CommandResult } from '@saas/contracts';
+import { commandSchema,BusinessError,type Access,type Command,type Snapshot,type Layer,type Item,type Location,type Balance,type Entry,type CommandResult,type Unit,type Supplier } from '@saas/contracts';
 import {allocateFIFO,decimal} from '@saas/domain';
 import {schema} from './schema';
 export async function createDatabase(path?:string) { if(path) await mkdir(path,{recursive:true});const release=path?acquireFileLock(join(path,'.fodo.lock')):()=>{};const onExit=()=>release();process.once('exit',onExit);try{const db=await PGlite.create(path);const originalClose=db.close.bind(db);db.close=async()=>{try{await originalClose();}finally{process.removeListener('exit',onExit);release();}};await db.exec(schema);return db;}catch(error){process.removeListener('exit',onExit);release();throw error;} }
@@ -12,9 +12,10 @@ export async function seed(db:PGlite) {
     for(const [org,name] of [['grills','مجموعة المشاوي'],['bistro','مطاعم بيت المذاق']]) {
       const exists=await tx.query('SELECT id FROM organizations WHERE id=$1',[org]); if(exists.rows.length) continue;
       await tx.query('INSERT INTO organizations VALUES($1,$2)',[org,name]);
-      for(const [id,label,kind] of [['central','المخزن والمطبخ المركزي','تخزين وتحضير'],['cairo','فرع القاهرة','مطعم'],['alex','فرع الإسكندرية','مطعم']]) await tx.query('INSERT INTO locations VALUES($1,$2,$3,$4)',[org,id,label,kind]);
+      for(const name of ['كجم','جم','لتر','مل','قطعة'])await tx.query('INSERT INTO units(organization_id,id,name) VALUES($1,$2,$2)',[org,name]);
+      for(const [id,label,kind] of [['central','المخزن والمطبخ المركزي','تخزين وتحضير'],['cairo','فرع القاهرة','مطعم'],['alex','فرع الإسكندرية','مطعم']]) await tx.query('INSERT INTO locations(organization_id,id,name,kind) VALUES($1,$2,$3,$4)',[org,id,label,kind]);
       for(const [id,label,sku,category,unit,min] of [['beef','لحم بقري','MT-001','لحوم','كجم','8'],['chicken','دجاج طازج','MT-002','دواجن','كجم','10'],['rice','أرز مصري','DR-001','مواد جافة','كجم','15'],['pepper','فلفل أسود','SP-001','توابل','جم','250'],['box','علبة وجبة','PK-001','تغليف','قطعة','50']]) {
-        await tx.query('INSERT INTO items VALUES($1,$2,$3,$4,$5,$6,$7)',[org,id,label,sku,category,unit,min]);
+        await tx.query('INSERT INTO items(organization_id,id,name,sku,category,unit,minimum,unit_id) VALUES($1,$2,$3,$4,$5,$6,$7,$6)',[org,id,label,sku,category,unit,min]);
         for(const location of ['central','cairo','alex']) {
           const q=id==='pepper'?'1500':id==='box'?'120':id==='rice'?'45':'20';
           const cost=id==='beef'?'415':id==='chicken'?'145':id==='rice'?'32':id==='pepper'?'0.8':'3.5';
@@ -41,6 +42,11 @@ export async function postCommand(db:PGlite,access:Access,input:unknown):Promise
     if(prior.rows[0]) {if(prior.rows[0].payload_hash!==hash) throw new BusinessError('PAYLOAD_CONFLICT','معرّف العملية مستخدم لبيانات مختلفة');return prior.rows[0].result;}
     const valid=await tx.query('SELECT 1 FROM locations l JOIN items i ON i.organization_id=l.organization_id WHERE l.organization_id=$1 AND l.id=$2 AND i.id=$3',[c.organizationId,c.locationId,c.itemId]);
     if(!valid.rows.length) throw new BusinessError('FORBIDDEN','الموقع أو المادة خارج نطاق المؤسسة',403);
+    const definition=(await tx.query<Item>('SELECT active,unit_id AS "unitId",purchase_units AS "purchaseUnits" FROM items WHERE organization_id=$1 AND id=$2',[c.organizationId,c.itemId])).rows[0];
+    const site=(await tx.query<{active:boolean}>('SELECT active FROM locations WHERE organization_id=$1 AND id=$2',[c.organizationId,c.locationId])).rows[0];
+    if(!definition.active||!site.active)throw new BusinessError('INACTIVE_RECORD','المادة أو الموقع غير نشط. راجع العملية.');
+    if(c.supplierId){const supplier=(await tx.query('SELECT 1 FROM suppliers WHERE organization_id=$1 AND id=$2 AND active',[c.organizationId,c.supplierId])).rows;if(!supplier.length)throw new BusinessError('INVALID_SUPPLIER','المورد غير نشط أو غير متاح في المؤسسة.');}
+    if(c.purchaseUnitId){const pack=definition.purchaseUnits?.find(p=>p.id===c.purchaseUnitId);const converted=pack?decimal(c.enteredQuantity!).mul(pack.factor):null;if(!converted||converted.decimalPlaces()>6||!converted.eq(c.quantity))throw new BusinessError('INVALID_CONVERSION','كمية وحدة الشراء لا تطابق كمية المخزون.');}
     await tx.query('INSERT INTO stock_balances VALUES($1,$2,$3,0,0) ON CONFLICT DO NOTHING',[c.organizationId,c.locationId,c.itemId]);
     await tx.query('SELECT quantity FROM stock_balances WHERE organization_id=$1 AND location_id=$2 AND item_id=$3 FOR UPDATE',[c.organizationId,c.locationId,c.itemId]);
     let amount:string;
@@ -54,6 +60,7 @@ export async function postCommand(db:PGlite,access:Access,input:unknown):Promise
     } else amount=decimal(c.quantity).mul(c.unitCost!).toFixed(12);
     const sign=c.type==='receipt.post'?1:-1;
     const entry=await tx.query<{sequence:string}>('INSERT INTO stock_entries(organization_id,operation_id,location_id,item_id,quantity,amount,type,reason,business_date) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING sequence',[c.organizationId,c.operationId,c.locationId,c.itemId,decimal(c.quantity).mul(sign).toFixed(6),decimal(amount).mul(sign).toFixed(12),c.type,c.reason,c.businessDate]);
+    if(c.supplierId||c.purchaseUnitId)await tx.query('UPDATE stock_entries SET supplier_id=$3,purchase_unit_id=$4,entered_quantity=$5 WHERE organization_id=$1 AND operation_id=$2',[c.organizationId,c.operationId,c.supplierId??null,c.purchaseUnitId??null,c.enteredQuantity??null]);
     if(sign===1) await tx.query('INSERT INTO cost_layers VALUES($1,$2,$3,$4,$5,$6,$7)',[c.organizationId,randomUUID(),c.locationId,c.itemId,c.quantity,c.unitCost,entry.rows[0].sequence]);
     await tx.query('UPDATE stock_balances SET quantity=quantity+$4::numeric, value=value+$5::numeric WHERE organization_id=$1 AND location_id=$2 AND item_id=$3',[c.organizationId,c.locationId,c.itemId,decimal(c.quantity).mul(sign).toFixed(6),decimal(amount).mul(sign).toFixed(12)]);
     await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[c.organizationId,access.userId,c.operationId,c.type]);
@@ -68,12 +75,15 @@ export async function getSnapshot(db:PGlite,access:Access):Promise<Snapshot> {
     const org=access.organizationId;
     const organization=await tx.query<{name:string}>('SELECT name FROM organizations WHERE id=$1',[org]);
     if(!organization.rows[0]) throw new BusinessError('FORBIDDEN','المؤسسة غير متاحة',403);
-    const locations=await tx.query<Location>('SELECT id,name,kind FROM locations WHERE organization_id=$1 ORDER BY id',[org]);
-    const items=await tx.query<Item>('SELECT id,name,sku,category,unit,minimum::text FROM items WHERE organization_id=$1 ORDER BY sku',[org]);
+    const units=await tx.query<Unit>('SELECT id,name,revision FROM units WHERE organization_id=$1 ORDER BY name',[org]);
+    const suppliers=await tx.query<Supplier>('SELECT id,name,phone,email,address,active,revision FROM suppliers WHERE organization_id=$1 ORDER BY name',[org]);
+    const locations=await tx.query<Location>('SELECT id,name,kind,active,revision FROM locations WHERE organization_id=$1 ORDER BY id',[org]);
+    const items=await tx.query<Item>('SELECT id,name,sku,category,unit,minimum::text,unit_id AS "unitId",purchase_units AS "purchaseUnits",active,revision FROM items WHERE organization_id=$1 ORDER BY sku',[org]);
     const balances=await tx.query<Balance>('SELECT location_id AS "locationId",item_id AS "itemId",quantity::text,value::text,CASE WHEN quantity>0 THEN (value/quantity)::text ELSE NULL END AS average FROM stock_balances WHERE organization_id=$1',[org]);
     const layers=await tx.query<Layer>('SELECT id,location_id AS "locationId",item_id AS "itemId",remaining::text,unit_cost::text AS "unitCost",sequence FROM cost_layers WHERE organization_id=$1 AND remaining>0 ORDER BY sequence',[org]);
-    const entries=await tx.query<Entry>('SELECT operation_id AS "operationId",location_id AS "locationId",item_id AS "itemId",quantity::text,amount::text,type,reason,business_date::text AS "businessDate",posted_at::text AS "postedAt" FROM stock_entries WHERE organization_id=$1 ORDER BY sequence DESC LIMIT 100',[org]);
+    const entries=await tx.query<Entry>('SELECT operation_id AS "operationId",location_id AS "locationId",item_id AS "itemId",quantity::text,amount::text,type,reason,business_date::text AS "businessDate",posted_at::text AS "postedAt",supplier_id AS "supplierId",purchase_unit_id AS "purchaseUnitId",entered_quantity::text AS "enteredQuantity" FROM stock_entries WHERE organization_id=$1 ORDER BY sequence DESC LIMIT 100',[org]);
     const receipts=await tx.query<{id:string}>('SELECT operation_id::text AS id FROM command_receipts WHERE organization_id=$1',[org]);
-    return {organizationId:org,organizationName:organization.rows[0].name,access,locations:locations.rows,items:items.rows,balances:balances.rows,layers:layers.rows,entries:entries.rows,acceptedOperationIds:receipts.rows.map(x=>x.id),fetchedAt:new Date().toISOString(),currency:'EGP'};
+    return {organizationId:org,organizationName:organization.rows[0].name,access,locations:locations.rows,items:items.rows,balances:balances.rows,layers:layers.rows,entries:entries.rows,acceptedOperationIds:receipts.rows.map(x=>x.id),fetchedAt:new Date().toISOString(),currency:'EGP',units:units.rows,suppliers:suppliers.rows};
   });
 }
+export {postSetupCommand} from './setup';
