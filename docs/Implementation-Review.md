@@ -1,6 +1,16 @@
 # Fodo implementation review
 
-## Current checkpoint — production and yield, 10 October 2026
+## Current checkpoint — menu mapping and sales import, 10 October 2026
+
+Phase 4C1 is delivered on local branch `feat/sales-import-mapping`, starting from production checkpoint `3addd0e`. **المبيعات** separates source-specific menu codes from inventory materials, pins exact recipe versions/output-per-sale, and accepts completed-sales CSV imports with explicit column mapping/confirmation. Invalid or unmapped rows and refund/void statuses block capture. Sale details use tenant/source/location/business-date/transaction/line identity: identical repeats add zero, overlaps add only new details, and changed repeats roll back the whole import. CSV re-imports retain accepted mappings after later menu edits/deactivation. Names, versions, ratios and revisions are preserved in accepted history.
+
+Acceptance writes immutable imports, new details, reserved IDs and audit atomically under the tenant lock. It leaves stock, cost layers and count checkpoints unchanged. Dexie schema 10/recovery 13 include mapping actions/imports in identity checks, pending/review counts, tenant switching, reset generation and atomic restore. Setup/recipe publication precede mappings and imports. Network/auth failures preserve work; rejected imports support retry/cancellation and fresh-ID linked correction using current mapping. Transaction-only resets retain menu/recipe definitions; catalog-clearing resets remove references in foreign-key order. No client reset, seed, cloud schema change, launcher change, push, merge or deployment occurred.
+
+Verification passed: 202 unit/integration tests across 33 files, 35 browser/process scenarios (33 fixture regressions plus 2 isolated empty-workspace checks), TypeScript, production build and offline manifest. The first browser scenario covers offline menu/import reload, Arabic values, repeated files and unchanged stock. The mobile scenario covers invalid/refunded rows and stale mapping correction. Desktop/mobile screenshots are saved in the output directory. Developer guide is version 2.18; see [Sales import](./runbooks/Sales-Import.md).
+
+Next: Phase 4C2 inventory consumption from pinned sales with explicit refund/void handling; Phase 4C3 actual-versus-theoretical consumption, food cost and variance reports. Memberships, billing, separate demo infrastructure and production Auth/deployment remain deferred. Restart Fodo at its saved address after the build to load the new module.
+
+## Earlier production and yield checkpoint — 10 October 2026
 
 Phase 4B is delivered on local branch `feat/production-yield`, starting from recipe checkpoint `9baa335`. **الإنتاج والتحضير** captures pinned stocked-preparation versions, input/output locations, planned versus actual usable output, actual base-material consumption, abnormal waste and explicit zero-output failed batches. Server acceptance posts document, ingredient issues, exact-cost output layers, allocated values, deduplication and audit together. FIFO fractional output uses adjacent six-decimal prices to conserve twelve-decimal value; moving average blends the output into its destination pool. Stocked children are consumed without also issuing their raw ingredients. Independent stock reconciliation runs before/after posting; shortages roll back the full batch.
 

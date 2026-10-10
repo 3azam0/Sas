@@ -38,7 +38,7 @@ The sync center lists device production actions across locations. **عرض دف�
 
 ## Recovery and development reset
 
-Recovery format **12** includes production, recipe and existing inventory outboxes. Preview/restore requires the same organization and generation with a current grant; scope, references, independent IDs, correction links and conflicting payloads are checked before atomic import. Cancelled/superseded records retain their status. Formats 1–11 remain readable under the existing generation rules.
+Current recovery format **13** includes sales, production, recipe and existing inventory outboxes (production was introduced in format 12). Preview/restore requires the same organization and generation with a current grant; scope, references, independent IDs, correction links and conflicting payloads are checked before atomic import. Cancelled/superseded records retain their status. Formats 1–12 remain readable under the existing generation rules.
 
 Transaction-only development reset clears production and stock while retaining recipe definitions/versions. Catalog-clearing reset removes production before referenced recipes/materials. Both rotate generation; old browser actions/archives cannot return to the new ledger. This feature does not reset or seed the client's workspace.
 

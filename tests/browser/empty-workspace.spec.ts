@@ -11,6 +11,6 @@ test('from scratch: empty account can add its own setup and first stock without 
 });
 test('empty locations: mobile account opens every workspace without crashing or enabling stock capture',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');await page.getByRole('button',{name:'تجربة مؤسسة منفصلة',exact:true}).click();await expect(page.getByRole('heading',{name:'ابدأ إعداد مطعمك',exact:true})).toBeVisible();const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- for(const name of ['الموردون','الرصيد الافتتاحي','المشتريات','مرتجعات الموردين','التحويلات','الجرد والتسوية','الوصفات والتكاليف','الإنتاج والتحضير','إعداد المخزون','نظرة عامة']){await page.getByRole('button',{name,exact:true}).click();await expect(page.getByRole('heading',{name,exact:true}).first()).toBeVisible();await expect(page.getByRole('button',{name:'استلام مواد',exact:true})).toBeDisabled();}
+ for(const name of ['الموردون','الرصيد الافتتاحي','المشتريات','مرتجعات الموردين','التحويلات','الجرد والتسوية','الوصفات والتكاليف','الإنتاج والتحضير','المبيعات','إعداد المخزون','نظرة عامة']){await page.getByRole('button',{name,exact:true}).click();await expect(page.getByRole('heading',{name,exact:true}).first()).toBeVisible();await expect(page.getByRole('button',{name:'استلام مواد',exact:true})).toBeDisabled();}
  expect(errors).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/fodo-empty-mobile.png',fullPage:true});
 });

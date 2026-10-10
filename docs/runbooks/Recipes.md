@@ -45,7 +45,7 @@ Save and request publication offline while the organization's work grant remains
 
 Network/authentication failures preserve queued actions. Business rejection enters review. Retry sends the unchanged action; cancellation applies only to a rejected action and has no stock effect. After cancellation, reopen the latest draft and save a fresh action to correct its definition. If an earlier draft or child publication is rejected, dependent actions also need review.
 
-Current recovery format **12** includes recipe and production actions together with existing outboxes (recipes were introduced in format 11). Export from the sync center, then preview/restore into the same organization and generation with a valid grant. Identical actions are skipped; conflicting payloads abort the whole restore. Cancelled history stays cancelled. Formats 1–11 remain readable subject to the existing scope/generation checks. Database backups and browser recovery exports cover different data; unsynchronized device actions require the browser export.
+Current recovery format **13** includes recipe and production actions together with existing outboxes (recipes were introduced in format 11). Export from the sync center, then preview/restore into the same organization and generation with a valid grant. Identical actions are skipped; conflicting payloads abort the whole restore. Cancelled history stays cancelled. Formats 1–12 remain readable subject to the existing scope/generation checks. Database backups and browser recovery exports cover different data; unsynchronized device actions require the browser export.
 
 ## Development reset behavior
 

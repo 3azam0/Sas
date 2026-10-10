@@ -28,6 +28,20 @@ Acceptance covers FIFO and average, exact fractional output conservation, zero-c
 
 Verification on 10 October 2026: 186 unit/integration tests across 30 files, TypeScript, production build and offline manifest passed. 33 browser/process scenarios passed (31 fixture regressions plus 2 isolated empty-workspace checks). See [Production walkthrough](./runbooks/Production.md). Local branch `feat/production-yield` starts from recipe checkpoint `9baa335`.
 
-## 4C: sales and consumption reconciliation (next)
+## 4C1: menu mapping and completed sales import — delivered locally
 
-Add validated POS detail imports with pinned versions, refunds/voids, actual vs theoretical consumption and food-cost reports. Membership, subscriptions, separate demo deployment, country tax adapters and production access controls remain deferred under the current development scope.
+Create tenant-scoped menu items keyed by POS source/code, with a name, active status, pinned published recipe version and quantity of recipe output represented by one sale. Source/code stay immutable after creation; revisions can change the name, version, ratio or active status without rewriting past sales. Keep this separate from the ingredient catalog.
+
+Import bounded UTF-8 CSV files (1 MiB, 200 detail rows) through explicit column mapping: transaction ID, line ID, menu code, business date, sold quantity and total line net amount in EGP, excluding VAT and after discounts. An optional status column accepts completed sales only; require explicit confirmation. Reject unknown codes, ambiguous columns, invalid dates/quantities, refunds/voids and unmapped rows before saving. Each detail pins mapping revision, recipe version and output-per-sale. Effective dates are checked against each sale date.
+
+Accept immutable `sales.import` documents without inventory posting. Deduplicate each external detail by tenant, source, branch, business date, transaction ID and line ID, both within a file and across files. CSV re-imports retain accepted recipe mappings even after menu edits/deactivation; new rows use current mappings. Identical repeats contribute zero new sales; changed data under an existing external key rejects the entire import. Reserve internal operation/line IDs, check mapping revisions, write new detail records/import results/audit atomically and preserve accepted history. Rejected imports support retry, cancellation and fresh-ID linked correction; accepted financial correction is deferred until refund/void workflows.
+
+Use additive tenant-qualified tables/indexes, Dexie schema 10 and recovery format 13 for mapping actions and import documents. Setup and exact recipe publications precede mapping acceptance, then imports. Include both outboxes in session/generation checks, identity reservation, pending/review counts, switching protection and atomic recovery. Transaction resets clear sales imports while retaining menu definitions; catalog resets remove sales and menu references before recipes. No client reset, sample insertion, full POS, remote cloud change or deployment.
+
+Acceptance: stock-neutral sales capture, source/branch/tenant/date separation, line/file/idempotency duplicates, partial overlap, changed-repeat all-line rollback, pinned history after mapping edits, zero-price sales, effective dates, revision conflicts, Arabic CSV values, offline reload/dependency order/network failure/recovery/correction and empty/mobile UI. Branch `feat/sales-import-mapping` starts from `3addd0e`.
+
+Verification passed: 202 unit/integration tests across 33 files, 35 browser/process scenarios (33 fixture regressions plus 2 isolated empty-workspace checks), TypeScript, production build and offline manifest. See [Sales import walkthrough](./runbooks/Sales-Import.md).
+
+## 4C2–4C3: consumption and reconciliation (next)
+
+Consume accepted pinned sales under the selected inventory policy, respecting stocked preparation boundaries and handling refunds/voids explicitly. Then add actual-versus-theoretical consumption and food-cost reports. Membership, subscriptions, separate demo deployment, country tax adapters and production access controls remain deferred under the current development scope.
