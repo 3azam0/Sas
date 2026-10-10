@@ -33,7 +33,7 @@ IndexedDB version 4 adds the purchase outbox without removing setup/opening/stoc
 
 Receipt reversal can be saved offline, but its quantity/order effects are shown after server acceptance; synchronize the reversal before capturing its replacement. Posting sequence determines FIFO; backdated business dates do not reorder accepted layers.
 
-Recovery format 7 includes transfer/purchase/return actions, movement IDs and linked return corrections alongside all earlier outboxes. Formats 1–6 remain readable. Import validates scope, references, IDs and payload conflicts, then restores atomically. Exported acceptance is never trusted without server reconciliation. Older application builds cannot read format 7; retain the current build when restoring a new archive.
+Recovery format 8 includes count/transfer/purchase/return actions, movement IDs and linked return corrections alongside all earlier outboxes. Formats 1–7 remain readable. Import validates scope, references, IDs and payload conflicts, then restores atomically. Exported acceptance is never trusted without server reconciliation. Older application builds cannot read format 8; retain the current build when restoring a new archive.
 
 ## Financial and release boundaries
 

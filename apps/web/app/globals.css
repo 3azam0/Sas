@@ -14,3 +14,5 @@
 
 @media(max-width:760px){.sidebar nav{grid-template-columns:repeat(3,minmax(0,1fr))}.content{padding-bottom:225px}.transfer-editor .heading-actions{flex-wrap:wrap}}
 @media(min-width:761px){.sidebar{overflow-y:auto}.sidebar>*{flex-shrink:0}}
+
+.count-confirm{display:flex!important;align-items:center;gap:10px}.count-confirm input{min-width:auto;width:20px;height:20px}.count-editor .heading-actions,.count-approval .heading-actions{flex-wrap:wrap}@media(max-width:760px){.sidebar nav{grid-template-columns:repeat(4,minmax(0,1fr))}.content{padding-bottom:225px}}

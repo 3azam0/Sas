@@ -1,3 +1,4 @@
+import {countSnapshot} from './counts';
 import {transferSnapshot} from './transfers';
 import { PGlite } from '@electric-sql/pglite';
 import { createHash,randomUUID } from 'node:crypto';
@@ -74,7 +75,7 @@ export async function getSnapshot(db:PGlite,access:Access):Promise<Snapshot> {
   if(Date.parse(access.expiresAt)<=Date.now()) throw new BusinessError('AUTH_REQUIRED','انتهت الجلسة',401);
   return db.transaction(async tx=>{
     const org=access.organizationId;
-    const organization=await tx.query<{name:string}>('SELECT name FROM organizations WHERE id=$1',[org]);
+    const organization=await tx.query<{name:string}>('SELECT name FROM organizations WHERE id=$1 FOR SHARE',[org]);
     if(!organization.rows[0]) throw new BusinessError('FORBIDDEN','المؤسسة غير متاحة',403);
     const units=await tx.query<Unit>('SELECT id,name,revision FROM units WHERE organization_id=$1 ORDER BY name',[org]);
     const suppliers=await tx.query<Supplier>('SELECT id,name,phone,email,address,active,revision FROM suppliers WHERE organization_id=$1 ORDER BY name',[org]);
@@ -82,10 +83,10 @@ export async function getSnapshot(db:PGlite,access:Access):Promise<Snapshot> {
     const items=await tx.query<Item>('SELECT id,name,sku,category,unit,minimum::text,unit_id AS "unitId",purchase_units AS "purchaseUnits",active,revision FROM items WHERE organization_id=$1 ORDER BY sku',[org]);
     const balances=await tx.query<Balance>('SELECT location_id AS "locationId",item_id AS "itemId",quantity::text,value::text,CASE WHEN quantity>0 THEN (value/quantity)::text ELSE NULL END AS average FROM stock_balances WHERE organization_id=$1',[org]);
     const layers=await tx.query<Layer>('SELECT id,location_id AS "locationId",item_id AS "itemId",remaining::text,unit_cost::text AS "unitCost",sequence FROM cost_layers WHERE organization_id=$1 AND remaining>0 ORDER BY sequence',[org]);
-    const entries=await tx.query<Entry>('SELECT operation_id AS "operationId",location_id AS "locationId",item_id AS "itemId",quantity::text,amount::text,type,reason,business_date::text AS "businessDate",posted_at::text AS "postedAt",supplier_id AS "supplierId",purchase_unit_id AS "purchaseUnitId",entered_quantity::text AS "enteredQuantity",purchase_receipt_id AS "purchaseReceiptId",purchase_order_line_id AS "purchaseOrderLineId",supplier_return_id AS "supplierReturnId",transfer_id AS "transferId",transfer_line_id AS "transferLineId" FROM stock_entries WHERE organization_id=$1 ORDER BY sequence DESC LIMIT 100',[org]);
+    const entries=await tx.query<Entry>('SELECT operation_id AS "operationId",location_id AS "locationId",item_id AS "itemId",quantity::text,amount::text,type,reason,business_date::text AS "businessDate",posted_at::text AS "postedAt",supplier_id AS "supplierId",purchase_unit_id AS "purchaseUnitId",entered_quantity::text AS "enteredQuantity",purchase_receipt_id AS "purchaseReceiptId",purchase_order_line_id AS "purchaseOrderLineId",supplier_return_id AS "supplierReturnId",transfer_id AS "transferId",transfer_line_id AS "transferLineId",count_id AS "countId",count_line_id AS "countLineId" FROM stock_entries WHERE organization_id=$1 ORDER BY sequence DESC LIMIT 100',[org]);
     const receipts=await tx.query<{id:string}>('SELECT operation_id::text AS id FROM command_receipts WHERE organization_id=$1',[org]);
     const openings=await tx.query<PostedOpening>('SELECT payload AS document,amount::text,posted_at::text AS "postedAt" FROM opening_documents WHERE organization_id=$1 ORDER BY posted_at DESC LIMIT 100',[org]);
-    return {organizationId:org,organizationName:organization.rows[0].name,access,locations:locations.rows,items:items.rows,balances:balances.rows,layers:layers.rows,entries:entries.rows,acceptedOperationIds:receipts.rows.map(x=>x.id),fetchedAt:new Date().toISOString(),currency:'EGP',units:units.rows,suppliers:suppliers.rows,openings:openings.rows,...await purchaseSnapshot(tx,org),...await transferSnapshot(tx,org)};
+    return {organizationId:org,organizationName:organization.rows[0].name,access,locations:locations.rows,items:items.rows,balances:balances.rows,layers:layers.rows,entries:entries.rows,acceptedOperationIds:receipts.rows.map(x=>x.id),fetchedAt:new Date().toISOString(),currency:'EGP',units:units.rows,suppliers:suppliers.rows,openings:openings.rows,...await purchaseSnapshot(tx,org),...await transferSnapshot(tx,org),...await countSnapshot(tx,org)};
   });
 }
 export {postSetupCommand} from './setup';
@@ -94,3 +95,5 @@ export {postOpening} from './opening';
 export {postPurchase} from './purchasing';
 
 export {postTransfer} from './transfers';
+
+export {postCount,reconcileStock} from './counts';

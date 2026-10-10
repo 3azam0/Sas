@@ -1,3 +1,4 @@
+import {countTables} from './counts';
 import {transferTables} from './transfers';
 import {returnTables} from './supplier-returns';
 import {purchaseTables} from './purchasing';
@@ -45,4 +46,5 @@ END $$;
 ${purchaseTables}
 ${returnTables}
 ${transferTables}
+${countTables}
 `;

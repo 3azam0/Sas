@@ -26,7 +26,7 @@ Connectivity/authentication failures retain pending capture. Another device may 
 - **تصحيح المرتجع** uses the refreshed source/revision, creates fresh document/movement IDs, and preserves the rejected record as **تم التصحيح** with links between both records.
 - **إلغاء المرتجع المرفوض** cancels only a known rejected local record; it never reverses accepted stock.
 
-Recovery format 7 includes transfers, returns and linked corrections together with purchase, opening, setup and stock outboxes. Formats 1–6 remain readable. Preview validates tenant/source references, payloads, IDs and correction links before atomic restore. Identical records are skipped and conflicting records abort restoration. Exported acceptance states require server reconciliation. Older builds cannot read format 7. Preserve the local origin and export device-only work before moving devices or addresses; database backups do not include unsynchronized browser commands.
+Recovery format 8 includes counts, transfers, returns and linked corrections together with purchase, opening, setup and stock outboxes. Formats 1–7 remain readable. Preview validates tenant/source references, payloads, IDs and correction links before atomic restore. Identical records are skipped and conflicting records abort restoration. Exported acceptance states require server reconciliation. Older builds cannot read format 8. Preserve the local origin and export device-only work before moving devices or addresses; database backups do not include unsynchronized browser commands.
 
 ## Verification and next work
 

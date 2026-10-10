@@ -1,3 +1,4 @@
+import {countCommandSchema,type CountCommand,type StockCount,type CountDefinition} from '@saas/contracts';
 import {decimal} from '@saas/domain';
 import Dexie,{type Table} from 'dexie';
 import {z} from 'zod';
@@ -9,12 +10,12 @@ export type LocalOpening={id:string;scope:DemoProfile;document:OpeningDocument;s
 class LocalDatabase extends Dexie {
  snapshots!:Table<Snapshot,DemoProfile>;commands!:Table<LocalCommand,string>;preferences!:Table<{key:string;value:string},string>;
  setups!:Table<LocalSetup,string>;
- openings!:Table<LocalOpening,string>;purchases!:Table<LocalPurchase,string>;transfers!:Table<LocalTransfer,string>;
- constructor(name='restaurant-saas-v1'){super(name);this.version(1).stores({snapshots:'organizationId',commands:'id,scope,status,createdAt',preferences:'key'});this.version(2).stores({setups:'id,scope,status,createdAt'});this.version(3).stores({openings:'id,scope,status,createdAt'});this.version(4).stores({purchases:'id,scope,status,createdAt'});this.version(5).stores({transfers:'id,scope,status,createdAt'});}
+ openings!:Table<LocalOpening,string>;purchases!:Table<LocalPurchase,string>;transfers!:Table<LocalTransfer,string>;counts!:Table<LocalCount,string>;
+ constructor(name='restaurant-saas-v1'){super(name);this.version(1).stores({snapshots:'organizationId',commands:'id,scope,status,createdAt',preferences:'key'});this.version(2).stores({setups:'id,scope,status,createdAt'});this.version(3).stores({openings:'id,scope,status,createdAt'});this.version(4).stores({purchases:'id,scope,status,createdAt'});this.version(5).stores({transfers:'id,scope,status,createdAt'});this.version(6).stores({counts:'id,scope,status,createdAt'});}
 }
 export const local=new LocalDatabase();
 function requireGrant(snapshot:Snapshot|undefined){if(!snapshot||!Number.isFinite(Date.parse(snapshot.access.expiresAt))||Date.parse(snapshot.access.expiresAt)<=Date.now())throw new Error('انتهت صلاحية العمل دون اتصال. جدد الجلسة عبر الإنترنت؛ عملياتك محفوظة.');return snapshot;}
-export async function saveCommand(command:Command){commandSchema.parse(command);await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers],async()=>{const snapshot=requireGrant(await local.snapshots.get(command.organizationId));if((await identityOwners()).has(command.operationId)||await local.setups.get(command.operationId)||(await local.openings.toArray()).some(o=>o.id===command.operationId||o.document.lines.some(l=>l.lineId===command.operationId)))throw new Error('معرّف العملية مستخدم بالفعل.');await local.commands.add({id:command.operationId,scope:command.organizationId,command,status:'pending',createdAt:command.capturedAt,sourceDeviceId:snapshot.access.deviceId});});}
+export async function saveCommand(command:Command){commandSchema.parse(command);await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>{const snapshot=requireGrant(await local.snapshots.get(command.organizationId));if((await identityOwners()).has(command.operationId)||await local.setups.get(command.operationId)||(await local.openings.toArray()).some(o=>o.id===command.operationId||o.document.lines.some(l=>l.lineId===command.operationId)))throw new Error('معرّف العملية مستخدم بالفعل.');await local.commands.add({id:command.operationId,scope:command.organizationId,command,status:'pending',createdAt:command.capturedAt,sourceDeviceId:snapshot.access.deviceId});});}
 export function projectSetup(snapshot:Snapshot,rows:LocalSetup[]):Snapshot{
  const result={...snapshot,items:[...snapshot.items],locations:[...snapshot.locations],units:[...(snapshot.units??[])],suppliers:[...(snapshot.suppliers??[])]};
  const pending=rows.filter(r=>r.scope===snapshot.organizationId&&(r.status==='pending'||r.status==='acceptedAwaiting')&&!snapshot.acceptedOperationIds.includes(r.id));
@@ -30,7 +31,7 @@ export function projectSetup(snapshot:Snapshot,rows:LocalSetup[]):Snapshot{
 }
 export async function saveSetup(input:SetupCommand){
  const command=setupCommandSchema.parse(input);
- await local.transaction('rw',[local.setups,local.snapshots,local.commands,local.openings,local.purchases,local.transfers],async()=>{
+ await local.transaction('rw',[local.setups,local.snapshots,local.commands,local.openings,local.purchases,local.transfers,local.counts],async()=>{
   requireGrant(await local.snapshots.get(command.organizationId));
   const rows=await local.setups.where('scope').equals(command.organizationId).toArray();
   if(rows.some(r=>r.command.type===command.type&&r.command.record.id===command.record.id&&(r.status==='pending'||r.status==='acceptedAwaiting')))throw new Error('يوجد تعديل محفوظ لهذا السجل. زامنه أولاً قبل تعديل جديد.');
@@ -45,10 +46,11 @@ export async function resolveSetup(scope:DemoProfile,id:string,action:'retry'|'c
   await local.setups.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});
  });
 }
-export async function acceptSnapshot(snapshot:Snapshot){await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers],async()=>{await local.snapshots.put(snapshot);for(const row of await local.transfers.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.transfers.update(row.id,{status:'accepted',error:undefined});const accepted=new Set(snapshot.acceptedOperationIds);const rows=await local.commands.where('scope').equals(snapshot.organizationId).toArray();for(const row of rows)if(accepted.has(row.id))await local.commands.update(row.id,{status:'accepted',error:undefined});const setups=await local.setups.where('scope').equals(snapshot.organizationId).toArray();for(const row of setups)if(accepted.has(row.id))await local.setups.update(row.id,{status:'accepted',error:undefined});for(const row of await local.purchases.where('scope').equals(snapshot.organizationId).toArray())if(accepted.has(row.id))await local.purchases.update(row.id,{status:'accepted',error:undefined});for(const row of await local.openings.where('scope').equals(snapshot.organizationId).toArray())if(accepted.has(row.id))await local.openings.update(row.id,{status:'accepted',error:undefined});});}
+export async function acceptSnapshot(snapshot:Snapshot){await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>{await local.snapshots.put(snapshot);for(const row of await local.counts.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.counts.update(row.id,{status:'accepted',error:undefined});for(const row of await local.transfers.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.transfers.update(row.id,{status:'accepted',error:undefined});const accepted=new Set(snapshot.acceptedOperationIds);const rows=await local.commands.where('scope').equals(snapshot.organizationId).toArray();for(const row of rows)if(accepted.has(row.id))await local.commands.update(row.id,{status:'accepted',error:undefined});const setups=await local.setups.where('scope').equals(snapshot.organizationId).toArray();for(const row of setups)if(accepted.has(row.id))await local.setups.update(row.id,{status:'accepted',error:undefined});for(const row of await local.purchases.where('scope').equals(snapshot.organizationId).toArray())if(accepted.has(row.id))await local.purchases.update(row.id,{status:'accepted',error:undefined});for(const row of await local.openings.where('scope').equals(snapshot.organizationId).toArray())if(accepted.has(row.id))await local.openings.update(row.id,{status:'accepted',error:undefined});});}
 export async function bootstrap(expectedScope?:DemoProfile){const response=await fetch('/api/v1/bootstrap',{cache:'no-store'});if(!response.ok)throw new Error(response.status===401?'انتهت الجلسة. جدد الجلسة للمزامنة.':'تعذر تنزيل البيانات');const snapshot=await response.json() as Snapshot;if(expectedScope&&snapshot.organizationId!==expectedScope)throw new Error('الجلسة تخص مؤسسة أخرى. أعد الدخول للمؤسسة الصحيحة.');await acceptSnapshot(snapshot);return snapshot;}
 async function identityOwners(){
  const owners=new Map<string,string>();
+ for(const row of await local.counts.toArray())for(const id of countIdentities(row.command))owners.set(id,`count:${row.id}`);
  for(const row of await local.transfers.toArray())for(const id of transferIdentities(row.command))owners.set(id,`transfer:${row.id}`);
  for(const row of await local.commands.toArray())owners.set(row.id,`command:${row.id}`);
  for(const row of await local.setups.toArray())owners.set(row.id,`setup:${row.id}`);
@@ -60,7 +62,7 @@ export async function saveOpening(input:OpeningDocument,replacesId?:string){
  const document=openingSchema.parse(input);
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  if(document.businessDate>today)throw new Error('تاريخ الرصيد الافتتاحي لا يمكن أن يكون في المستقبل.');
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(document.organizationId));
   const projected=projectSetup(snapshot,await local.setups.where('scope').equals(document.organizationId).toArray());
   const old=replacesId?await local.openings.get(replacesId):undefined;
@@ -78,7 +80,7 @@ export async function saveOpening(input:OpeningDocument,replacesId?:string){
  });
 }
 export async function resolveOpening(scope:DemoProfile,id:string,action:'retry'|'cancel'){
- await local.transaction('rw',[local.snapshots,local.openings,local.purchases,local.transfers],async()=>{
+ await local.transaction('rw',[local.snapshots,local.openings,local.purchases,local.transfers,local.counts],async()=>{
   const row=await local.openings.get(id),snapshot=await local.snapshots.get(scope);
   if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة المستندات المرفوضة فقط.');
   if(action==='retry')requireGrant(snapshot);
@@ -149,13 +151,29 @@ export async function sync(scope:DemoProfile){
    if(response.ok&&result.outcome==='accepted')await local.commands.update(row.id,{status:'acceptedAwaiting',error:undefined});
    else await local.commands.update(row.id,{status:'needsReview',error:result.message||'راجع العملية'});
   }
+  const countRows=await local.counts.where('scope').equals(scope).toArray();
+  if(countRows.some(r=>r.status==='pending'||r.status==='acceptedAwaiting')){
+   await bootstrap(scope); // All preceding stock operations settle before count finalization.
+   const countQueue=countRows.filter(r=>r.status==='pending'||r.status==='acceptedAwaiting').sort((a,b)=>a.command.expectedRevision-b.command.expectedRevision||a.createdAt.localeCompare(b.createdAt));
+   for(const row of countQueue){
+    const latest=(await local.snapshots.get(scope))!,doc=projectCounts(latest,countRows).find(d=>d.countId===row.command.countId);
+    if(latest.acceptedOperationIds.includes(row.id))continue;
+    const current=latest.counts?.find(d=>d.countId===row.command.countId);
+    if(row.command.expectedRevision>(current?.revision??0)){await local.counts.update(row.id,{status:'needsReview',error:'مسودة الجرد أو الإصدار السابق لم يقبل.'});continue;}
+    if(row.command.type==='count.finalize'&&!latest.acceptedOperationIds.includes(row.id)&&doc&&await hasUnresolvedStock(scope,doc.document.locationId)){await local.counts.update(row.id,{status:'needsReview',error:'توجد حركات مخزون معلقة أو مرفوضة للموقع. حلها ثم أعد العد.'});continue;}
+    const response=await fetch('/api/v1/counts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(row.command)});
+    if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الجرد. المستندات محفوظة.');
+    const result=await response.json() as CommandResult;await local.counts.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع الجرد'});
+    if(response.ok)await bootstrap(scope);
+   }
+  }
   return bootstrap(scope);
  };
  if(navigator.locks)return navigator.locks.request(`saas-sync-${scope}`,run);
  return run();
 }
 export async function resolveReview(scope:DemoProfile,id:string,action:'retry'|'cancel'|'correct',replacement?:Command){
- await local.transaction('rw',[local.commands,local.snapshots,local.setups,local.openings,local.purchases,local.transfers],async()=>{
+ await local.transaction('rw',[local.commands,local.snapshots,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>{
   const row=await local.commands.get(id);const snapshot=await local.snapshots.get(scope);
   if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة العمليات المرفوضة فقط. حدّث البيانات أولاً.');
   if(action!=='cancel')requireGrant(snapshot);
@@ -174,7 +192,8 @@ const setupRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),com
 const openingRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),document:openingSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),sourceDeviceId:z.uuid().optional(),error:z.string().max(500).optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional()});
 const purchaseRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:purchaseCommandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),error:z.string().max(500).optional(),sourceDeviceId:z.uuid().optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional()});
 const transferRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:transferCommandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),error:z.string().max(500).optional(),sourceDeviceId:z.uuid().optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional()});
-const archiveSchema=z.object({version:z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5),z.literal(6),z.literal(7)]),exportedAt:z.iso.datetime(),organizationId:z.enum(['grills','bistro']),commands:z.array(rowSchema).max(5000),setups:z.array(setupRowSchema).max(5000).optional(),openings:z.array(openingRowSchema).max(5000).optional(),purchases:z.array(purchaseRowSchema).max(5000).optional(),transfers:z.array(transferRowSchema).max(5000).optional()}).superRefine((v,ctx)=>{if(v.version<7&&v.transfers?.length)ctx.addIssue({code:'custom',message:'إصدار التحويلات غير صالح'});if((v.version<3&&v.setups?.length)||(v.version<4&&v.openings?.length)||(v.version<5&&v.purchases?.length))ctx.addIssue({code:'custom',message:'إصدار ملف المستندات غير صالح'});if(v.version<6&&v.purchases?.some(r=>r.command.type==='purchase.return'||r.replacesId||r.replacementId))ctx.addIssue({code:'custom',message:'إصدار المرتجعات غير صالح'});});
+const countRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:countCommandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),error:z.string().max(500).optional(),sourceDeviceId:z.uuid().optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional()});
+const archiveSchema=z.object({version:z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5),z.literal(6),z.literal(7),z.literal(8)]),exportedAt:z.iso.datetime(),organizationId:z.enum(['grills','bistro']),commands:z.array(rowSchema).max(5000),setups:z.array(setupRowSchema).max(5000).optional(),openings:z.array(openingRowSchema).max(5000).optional(),purchases:z.array(purchaseRowSchema).max(5000).optional(),transfers:z.array(transferRowSchema).max(5000).optional(),counts:z.array(countRowSchema).max(5000).optional()}).superRefine((v,ctx)=>{if(v.version<8&&v.counts?.length)ctx.addIssue({code:'custom',message:'إصدار الجرد غير صالح'});if(v.version<7&&v.transfers?.length)ctx.addIssue({code:'custom',message:'إصدار التحويلات غير صالح'});if((v.version<3&&v.setups?.length)||(v.version<4&&v.openings?.length)||(v.version<5&&v.purchases?.length))ctx.addIssue({code:'custom',message:'إصدار ملف المستندات غير صالح'});if(v.version<6&&v.purchases?.some(r=>r.command.type==='purchase.return'||r.replacesId||r.replacementId))ctx.addIssue({code:'custom',message:'إصدار المرتجعات غير صالح'});});
 export type RecoveryPreview={archive:z.infer<typeof archiveSchema>;newCount:number;duplicateCount:number;acceptedCount:number;legacyCount:number};
 export async function previewRecovery(text:string,scope:DemoProfile):Promise<RecoveryPreview>{
  if(new TextEncoder().encode(text).length>10*1024*1024)throw new Error('الملف يتجاوز الحد المسموح: ١٠ ميجابايت.');
@@ -222,6 +241,17 @@ export async function previewRecovery(text:string,scope:DemoProfile):Promise<Rec
   if(row.replacementId){const next=transferHistory.find(r=>r.id===row.replacementId);if(!next||next.replacesId!==row.id||next.scope!==scope||!sameTransferCorrection(c,next.command))throw new Error('بديل التحويل غير صالح.');}
   const existing=await local.transfers.get(row.id);if(existing){if(existing.scope!==scope||JSON.stringify(transferCommandSchema.parse(existing.command))!==JSON.stringify(c))throw new Error('تحويل موجود ببيانات مختلفة.');duplicateCount++;}else if(accepted.has(row.id))acceptedCount++;else newCount++;
  }
+ const countHistory=[...await local.counts.toArray(),...archive.counts??[]];
+ const countDefinition=(c:CountCommand)=>definitionForCount(snapshot,countHistory,c);
+ for(const row of archive.counts??[]){
+  const c=row.command;if(row.scope!==scope||c.organizationId!==scope||row.id!==c.operationId)throw new Error('نطاق الجرد غير صالح.');for(const id of countIdentities(c))reserve(id,`count:${row.id}`);
+  const d=countDefinition(c);if(!d||d.type!=='count.save'||!projected.locations.some(l=>l.id===d.locationId)||d.lines.some(l=>!projected.items.some(i=>i.id===l.itemId&&i.unitId===l.unitId))||(c.type==='count.finalize'&&(c.lines.length!==d.lines.length||c.lines.some(l=>!d.lines.some(x=>x.lineId===l.lineId)))))throw new Error('مراجع الجرد غير متاحة في المؤسسة أو الملف.');
+  const chain=new Set([row.id]);let link=row.replacesId;while(link){if(chain.has(link))throw new Error('دورة غير صالحة في روابط إعادة العد.');chain.add(link);link=countHistory.find(r=>r.id===link)?.replacesId;}
+  if(row.replacesId){const old=countHistory.find(r=>r.id===row.replacesId),oldD=old&&countDefinition(old.command);if(!old||old.scope!==scope||old.status!=='superseded'||old.replacementId!==row.id||c.type!=='count.save'||old.command.countId===c.countId||oldD?.locationId!==d.locationId)throw new Error('رابط إعادة العد غير صالح.');}
+  if(row.status==='superseded'&&!row.replacementId)throw new Error('سجل إعادة العد غير مكتمل.');
+  if(row.replacementId){const next=countHistory.find(r=>r.id===row.replacementId);if(!next||next.scope!==scope||next.replacesId!==row.id||next.command.type!=='count.save'||next.command.countId===c.countId||next.command.locationId!==d.locationId)throw new Error('بديل الجرد غير صالح.');}
+  const existing=await local.counts.get(row.id);if(existing){if(existing.scope!==scope||JSON.stringify(countCommandSchema.parse(existing.command))!==JSON.stringify(c))throw new Error('جرد موجود ببيانات مختلفة.');duplicateCount++;}else if(accepted.has(row.id))acceptedCount++;else newCount++;
+ }
  for(const row of archive.commands){
   if(row.scope!==scope||row.command.organizationId!==scope||row.id!==row.command.operationId)throw new Error('هوية أو نطاق عملية غير صالح داخل الملف.');reserve(row.id,`command:${row.id}`);
   if(!projected.items.some(i=>i.id===row.command.itemId)||!projected.locations.some(l=>l.id===row.command.locationId))throw new Error('يحتوي الملف مادة أو موقعاً غير متاح في المؤسسة الحالية.');
@@ -230,15 +260,16 @@ export async function previewRecovery(text:string,scope:DemoProfile):Promise<Rec
   else if(accepted.has(row.id))acceptedCount++;
   else newCount++;
  }
- return {archive,newCount,duplicateCount,acceptedCount,legacyCount:[...archive.commands,...setupRows,...archive.openings??[],...archive.purchases??[],...archive.transfers??[]].filter(r=>!r.sourceDeviceId).length};
+ return {archive,newCount,duplicateCount,acceptedCount,legacyCount:[...archive.commands,...setupRows,...archive.openings??[],...archive.purchases??[],...archive.transfers??[],...archive.counts??[]].filter(r=>!r.sourceDeviceId).length};
 }
 export async function restoreRecovery(text:string,scope:DemoProfile){
- return local.transaction('rw',[local.commands,local.snapshots,local.setups,local.openings,local.purchases,local.transfers],async()=>{
+ return local.transaction('rw',[local.commands,local.snapshots,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>{
   const preview=await previewRecovery(text,scope);const snapshot=requireGrant(await local.snapshots.get(scope));const accepted=new Set(snapshot.acceptedOperationIds);
   for(const row of preview.archive.setups??[]){if(await local.setups.get(row.id)||accepted.has(row.id))continue;await local.setups.add({...row,status:row.status==='cancelled'?'cancelled':row.status==='needsReview'?'needsReview':'pending'});}
   for(const row of preview.archive.openings??[]){if(await local.openings.get(row.id)||accepted.has(row.id))continue;await local.openings.add({...row,status:row.status==='cancelled'||row.status==='superseded'?row.status:row.status==='needsReview'?'needsReview':'pending'});}
   for(const row of preview.archive.purchases??[]){if(await local.purchases.get(row.id)||accepted.has(row.id))continue;await local.purchases.add({...row,status:row.status==='cancelled'||row.status==='needsReview'||row.status==='superseded'?row.status:'pending'});}
   for(const row of preview.archive.transfers??[]){if(await local.transfers.get(row.id)||accepted.has(row.id))continue;await local.transfers.add({...row,status:row.status==='cancelled'||row.status==='needsReview'||row.status==='superseded'?row.status:'pending'});}
+  for(const row of preview.archive.counts??[]){if(await local.counts.get(row.id)||accepted.has(row.id))continue;await local.counts.add({...row,status:row.status==='cancelled'||row.status==='needsReview'||row.status==='superseded'?row.status:'pending'});}
   for(const row of preview.archive.commands){
    if(await local.commands.get(row.id)||accepted.has(row.id))continue;
    // A file cannot prove server acceptance. Same-ID delivery safely reconciles it.
@@ -248,7 +279,7 @@ export async function restoreRecovery(text:string,scope:DemoProfile){
   return preview;
  });
 }
-export async function recoveryArchive(scope:DemoProfile){return local.transaction('r',[local.commands,local.setups,local.openings,local.purchases,local.transfers],async()=>({version:7,exportedAt:new Date().toISOString(),organizationId:scope,commands:await local.commands.where('scope').equals(scope).toArray(),setups:await local.setups.where('scope').equals(scope).toArray(),openings:await local.openings.where('scope').equals(scope).toArray(),purchases:await local.purchases.where('scope').equals(scope).toArray(),transfers:await local.transfers.where('scope').equals(scope).toArray()}));}
+export async function recoveryArchive(scope:DemoProfile){return local.transaction('r',[local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>({version:8,exportedAt:new Date().toISOString(),organizationId:scope,commands:await local.commands.where('scope').equals(scope).toArray(),setups:await local.setups.where('scope').equals(scope).toArray(),openings:await local.openings.where('scope').equals(scope).toArray(),purchases:await local.purchases.where('scope').equals(scope).toArray(),transfers:await local.transfers.where('scope').equals(scope).toArray(),counts:await local.counts.where('scope').equals(scope).toArray()}));}
 export async function downloadRecovery(scope:DemoProfile){const blob=new Blob([JSON.stringify(await recoveryArchive(scope),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`fodo-recovery-${scope}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
 export type LocalPurchase={id:string;scope:DemoProfile;command:PurchaseCommand;status:LocalCommand['status'];createdAt:string;error?:string;sourceDeviceId?:string;replacesId?:string;replacementId?:string};
@@ -270,7 +301,7 @@ export function projectedPurchaseCommands(snapshot:Snapshot,rows:LocalPurchase[]
 function purchaseIdentities(c:PurchaseCommand){return [c.operationId,...(c.type==='purchase.receive'||c.type==='purchase.return')?c.lines.map(l=>l.movementId):[]];}
 export async function savePurchase(input:PurchaseCommand,replacesId?:string){
  const command=purchaseCommandSchema.parse(input);
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(command.organizationId)),rows=await local.purchases.where('scope').equals(command.organizationId).toArray();const owners=await identityOwners();
   if(purchaseIdentities(command).some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)))throw new Error('معرّف العملية مستخدم بالفعل.');
   const current=projectPurchases(snapshot,rows).find(o=>o.orderId===command.orderId);if((current?.revision??0)!==command.expectedRevision)throw new Error('تغير إصدار أمر الشراء. راجع آخر نسخة.');
@@ -312,7 +343,7 @@ export function projectedTransferCommands(snapshot:Snapshot,rows:LocalTransfer[]
 }
 export async function saveTransfer(input:TransferCommand,replacesId?:string){
  const c=transferCommandSchema.parse(input);
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(c.organizationId)),rows=await local.transfers.where('scope').equals(c.organizationId).toArray(),old=replacesId?rows.find(r=>r.id===replacesId):undefined;
   if(replacesId&&(!old||old.status!=='needsReview'||snapshot.acceptedOperationIds.includes(old.id)||!sameTransferCorrection(old.command,c)))throw new Error('يمكن تصحيح التحويل المرفوض فقط مع الحفاظ على المصدر والوجهة.');
   const owners=await identityOwners();if(transferIdentities(c).some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)))throw new Error('معرّف التحويل أو السطر مستخدم بالفعل.');
@@ -327,5 +358,46 @@ export async function saveTransfer(input:TransferCommand,replacesId?:string){
  });
 }
 export async function resolveTransfer(scope:DemoProfile,id:string,action:'retry'|'cancel'){
- await local.transaction('rw',[local.snapshots,local.transfers],async()=>{const row=await local.transfers.get(id),snapshot=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة التحويلات المرفوضة فقط.');if(action==='retry')requireGrant(snapshot);await local.transfers.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+ await local.transaction('rw',[local.snapshots,local.transfers,local.counts],async()=>{const row=await local.transfers.get(id),snapshot=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة التحويلات المرفوضة فقط.');if(action==='retry')requireGrant(snapshot);await local.transfers.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+}
+
+export type LocalCount={id:string;scope:DemoProfile;command:CountCommand;status:LocalCommand['status'];createdAt:string;error?:string;sourceDeviceId?:string;replacesId?:string;replacementId?:string};
+function countIdentities(c:CountCommand){return [c.operationId,...c.type==='count.finalize'?c.lines.map(l=>l.movementId):[]];}
+function definitionForCount(snapshot:Snapshot,rows:LocalCount[],c:CountCommand):CountDefinition|undefined{
+ if(c.type==='count.save')return c;
+ const definitions=[...snapshot.counts?.map(d=>d.document)??[],...snapshot.countRevisions?.map(r=>r.command).filter((d):d is CountDefinition=>d.type==='count.save')??[],...rows.map(r=>r.command).filter((d):d is CountDefinition=>d.type==='count.save')];
+ return definitions.filter(d=>d.organizationId===c.organizationId&&d.countId===c.countId&&d.expectedRevision<c.expectedRevision).sort((a,b)=>b.expectedRevision-a.expectedRevision)[0];
+}
+export function projectCounts(snapshot:Snapshot,rows:LocalCount[]):StockCount[]{
+ const docs=new Map((snapshot.counts??[]).map(d=>[d.countId,structuredClone(d)]));
+ for(const row of rows.filter(r=>r.scope===snapshot.organizationId&&(r.status==='pending'||r.status==='acceptedAwaiting')&&!snapshot.acceptedOperationIds.includes(r.id)).sort((a,b)=>a.command.expectedRevision-b.command.expectedRevision||a.createdAt.localeCompare(b.createdAt))){const c=row.command,current=docs.get(c.countId);if((current?.revision??0)!==c.expectedRevision)continue;if(c.type==='count.save')docs.set(c.countId,{countId:c.countId,revision:c.expectedRevision+1,state:'draft',document:c,postedAt:c.capturedAt});else if(current){current.revision++;current.state=c.type==='count.finalize'?'finalized':'cancelled';}}
+ return [...docs.values()];
+}
+async function hasUnresolvedStock(scope:DemoProfile,locationId:string){
+ const active=(r:{status:string})=>r.status==='pending'||r.status==='acceptedAwaiting'||r.status==='needsReview';
+ if((await local.commands.where('scope').equals(scope).toArray()).some(r=>active(r)&&r.command.locationId===locationId)||(await local.openings.where('scope').equals(scope).toArray()).some(r=>active(r)&&r.document.locationId===locationId))return true;
+ const snapshot=(await local.snapshots.get(scope))!,purchases=await local.purchases.where('scope').equals(scope).toArray(),orders=projectPurchases(snapshot,purchases);
+ if(purchases.some(r=>active(r)&&(r.command.type==='purchase.receive'||r.command.type==='purchase.reverse'||r.command.type==='purchase.return')&&orders.find(o=>o.orderId===r.command.orderId)?.document.locationId===locationId))return true;
+ const transfers=await local.transfers.where('scope').equals(scope).toArray();return transfers.some(r=>{if(!active(r)||r.command.type==='transfer.loss')return false;const d=r.command.type==='transfer.dispatch'?r.command:definitionForTransfer(snapshot,transfers,r.command.transferId);return d&&(r.command.type==='transfer.dispatch'?d.sourceId:d.destinationId)===locationId;});
+}
+function definitionForTransfer(snapshot:Snapshot,rows:LocalTransfer[],id:string){return snapshot.transfers?.find(t=>t.transferId===id)?.document??rows.find(r=>r.command.type==='transfer.dispatch'&&r.command.transferId===id)?.command as import('@saas/contracts').TransferDispatch|undefined;}
+export async function saveCount(input:CountCommand,replacesId?:string){
+ const c=countCommandSchema.parse(input);
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts],async()=>{
+  const snapshot=requireGrant(await local.snapshots.get(c.organizationId)),rows=await local.counts.where('scope').equals(c.organizationId).toArray(),current=projectCounts(snapshot,rows).find(d=>d.countId===c.countId),owners=await identityOwners();
+  if(countIdentities(c).some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)))throw new Error('معرّف الجرد أو حركة التسوية مستخدم بالفعل.');
+  if((current?.revision??0)!==c.expectedRevision)throw new Error('تغير إصدار الجرد. زامن وراجع البيانات.');if(current&&current.state!=='draft')throw new Error('الجرد معتمد أو ملغى. لا يمكن تعديله.');
+  const old=replacesId?rows.find(r=>r.id===replacesId):undefined,oldDefinition=old&&definitionForCount(snapshot,rows,old.command);
+  if(replacesId&&(!old||old.status!=='needsReview'||snapshot.acceptedOperationIds.includes(old.id)||c.type!=='count.save'||c.countId===old.command.countId||oldDefinition?.locationId!==c.locationId))throw new Error('إعادة العد تحتاج مستنداً جديداً للموقع نفسه بعد الرفض.');
+  if(c.type==='count.save'){
+   if(!snapshot.locations.some(l=>l.id===c.locationId&&l.active!==false)||c.lines.some(l=>!snapshot.items.some(i=>i.id===l.itemId&&i.unitId===l.unitId)))throw new Error('مراجع الجرد غير متاحة في البيانات المقبولة. زامن أولاً.');
+   if(!current){if(snapshot.stockCheckpoints?.find(p=>p.locationId===c.locationId)?.sequence!==c.stockSequence||c.lines.some(l=>!decimal(l.expectedQuantity).eq(snapshot.balances.find(b=>b.locationId===c.locationId&&b.itemId===l.itemId)?.quantity??'0')))throw new Error('أساس الجرد لا يطابق آخر بيانات مقبولة.');}
+   else if(c.stockSequence!==current.document.stockSequence||c.cutoffAt!==current.document.cutoffAt||c.locationId!==current.document.locationId||c.lines.some(l=>{const old=current.document.lines.find(x=>x.itemId===l.itemId);return old&&!decimal(old.expectedQuantity).eq(l.expectedQuantity);}))throw new Error('تعديل المسودة يحافظ على أساسها. استخدم جرداً جديداً لإعادة العد.');
+  }else if(!current||(c.type==='count.finalize'&&(c.lines.length!==current.document.lines.length||c.lines.some(l=>!current.document.lines.some(x=>x.lineId===l.lineId)))))throw new Error('مسودة الجرد أو سطوره غير متاحة.');
+  if(rows.some(r=>r.id!==replacesId&&r.command.countId===c.countId&&r.status==='needsReview'))throw new Error('راجع إجراءات الجرد المرفوضة أولاً.');
+  await local.counts.add({id:c.operationId,scope:c.organizationId,command:c,status:'pending',createdAt:c.capturedAt,sourceDeviceId:snapshot.access.deviceId,replacesId});if(old)await local.counts.update(old.id,{status:'superseded',replacementId:c.operationId});
+ });
+}
+export async function resolveCount(scope:DemoProfile,id:string,action:'retry'|'cancel'){
+ await local.transaction('rw',[local.snapshots,local.counts],async()=>{const r=await local.counts.get(id),s=await local.snapshots.get(scope);if(!r||r.scope!==scope||r.status!=='needsReview'||s?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة إجراءات الجرد المرفوضة فقط.');if(action==='retry')requireGrant(s);await local.counts.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
 }

@@ -1,5 +1,17 @@
 # Fodo implementation review
 
+## Current checkpoint — 10 October 2026
+
+Phase 3B stock counts and reconciliation are delivered locally on `feat/stock-counts`, stacked on transfer commit `f427942`. Use **الجرد والتسوية** for partial physical quantities, stock-free drafts, explicit difference review and atomic FIFO shortage/explicit-cost surplus. Finalization rejects any later accepted location movement or changed expected quantities. Draft edits cannot refresh the saved baseline. A stale rejected approval supports a fresh blank physical recount with linked IDs/history.
+
+Independent balance, full ledger and remaining-layer quantity/value checks block posting on disagreement. Transit is excluded. Dexie schema 6 preserves older queues; recovery format 8 reads 1–7 and validates recount chains. Stock work uploads before counts. Unknown late uploads remain subsequent movements: device acknowledgments, global period closing, historical corrections and accepted count reversals remain deferred.
+
+Validation: 120 unit/integration tests, 24 Chrome browser/process scenarios, TypeScript and production build/offline manifest. Tests use isolated data/ports. Arabic desktop/mobile screenshots are available in test results and copied to the output directory. No client data reset, launcher change, push, merge or deployment is part of this checkpoint. The commit is recorded in local Git history and the standalone output review after creation.
+
+Developer guide is version 2.11. Next: versioned recipes/BOMs and sub-recipes, then production/yield and external sales cost control. Keep the current tenant structure and first-client development walkthrough; memberships, billing and dedicated demo infrastructure remain deferred. Minimum real authentication and isolated production configuration are still required before live use.
+
+## Earlier reliability review — 9 October 2026
+
 Updated 9 October 2026 after implementing and verifying the local reliability findings. This report supersedes the earlier review that described 14 tests, export-only recovery and no Git repository.
 
 ## Current assessment

@@ -24,7 +24,7 @@ Dexie schema 5 adds a transfer outbox without deleting old tables. Synchronize s
 
 Network/authentication failures retain capture. If acknowledgment download fails after acceptance, retry the same ID safely. Over-receiving, unavailable source stock and stale revisions enter **تحتاج مراجعة**. Retry keeps the original payload/IDs. Correction creates fresh operation/movement IDs and linked superseded history. Corrected dispatch also uses a fresh transfer ID; resolve its rejected dependent actions first. Cancellation applies only to known rejected local records and never reverses accepted stock.
 
-Recovery format 7 includes transfers, previous outboxes and correction links. Formats 1–6 remain readable. Validate tenant/source references, duplicate/conflicting IDs and correction chains before atomic restoration. Reject self/cyclic links. Exported acceptance states reconcile against server evidence. Older builds cannot read format 7. Keep the same local origin and retain current build compatibility when restoring. A server database backup excludes unsynchronized browser work.
+Current recovery format 8 includes counts, transfers, previous outboxes and correction links. Formats 1–7 remain readable. Validate tenant/source references, duplicate/conflicting IDs and correction chains before atomic restoration. Reject self/cyclic links. Exported acceptance states reconcile against server evidence. Older builds cannot read format 8. Keep the same local origin and retain current build compatibility when restoring. A server database backup excludes unsynchronized browser work.
 
 ## Verification and next work
 
@@ -32,4 +32,4 @@ Recovery format 7 includes transfers, previous outboxes and correction links. Fo
 
 The transfer checks exercise mixed-cost partial receiving, independent stock + transit reconciliation, destination FIFO, fractional precision, explicit loss, competing revisions, duplicate delivery, atomic rollback, tenant isolation, inactive records, offline reload, chained transfers, rejected dependencies, correction and archive recovery. Browser tests use isolated ports/data and check Arabic desktop/mobile layouts.
 
-Next is Phase 3B stock counts, cutoff policy and traceable adjustments. Production authentication/access and separate production data remain required before live use.
+Phase 3B stock counts and traceable adjustments are now delivered; see [Stock counts](./Stock-Counts.md). Current exports use format 8 including counts and read formats 1–7. Next is recipes/BOMs. Production authentication/access and separate production data remain required before live use.

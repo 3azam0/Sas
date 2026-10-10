@@ -20,8 +20,8 @@ export type Item = { id: string; name: string; sku: string; category: string; un
 export type Location = {id:string;name:string;kind:string;active?:boolean;revision?:number};
 export type Balance = {locationId:string;itemId:string;quantity:string;value:string;average:string|null};
 export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;sequence:number};
-export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null};
-export type Snapshot = {organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];openings?:PostedOpening[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
+export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null;countId?:string|null;countLineId?:string|null};
+export type Snapshot = {organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
 export type CommandResult = {operationId:string;outcome:'accepted'|'needs_review';code?:string;message?:string;amount?:string};
 export class BusinessError extends Error { constructor(public code:string, message:string,public status=409){super(message);} }
 export const messages: Record<string,string> = {INSUFFICIENT_STOCK:'الرصيد المتاح لا يكفي. راجع العملية قبل إعادة إرسالها.',FORBIDDEN:'ليس لديك صلاحية لهذه المؤسسة أو الموقع.',PAYLOAD_CONFLICT:'معرّف العملية مستخدم لبيانات مختلفة.',INVALID_COMMAND:'تحقق من بيانات العملية.',AUTH_REQUIRED:'انتهت الجلسة. اتصل بالإنترنت وسجل الدخول مرة أخرى.'};
@@ -86,3 +86,19 @@ export type TransferCommand=z.infer<typeof transferCommandSchema>;
 export type TransferDispatch=Extract<TransferCommand,{type:'transfer.dispatch'}>;
 export type Transfer={transferId:string;revision:number;document:TransferDispatch;postedAt:string;amount:string;state:'inTransit'|'partial'|'completed'|'resolvedWithLoss';lines:{dispatchLineId:string;itemId:string;unitId:string;quantity:string;received:string;lost:string;remaining:string;amount:string;remainingValue:string}[]};
 export type TransferAction={document:TransferCommand;amount:string;postedAt:string};
+
+const countEnvelope={operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),countId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
+export const countCommandSchema=z.discriminatedUnion('type',[
+ z.object({...countEnvelope,type:z.literal('count.save'),locationId:recordId,businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),cutoffAt:z.iso.datetime(),stockSequence:z.string().regex(/^(?:0|[1-9]\d{0,18})$/),currency:z.literal('EGP'),lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,expectedQuantity:nonNegative,countedQuantity:nonNegative,surplusUnitCost:nonNegative.optional()})).min(1).max(200)}),
+ z.object({...countEnvelope,type:z.literal('count.finalize'),costPolicy:z.literal('explicit'),lines:z.array(z.object({lineId:z.uuid(),movementId:z.uuid()})).min(1).max(200)}),
+ z.object({...countEnvelope,type:z.literal('count.cancel'),reason:z.string().trim().min(2).max(200)})
+]).superRefine((c,ctx)=>{
+ if(c.operationId===c.countId)ctx.addIssue({code:'custom',message:'معرّف الجرد مستقل عن العملية'});
+ if('lines'in c){const refs=c.lines.map(l=>l.lineId),ids=c.type==='count.save'?c.lines.map(l=>l.itemId):c.lines.map(l=>l.movementId);if(new Set(refs).size!==refs.length||new Set(ids).size!==ids.length||refs.some(id=>id===c.operationId||id===c.countId)||(c.type==='count.finalize'&&ids.some(id=>id===c.operationId||id===c.countId||refs.includes(id))))ctx.addIssue({code:'custom',message:'المواد ومعرّفات سطور الجرد يجب ألا تتكرر'});}
+});
+export type CountCommand=z.infer<typeof countCommandSchema>;
+export type CountDefinition=Extract<CountCommand,{type:'count.save'}>;
+export type CountChange={lineId:string;movementId:string;itemId:string;expected:string;counted:string;variance:string;amount:string;surplusUnitCost?:string};
+export type FinalizedCount={document:Extract<CountCommand,{type:'count.finalize'}>;changes:CountChange[];amount:string;postedAt:string};
+export type StockCount={countId:string;revision:number;state:'draft'|'finalized'|'cancelled';document:CountDefinition;postedAt:string;finalization?:FinalizedCount};
+export type StockReconciliation={locationId:string;itemId:string;balanceQuantity:string;balanceValue:string;ledgerQuantity:string;ledgerValue:string;layerQuantity:string;layerValue:string;matches:boolean};
