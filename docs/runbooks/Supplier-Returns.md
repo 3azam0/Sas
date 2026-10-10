@@ -26,10 +26,10 @@ Connectivity/authentication failures retain pending capture. Another device may 
 - **تصحيح المرتجع** uses the refreshed source/revision, creates fresh document/movement IDs, and preserves the rejected record as **تم التصحيح** with links between both records.
 - **إلغاء المرتجع المرفوض** cancels only a known rejected local record; it never reverses accepted stock.
 
-Recovery format 6 includes returns and linked corrections together with purchase, opening, setup and stock outboxes. Formats 1–5 remain readable. Preview validates tenant/source references, payloads, IDs and correction links before atomic restore. Identical records are skipped and conflicting records abort restoration. Exported acceptance states require server reconciliation. Older builds cannot read format 6. Preserve the local origin and export device-only work before moving devices or addresses; database backups do not include unsynchronized browser commands.
+Recovery format 7 includes transfers, returns and linked corrections together with purchase, opening, setup and stock outboxes. Formats 1–6 remain readable. Preview validates tenant/source references, payloads, IDs and correction links before atomic restore. Identical records are skipped and conflicting records abort restoration. Exported acceptance states require server reconciliation. Older builds cannot read format 7. Preserve the local origin and export device-only work before moving devices or addresses; database backups do not include unsynchronized browser commands.
 
 ## Verification and next work
 
 82 unit/integration tests and eighteen Chrome browser/process scenarios pass, along with type checking and the production build. Return checks cover original cost, fractional arithmetic, competing revisions, duplicate IDs, cumulative limits, consumed source stock despite aggregate availability, full rollback, tenant isolation, offline reload, correction history, recovery and Arabic mobile layout. Tests use isolated data/ports, preserving the client's local database.
 
-Next: transfers, in-transit receiving, stock counts and reconciliation. Returns after transfers need an explicit source-traceability policy. Recipes, production and restaurant cost control follow reliable stock movements.
+Transfers, in-transit receiving and explicit transit loss are delivered; see [Transfers](./Transfers.md). Next: stock counts and reconciliation. Returns after transfers need an explicit source-traceability policy. Recipes, production and restaurant cost control follow reliable stock movements.

@@ -20,8 +20,8 @@ export type Item = { id: string; name: string; sku: string; category: string; un
 export type Location = {id:string;name:string;kind:string;active?:boolean;revision?:number};
 export type Balance = {locationId:string;itemId:string;quantity:string;value:string;average:string|null};
 export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;sequence:number};
-export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null};
-export type Snapshot = {organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];openings?:PostedOpening[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
+export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null};
+export type Snapshot = {organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];openings?:PostedOpening[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
 export type CommandResult = {operationId:string;outcome:'accepted'|'needs_review';code?:string;message?:string;amount?:string};
 export class BusinessError extends Error { constructor(public code:string, message:string,public status=409){super(message);} }
 export const messages: Record<string,string> = {INSUFFICIENT_STOCK:'الرصيد المتاح لا يكفي. راجع العملية قبل إعادة إرسالها.',FORBIDDEN:'ليس لديك صلاحية لهذه المؤسسة أو الموقع.',PAYLOAD_CONFLICT:'معرّف العملية مستخدم لبيانات مختلفة.',INVALID_COMMAND:'تحقق من بيانات العملية.',AUTH_REQUIRED:'انتهت الجلسة. اتصل بالإنترنت وسجل الدخول مرة أخرى.'};
@@ -70,3 +70,19 @@ export type PurchaseReceipt={document:Extract<PurchaseCommand,{type:'purchase.re
 export type SupplierReturn=Extract<PurchaseCommand,{type:'purchase.return'}>;
 export type PostedSupplierReturn={document:SupplierReturn;amount:string;postedAt:string};
 export type ReturnSource={receiptId:string;orderId:string;supplierId:string;locationId:string;reference:string;lines:{sourceMovementId:string;itemId:string;unitId:string;unitName:string;quantity:string;available:string;returned:string;unitCost:string}[]};
+
+const transferEnvelope={operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),transferId:z.uuid(),expectedRevision:z.number().int().min(0),businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
+const transferActionLines=z.array(z.object({movementId:z.uuid(),dispatchLineId:z.uuid(),quantity:quantitySchema})).min(1).max(200);
+export const transferCommandSchema=z.discriminatedUnion('type',[
+ z.object({...transferEnvelope,type:z.literal('transfer.dispatch'),sourceId:recordId,destinationId:recordId,lines:z.array(z.object({movementId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema})).min(1).max(200)}),
+ z.object({...transferEnvelope,type:z.literal('transfer.receive'),lines:transferActionLines}),
+ z.object({...transferEnvelope,type:z.literal('transfer.loss'),lines:transferActionLines})
+]).superRefine((c,ctx)=>{
+ const ids=c.lines.map(l=>l.movementId),refs=c.type==='transfer.dispatch'?c.lines.map(l=>l.itemId):c.lines.map(l=>l.dispatchLineId);
+ if(c.operationId===c.transferId||new Set(ids).size!==ids.length||new Set(refs).size!==refs.length||ids.some(id=>id===c.operationId||id===c.transferId||refs.includes(id)))ctx.addIssue({code:'custom',message:'معرّفات التحويل والسطور يجب ألا تتكرر'});
+ if(c.type==='transfer.dispatch'&&(c.sourceId===c.destinationId||c.expectedRevision!==0))ctx.addIssue({code:'custom',message:'اختر موقعين مختلفين لتحويل جديد'});
+});
+export type TransferCommand=z.infer<typeof transferCommandSchema>;
+export type TransferDispatch=Extract<TransferCommand,{type:'transfer.dispatch'}>;
+export type Transfer={transferId:string;revision:number;document:TransferDispatch;postedAt:string;amount:string;state:'inTransit'|'partial'|'completed'|'resolvedWithLoss';lines:{dispatchLineId:string;itemId:string;unitId:string;quantity:string;received:string;lost:string;remaining:string;amount:string;remainingValue:string}[]};
+export type TransferAction={document:TransferCommand;amount:string;postedAt:string};

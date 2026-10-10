@@ -1,3 +1,4 @@
+import {transferTables} from './transfers';
 import {returnTables} from './supplier-returns';
 import {purchaseTables} from './purchasing';
 export const schema = `
@@ -43,4 +44,5 @@ DO $$ BEGIN
 END $$;
 ${purchaseTables}
 ${returnTables}
+${transferTables}
 `;

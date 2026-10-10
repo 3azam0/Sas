@@ -29,7 +29,7 @@ A document is posted as one transaction, including its lines, FIFO layers, balan
 
 Use the opening document's review controls to retry unchanged data, cancel a known rejection, or create a corrected document with fresh document/line IDs. The old rejected document remains linked and inspectable. Accepted documents cannot be edited or cancelled in place. A physical correction to accepted stock belongs to the upcoming count/adjustment workflow.
 
-Recovery version 6 contains purchase/return actions and linked return corrections, opening documents, setup changes and stock commands. Import previews and validates all records/IDs together, deduplicates known records and commits local restoration atomically. Exported acceptance is never trusted without server reconciliation. Versions 1–5 remain readable by this build; older builds cannot read version 6. Keep the origin unchanged to retain the browser's existing offline records.
+Recovery version 7 contains transfer/purchase/return actions and linked return corrections, opening documents, setup changes and stock commands. Import previews and validates all records/IDs together, deduplicates known records and commits local restoration atomically. Exported acceptance is never trusted without server reconciliation. Versions 1–6 remain readable by this build; older builds cannot read version 7. Keep the origin unchanged to retain the browser's existing offline records.
 
 ## Current boundaries
 
