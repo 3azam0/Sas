@@ -24,7 +24,7 @@ export type Location = {id:string;name:string;kind:string;active?:boolean;revisi
 export type Balance = {locationId:string;itemId:string;quantity:string;value:string;average:string|null};
 export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;remainingValue?:string;sequence:number};
 export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;receiptDocumentId?:string|null;referenceAmount?:string|null;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null;countId?:string|null;countLineId?:string|null};
-export type Snapshot = {generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];receipts?:PostedReceiptDocument[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
+export type Snapshot = {generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];recipes?:Recipe[];recipeVersions?:RecipeVersion[];receiptPrices?:ReceiptPrice[];receipts?:PostedReceiptDocument[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
 export type CommandResult = {operationId:string;outcome:'accepted'|'needs_review';code?:string;message?:string;amount?:string};
 export class BusinessError extends Error { constructor(public code:string, message:string,public status=409){super(message);} }
 export const messages: Record<string,string> = {INSUFFICIENT_STOCK:'الرصيد المتاح لا يكفي. راجع العملية قبل إعادة إرسالها.',FORBIDDEN:'ليس لديك صلاحية لهذه المؤسسة أو الموقع.',PAYLOAD_CONFLICT:'معرّف العملية مستخدم لبيانات مختلفة.',INVALID_COMMAND:'تحقق من بيانات العملية.',AUTH_REQUIRED:'انتهت الجلسة. اتصل بالإنترنت وسجل الدخول مرة أخرى.'};
@@ -116,3 +116,27 @@ export type CountChange={lineId:string;movementId:string;itemId:string;expected:
 export type FinalizedCount={document:Extract<CountCommand,{type:'count.finalize'}>;changes:CountChange[];amount:string;postedAt:string};
 export type StockCount={countId:string;revision:number;state:'draft'|'finalized'|'cancelled';document:CountDefinition;postedAt:string;finalization?:FinalizedCount};
 export type StockReconciliation={locationId:string;itemId:string;balanceQuantity:string;balanceValue:string;ledgerQuantity:string;ledgerValue:string;layerQuantity:string;layerValue:string;matches:boolean};
+
+export const recipeInputUnitSchema=z.enum(['base','g','kg','ml','l']);
+const recipeComponentFields={lineId:z.uuid(),unitId:recordId,inputUnit:recipeInputUnitSchema,enteredQuantity:quantitySchema,quantity:quantitySchema};
+export const recipeDefinitionSchema=z.object({
+ code:z.string().trim().min(1).max(60).transform(v=>v.toUpperCase()),name:recordName,
+ outputMode:z.enum(['stocked','non_stocked']),outputItemId:recordId.optional(),outputUnitId:recordId,outputQuantity:quantitySchema,effectiveDate:z.iso.date(),salePrice:nonNegative.optional(),
+ lines:z.array(z.discriminatedUnion('kind',[
+  z.object({...recipeComponentFields,kind:z.literal('material'),itemId:recordId}),
+  z.object({...recipeComponentFields,kind:z.literal('recipe'),versionId:z.uuid()})
+ ])).min(1).max(200)
+}).superRefine((d,ctx)=>{
+ if((d.outputMode==='stocked')!==!!d.outputItemId)ctx.addIssue({code:'custom',message:'الناتج المخزني يحتاج مادة مخزون؛ الناتج غير المخزني لا يرتبط بمادة'});
+ if(new Set(d.lines.map(l=>l.lineId)).size!==d.lines.length||new Set(d.lines.map(l=>l.kind==='material'?`item:${l.itemId}`:`version:${l.versionId}`)).size!==d.lines.length)ctx.addIssue({code:'custom',message:'مكونات الوصفة ومعرّفات السطور لا تتكرر'});
+});
+const recipeEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),recipeId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
+export const recipeCommandSchema=z.discriminatedUnion('type',[
+ z.object({...recipeEnvelope,type:z.literal('recipe.save'),definition:recipeDefinitionSchema}),
+ z.object({...recipeEnvelope,type:z.literal('recipe.publish'),versionId:z.uuid()})
+]).superRefine((c,ctx)=>{if(c.operationId===c.recipeId||(c.type==='recipe.publish'&&(c.versionId===c.operationId||c.versionId===c.recipeId)))ctx.addIssue({code:'custom',message:'معرّفات الوصفة والعملية والإصدار مستقلة'});});
+export type RecipeDefinition=z.infer<typeof recipeDefinitionSchema>;
+export type RecipeCommand=z.infer<typeof recipeCommandSchema>;
+export type Recipe={recipeId:string;revision:number;state:'draft'|'published';definition:RecipeDefinition;publishedVersionId?:string|null};
+export type RecipeVersion={recipeId:string;versionId:string;versionNumber:number;definition:RecipeDefinition;publishedAt:string};
+export type ReceiptPrice={locationId:string;itemId:string;unitCost:string;businessDate:string;postedAt:string;sourceOperationId:string};

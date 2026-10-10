@@ -1,3 +1,4 @@
+import {recipeSnapshot} from './recipes';
 import {seedDevelopmentStock,initializeDevelopmentBaseline} from './development';
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import {countSnapshot} from './counts';
@@ -75,7 +76,7 @@ export async function getSnapshot(db:PGlite,access:Access):Promise<Snapshot> {
     const receipts=await tx.query<{id:string}>('SELECT operation_id::text AS id FROM command_receipts WHERE organization_id=$1',[org]);
     const openings=await tx.query<PostedOpening>('SELECT payload AS document,amount::text,posted_at::text AS "postedAt" FROM opening_documents WHERE organization_id=$1 ORDER BY posted_at DESC LIMIT 100',[org]);
     const receiptDocuments=await tx.query<PostedReceiptDocument>('SELECT payload AS document,amount::text,posted_at::text AS "postedAt" FROM receipt_documents WHERE organization_id=$1 ORDER BY posted_at DESC LIMIT 100',[org]);
-    return {receipts:receiptDocuments.rows,generation:organization.rows[0].generation,costing:{method:organization.rows[0].method,revision:organization.rows[0].revision,hasStockHistory:(await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 LIMIT 1',[org])).rows.length>0},organizationId:org,organizationName:organization.rows[0].name,access,locations:locations.rows,items:items.rows,balances:balances.rows,layers:layers.rows,entries:entries.rows,acceptedOperationIds:receipts.rows.map(x=>x.id),fetchedAt:new Date().toISOString(),currency:'EGP',units:units.rows,suppliers:suppliers.rows,openings:openings.rows,...await purchaseSnapshot(tx,org),...await transferSnapshot(tx,org),...await countSnapshot(tx,org)};
+    return {receipts:receiptDocuments.rows,generation:organization.rows[0].generation,costing:{method:organization.rows[0].method,revision:organization.rows[0].revision,hasStockHistory:(await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 LIMIT 1',[org])).rows.length>0},organizationId:org,organizationName:organization.rows[0].name,access,locations:locations.rows,items:items.rows,balances:balances.rows,layers:layers.rows,entries:entries.rows,acceptedOperationIds:receipts.rows.map(x=>x.id),fetchedAt:new Date().toISOString(),currency:'EGP',units:units.rows,suppliers:suppliers.rows,openings:openings.rows,...await purchaseSnapshot(tx,org),...await transferSnapshot(tx,org),...await countSnapshot(tx,org),...await recipeSnapshot(tx,org)};
   });
 }
 export {postSetupCommand} from './setup';
@@ -92,3 +93,5 @@ export {postCosting,initializeDevelopmentBaseline} from './development';
 export {generationInput} from './request-generation';
 
 export {postReceiptDocument} from './receipts';
+
+export {postRecipe} from './recipes';

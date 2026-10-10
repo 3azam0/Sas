@@ -1,6 +1,16 @@
 # Fodo implementation review
 
-## Current checkpoint — 10 October 2026
+## Current checkpoint — recipe cost control, 10 October 2026
+
+Phase 4A is delivered on local branch `feat/recipe-cost-control`, stacked on multi-item receiving commit `f3eab23`. Main-menu **الوصفات والتكاليف** supports stock-neutral drafts, immutable publication, exact child-version pinning, compatible unit conversions, positive batch output, optional net selling price and stocked/non-stocked preparations. Cost estimates expose batch/output-unit cost, food-cost percentage and gross contribution using accepted location stock average or latest receiving price. Missing prices and shortages are separate; valid zero costs remain valid.
+
+Shared resolution rejects cycles and excessive nesting. Tenant/revision/generation checks, code uniqueness, audit records and global operation/version identity reservation accompany atomic publication. Dexie schema 8 and recovery format 11 preserve existing queues; child publications precede parents. Rejected actions support unchanged retry/cancellation and correction through a fresh draft action. Cancelled recipe history can be restored without being projected or uploaded. Transaction-only development reset preserves definitions/versions; catalog-clearing reset removes their dependencies first.
+
+Validation: 169 unit/integration tests across 27 files, 29 fixture browser/process scenarios and 2 isolated empty-workspace browser scenarios, TypeScript and production build/offline manifest passed. Desktop/mobile recipe images are saved in the output directory. A browser scenario proves parent pinning after a child update and unchanged inventory. The receipt-recovery test now selects its original correction record by ID rather than relying on random UUID ordering.
+
+Developer guide is version 2.16. Next: Phase 4B production/yield with actual inputs, usable output, single stock consumption and allocated output value; then external POS sales and actual/theoretical consumption. Cost previews do not freeze historical prices or post production inventory. Memberships, billing, dedicated demo infrastructure and production access remain deferred under the first-client development scope. No client database reset or fixture insertion occurred. Local completion does not imply a push, merge or deployment.
+
+## Earlier stock-count checkpoint — 10 October 2026
 
 Phase 3B stock counts and reconciliation are delivered locally on `feat/stock-counts`, stacked on transfer commit `f427942`. Use **الجرد والتسوية** for partial physical quantities, stock-free drafts, explicit difference review and atomic FIFO shortage/explicit-cost surplus. Finalization rejects any later accepted location movement or changed expected quantities. Draft edits cannot refresh the saved baseline. A stale rejected approval supports a fresh blank physical recount with linked IDs/history.
 

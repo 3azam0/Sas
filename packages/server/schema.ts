@@ -1,3 +1,4 @@
+import {recipeTables} from './recipes';
 import {countTables} from './counts';
 import {transferTables} from './transfers';
 import {returnTables} from './supplier-returns';
@@ -61,4 +62,5 @@ ${purchaseTables}
 ${returnTables}
 ${transferTables}
 ${countTables}
+${recipeTables}
 `;

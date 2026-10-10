@@ -4,7 +4,7 @@ Revision: 10 October 2026. Builds on locally delivered setup and Phase 2 opening
 
 ## 3A — Stock transfers
 
-Delivered locally: Arabic dispatch, original-cost partial receiving, explicit transit loss, durable offline actions, linked rejected corrections and recovery format 7. At transfer completion, verification covered 100 unit/integration tests and twenty-one Chrome browser/process scenarios, type checking and production build pass. See [Transfers walkthrough](./runbooks/Transfers.md). Phase 3B counts are also delivered locally; recipes/BOMs are next.
+Delivered locally: Arabic dispatch, original-cost partial receiving, explicit transit loss, durable offline actions, linked rejected corrections and recovery format 7. At transfer completion, verification covered 100 unit/integration tests and twenty-one Chrome browser/process scenarios, type checking and production build pass. See [Transfers walkthrough](./runbooks/Transfers.md). Phase 3B counts are also delivered locally; Phase 4A recipes/cost previews are now delivered; production/yield is next.
 
 Implement a complete dispatch → in transit → partial receiving → resolution slice before counts. Transfer requests/approval routing, unmatched receipt observations, accepted-document reversals and returns to sender remain later extensions; this slice requires a known dispatch and the existing organization-owner development session.
 
@@ -32,7 +32,7 @@ Policy: capture the exact accepted location max stock sequence and expected quan
 
 Acceptance: 2 kg at 20 plus 8 kg at 30, physical 7 => adjustment -3 kg/-70, remainder 7 kg/210. Physical 12 with surplus cost 25 => +2 kg/+50, remainder 12 kg/330. Verify zero quantities/variance/cost, stale sequence, all-line rollback, competing counts, cross-tenant/unit/ID validation, corrupted ledger rejection, offline reload/reconnect, linked recount, archive conflicts and schema preservation.
 
-Next Phase 4A: immutable recipes/BOM versions, base-unit ingredient conversions, sub-recipe cycle protection, stocked versus non-stocked boundaries and transparent current-cost preview. Follow with production/yield, sales imports and actual-versus-theoretical cost control. No billing/membership/demo provisioning is added to the first-client development scope.
+Delivered Phase 4A: immutable recipes/BOM versions, base-unit ingredient conversions, sub-recipe cycle protection, stocked versus non-stocked boundaries and transparent current-cost preview. See [Phase 4](./Phase-4-Plan.md) and [Recipes walkthrough](./runbooks/Recipes.md). Follow with production/yield, sales imports and actual-versus-theoretical cost control. No billing/membership/demo provisioning is added to the first-client development scope.
 
 ## Git and completion
 

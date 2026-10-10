@@ -28,7 +28,7 @@ it('retains pending work on a failed preflight and uses the current generation w
  await sync('grills');expect((await local.commands.get(c.operationId))?.status).toBe('accepted');
 });
 it('allows a matching recovery archive and rejects old or missing generations without partial writes',async()=>{
- await acceptSnapshot(snapshot);await saveCommand(command());const archive=await recoveryArchive('grills');expect(archive.version).toBe(10);expect(archive.generation).toBe(generation);await local.commands.clear();expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(1);await local.commands.clear();
+ await acceptSnapshot(snapshot);await saveCommand(command());const archive=await recoveryArchive('grills');expect(archive.version).toBe(11);expect(archive.generation).toBe(generation);await local.commands.clear();expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(1);await local.commands.clear();
  for(const stale of [{...archive,generation:crypto.randomUUID()},{...archive,version:8,generation:undefined}])await expect(restoreRecovery(JSON.stringify(stale),'grills')).rejects.toThrow('قبل إعادة');
  expect(await local.commands.count()).toBe(0);
 });
