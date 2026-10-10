@@ -1,6 +1,6 @@
 # Phase 2 — Opening stock, purchasing and supplier returns
 
-Planning revision: 10 October 2026. Implementation has not started. This follows the delivered inventory setup milestone and precedes transfers/counts and restaurant cost control.
+Revision: 10 October 2026. Phase 2A opening stock is delivered locally; 2B purchasing and 2C returns remain planned. This follows inventory setup and precedes transfers/counts and restaurant cost control.
 
 ## Scope and delivery order
 
@@ -9,6 +9,8 @@ Use the existing Arabic web application, tenant scoping, development session, FI
 Deliver 2A before 2B, and 2B before 2C. Each slice needs its working screen, durable offline capture, server validation, movement history, recovery compatibility and relevant tests. Complete its acceptance scenarios before starting the next slice. Development settings use EGP, Arabic RTL and Africa/Cairo as current defaults; document values retain their captured currency, unit conversion and business date.
 
 ## 2A — Opening stock
+
+Delivered: manual multi-line capture and bounded UTF-8 CSV mapping/preview, atomic baseline posting, FIFO layers, offline reload/dependency ordering, immutable review and version-4 recovery. Verification: 53 unit/integration tests and twelve browser/process scenarios pass; type checking and the production build pass. See the [opening stock walkthrough](./runbooks/Opening-Stock.md). Large asynchronous/XLSX imports and posted-opening reversals are not delivered.
 
 The user selects a stock location, opening business date and reference, then enters material quantities and unit costs. Start with manual entry; add a bounded CSV template/import with column mapping, validation and preview after the manual posting path works. XLSX parsing and large asynchronous imports can follow separately.
 
@@ -66,7 +68,7 @@ Use existing Zustand UI state and React Hook Form/Zod; retain decimal arithmetic
 
 ## Git, environments and completion
 
-Inventory setup is currently local on `feat/inventory-setup`; do not claim it has been published or merged. Check current repository/PR state before creating the Phase 2 branch. Submit the inventory setup for review separately, or use a clearly documented stacked branch if it is still unmerged. Keep the three Phase 2 slices as reviewable commits/PRs; run applicable checks before pushing. Publishing uses the already selected repository, `3azam0/Sas`, and the developer guide's Git workflow. Do not merge or deploy as part of an implementation checkpoint.
+Inventory setup is local on `feat/inventory-setup`; Phase 2A is on `feat/opening-stock`, stacked after planning commit `4c89131`. Neither new feature is claimed published or merged. Submit inventory setup separately and document the stacked relationship when publishing Phase 2A. Keep the three Phase 2 slices as reviewable commits/PRs; run applicable checks before pushing. Publishing uses the selected repository, `3azam0/Sas`, and the developer guide's Git workflow. Do not merge or deploy as part of an implementation checkpoint.
 
 Use isolated test data and ports. Check the compiled production build for the new screens before telling the client they are available. Record exact verified checks and current commit; do not reuse earlier test totals as evidence for new functionality. Do not clear the user's local database or IndexedDB during testing.
 

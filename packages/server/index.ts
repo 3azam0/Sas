@@ -3,9 +3,10 @@ import { createHash,randomUUID } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { resolve,join } from 'node:path';
 import {acquireFileLock} from '../../scripts/file-lock.mjs';
-import { commandSchema,BusinessError,type Access,type Command,type Snapshot,type Layer,type Item,type Location,type Balance,type Entry,type CommandResult,type Unit,type Supplier } from '@saas/contracts';
+import { commandSchema,BusinessError,type Access,type Command,type Snapshot,type Layer,type Item,type Location,type Balance,type Entry,type CommandResult,type Unit,type Supplier,type PostedOpening } from '@saas/contracts';
 import {allocateFIFO,decimal} from '@saas/domain';
 import {schema} from './schema';
+import {addIncomingStock} from './incoming';
 export async function createDatabase(path?:string) { if(path) await mkdir(path,{recursive:true});const release=path?acquireFileLock(join(path,'.fodo.lock')):()=>{};const onExit=()=>release();process.once('exit',onExit);try{const db=await PGlite.create(path);const originalClose=db.close.bind(db);db.close=async()=>{try{await originalClose();}finally{process.removeListener('exit',onExit);release();}};await db.exec(schema);return db;}catch(error){process.removeListener('exit',onExit);release();throw error;} }
 export async function seed(db:PGlite) {
   await db.transaction(async tx=>{
@@ -57,12 +58,10 @@ export async function postCommand(db:PGlite,access:Access,input:unknown):Promise
         await tx.query('UPDATE cost_layers SET remaining=remaining-$3::numeric WHERE organization_id=$1 AND id=$2',[c.organizationId,part.layerId,part.quantity]);
         await tx.query('INSERT INTO layer_allocations VALUES($1,$2,$3,$4,$5)',[c.organizationId,c.operationId,part.layerId,part.quantity,part.amount]);
       }
-    } else amount=decimal(c.quantity).mul(c.unitCost!).toFixed(12);
-    const sign=c.type==='receipt.post'?1:-1;
-    const entry=await tx.query<{sequence:string}>('INSERT INTO stock_entries(organization_id,operation_id,location_id,item_id,quantity,amount,type,reason,business_date) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING sequence',[c.organizationId,c.operationId,c.locationId,c.itemId,decimal(c.quantity).mul(sign).toFixed(6),decimal(amount).mul(sign).toFixed(12),c.type,c.reason,c.businessDate]);
+      await tx.query('INSERT INTO stock_entries(organization_id,operation_id,location_id,item_id,quantity,amount,type,reason,business_date) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[c.organizationId,c.operationId,c.locationId,c.itemId,decimal(c.quantity).neg().toFixed(6),decimal(amount).neg().toFixed(12),c.type,c.reason,c.businessDate]);
+      await tx.query('UPDATE stock_balances SET quantity=quantity-$4::numeric,value=value-$5::numeric WHERE organization_id=$1 AND location_id=$2 AND item_id=$3',[c.organizationId,c.locationId,c.itemId,c.quantity,amount]);
+    } else amount=await addIncomingStock(tx,{...c,unitCost:c.unitCost!});
     if(c.supplierId||c.purchaseUnitId)await tx.query('UPDATE stock_entries SET supplier_id=$3,purchase_unit_id=$4,entered_quantity=$5 WHERE organization_id=$1 AND operation_id=$2',[c.organizationId,c.operationId,c.supplierId??null,c.purchaseUnitId??null,c.enteredQuantity??null]);
-    if(sign===1) await tx.query('INSERT INTO cost_layers VALUES($1,$2,$3,$4,$5,$6,$7)',[c.organizationId,randomUUID(),c.locationId,c.itemId,c.quantity,c.unitCost,entry.rows[0].sequence]);
-    await tx.query('UPDATE stock_balances SET quantity=quantity+$4::numeric, value=value+$5::numeric WHERE organization_id=$1 AND location_id=$2 AND item_id=$3',[c.organizationId,c.locationId,c.itemId,decimal(c.quantity).mul(sign).toFixed(6),decimal(amount).mul(sign).toFixed(12)]);
     await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[c.organizationId,access.userId,c.operationId,c.type]);
     const result:CommandResult={operationId:c.operationId,outcome:'accepted',amount};
     await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[c.organizationId,c.operationId,hash,JSON.stringify(result)]);
@@ -83,7 +82,9 @@ export async function getSnapshot(db:PGlite,access:Access):Promise<Snapshot> {
     const layers=await tx.query<Layer>('SELECT id,location_id AS "locationId",item_id AS "itemId",remaining::text,unit_cost::text AS "unitCost",sequence FROM cost_layers WHERE organization_id=$1 AND remaining>0 ORDER BY sequence',[org]);
     const entries=await tx.query<Entry>('SELECT operation_id AS "operationId",location_id AS "locationId",item_id AS "itemId",quantity::text,amount::text,type,reason,business_date::text AS "businessDate",posted_at::text AS "postedAt",supplier_id AS "supplierId",purchase_unit_id AS "purchaseUnitId",entered_quantity::text AS "enteredQuantity" FROM stock_entries WHERE organization_id=$1 ORDER BY sequence DESC LIMIT 100',[org]);
     const receipts=await tx.query<{id:string}>('SELECT operation_id::text AS id FROM command_receipts WHERE organization_id=$1',[org]);
-    return {organizationId:org,organizationName:organization.rows[0].name,access,locations:locations.rows,items:items.rows,balances:balances.rows,layers:layers.rows,entries:entries.rows,acceptedOperationIds:receipts.rows.map(x=>x.id),fetchedAt:new Date().toISOString(),currency:'EGP',units:units.rows,suppliers:suppliers.rows};
+    const openings=await tx.query<PostedOpening>('SELECT payload AS document,amount::text,posted_at::text AS "postedAt" FROM opening_documents WHERE organization_id=$1 ORDER BY posted_at DESC LIMIT 100',[org]);
+    return {organizationId:org,organizationName:organization.rows[0].name,access,locations:locations.rows,items:items.rows,balances:balances.rows,layers:layers.rows,entries:entries.rows,acceptedOperationIds:receipts.rows.map(x=>x.id),fetchedAt:new Date().toISOString(),currency:'EGP',units:units.rows,suppliers:suppliers.rows,openings:openings.rows};
   });
 }
 export {postSetupCommand} from './setup';
+export {postOpening} from './opening';

@@ -1,0 +1,70 @@
+'use client';
+import {useRef,useState} from 'react';
+import {openingSchema,type Snapshot,type OpeningDocument} from '@saas/contracts';
+import {decimal} from '@saas/domain';
+import {parseOpeningCSV,mapOpeningCSV,normalizeNumber,type CSVMapping} from '../../../packages/domain/opening-import';
+import {saveOpening,resolveOpening,type LocalOpening} from './offline';
+const number=(value:string|number)=>new Intl.NumberFormat('ar-EG',{maximumFractionDigits:6}).format(Number(value));
+const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const statuses:Record<LocalOpening['status'],string>={pending:'محفوظ محلياً',acceptedAwaiting:'انتظار تأكيد الرصيد',accepted:'مقبول',needsReview:'يحتاج مراجعة',cancelled:'ملغى',superseded:'تم التصحيح'};
+export default function OpeningStock({snapshot,location,rows,expired,synchronize,notify,openSetup}:{snapshot:Snapshot;location:string;rows:LocalOpening[];expired:boolean;synchronize:()=>Promise<void>;notify:(text:string)=>void;openSetup:()=>void}){
+ const [editor,setEditor]=useState<{row?:LocalOpening}|null>(null);const [error,setError]=useState('');
+ const documents=new Map(rows.map(r=>[r.id,r]));
+ for(const posted of snapshot.openings??[])documents.set(posted.document.operationId,{...documents.get(posted.document.operationId),id:posted.document.operationId,scope:snapshot.organizationId,document:posted.document,status:'accepted',error:undefined,createdAt:posted.postedAt});
+ const visible=[...documents.values()].filter(r=>r.document.locationId===location).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+ const eligible=snapshot.items.filter(i=>i.active!==false&&!snapshot.balances.some(b=>b.locationId===location&&b.itemId===i.id)&&!rows.some(r=>r.document.locationId===location&&!['cancelled','superseded'].includes(r.status)&&r.document.lines.some(l=>l.itemId===i.id)));
+ async function resolve(row:LocalOpening,action:'retry'|'cancel'){try{await resolveOpening(row.scope,row.id,action);if(action==='retry')await synchronize();}catch(e){setError(e instanceof Error?e.message:'تعذرت معالجة المستند');}}
+ return <>
+  <section className="panel opening-intro"><div className="panel-heading"><div><h2>الرصيد الافتتاحي للموقع</h2><p>أول كمية وتكلفة لكل مادة في هذا الموقع. المواد ذات الحركات السابقة تحتاج استلاماً أو تسوية، وليس رصيداً افتتاحياً جديداً.</p></div><button className="primary" disabled={expired||snapshot.locations.find(l=>l.id===location)?.active===false||eligible.length===0} onClick={()=>{setError('');setEditor({});}}>إضافة رصيد افتتاحي</button></div>
+   <p>كل مستند يُقبل بالكامل أو يُرفض بالكامل. أقصى حد ٢٠٠ مادة. الكمية بوحدة المخزون الأساسية والتكلفة لكل وحدة؛ اترك المواد ذات الرصيد صفر خارج المستند.</p>
+   {eligible.length===0&&<div className="empty"><p>لا توجد مواد جديدة متاحة لرصيد افتتاحي في الموقع. أضف مادة أو موقعاً من إعداد المخزون؛ الرصيد التجريبي السابق يبقى محفوظاً.</p><button className="secondary" onClick={openSetup}>فتح إعداد المخزون</button></div>}
+   {error&&<p className="error" role="alert">{error}</p>}
+  </section>
+  {editor&&<OpeningEditor key={`${location}-${editor.row?.id??'new'}`} snapshot={snapshot} location={location} items={eligible} initial={editor.row} close={()=>setEditor(null)} saved={()=>{setEditor(null);notify('تم حفظ مستند الرصيد الافتتاحي على هذا الجهاز. الرصيد المؤكد يتغير بعد قبول المزامنة.');void synchronize();}}/>}
+  <section className="panel"><div className="panel-heading"><h2>مستندات الرصيد الافتتاحي</h2><span className="pill">{visible.length} مستند</span></div>{visible.map(row=>{
+   const total=row.document.lines.reduce((sum,l)=>sum.add(decimal(l.quantity).mul(l.unitCost)),decimal('0')).toString();
+   return <details key={row.id} className="opening-document"><summary><strong>{row.document.reason}</strong> · {row.document.businessDate} · {number(total)} ج.م <span className={'pill '+(row.status==='accepted'?'good':'warning')}>{statuses[row.status]}</span></summary><small dir="ltr">{row.id}</small>{row.document.source&&<p>ملف المصدر: {row.document.source.fileName}</p>}
+    <div className="table-scroll"><table><thead><tr><th>المادة</th><th>الكمية</th><th>تكلفة الوحدة</th><th>القيمة</th></tr></thead><tbody>{row.document.lines.map(l=><tr key={l.lineId}><td>{snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}</td><td>{number(l.quantity)} {snapshot.units?.find(u=>u.id===l.unitId)?.name??l.unitId}</td><td>{number(l.unitCost)}</td><td>{number(decimal(l.quantity).mul(l.unitCost).toString())}</td></tr>)}</tbody></table></div>
+    {row.error&&<p className="error">{row.error}</p>}{row.replacementId&&<p>مستند التصحيح: <span dir="ltr">{row.replacementId}</span></p>}{row.replacesId&&<p>تصحيح للمستند: <span dir="ltr">{row.replacesId}</span></p>}
+    {row.status==='needsReview'&&<div className="review-actions"><button className="secondary" disabled={expired} onClick={()=>void resolve(row,'retry')}>إعادة محاولة المستند</button><button className="secondary" disabled={expired} onClick={()=>setEditor({row})}>تصحيح المستند</button><button className="text-button" onClick={()=>void resolve(row,'cancel')}>إلغاء المستند المرفوض</button></div>}
+   </details>;
+  })}{!visible.length&&<div className="empty"><p>ستظهر المستندات المحفوظة والمقبولة هنا.</p></div>}</section>
+ </>;
+}
+type Line=OpeningDocument['lines'][number];
+function OpeningEditor({snapshot,location,items,initial,close,saved}:{snapshot:Snapshot;location:string;items:Snapshot['items'];initial?:LocalOpening;close:()=>void;saved:()=>void}){
+ const choices=initial?snapshot.items.filter(i=>i.active!==false):items;
+ const newLine=(itemId=choices[0]?.id??''):Line=>({lineId:crypto.randomUUID(),itemId,unitId:snapshot.items.find(i=>i.id===itemId)?.unitId??'',quantity:'',unitCost:''});
+ const [lines,setLines]=useState<Line[]>(()=>initial?initial.document.lines.map(l=>({...l,lineId:crypto.randomUUID()})):[newLine()]);
+ const [date,setDate]=useState(initial?.document.businessDate??today()),[reason,setReason]=useState(initial?.document.reason??'');const [busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [csv,setCSV]=useState<string[][]|null>(null),[mapping,setMapping]=useState<CSVMapping>({sku:0,quantity:1,unitCost:2,unit:3}),[source,setSource]=useState<OpeningDocument['source']>(),[csvSource,setCSVSource]=useState<OpeningDocument['source']>();
+ const [importErrors,setImportErrors]=useState<string[]>([]);
+ const [reading,setReading]=useState(false),[importPending,setImportPending]=useState(false);const readToken=useRef(0);
+ const valid=(v:string)=>/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/.test(v);
+ const total=lines.reduce((sum,l)=>valid(l.quantity)&&valid(l.unitCost)?sum.add(decimal(l.quantity).mul(l.unitCost)):sum,decimal('0'));
+ function change(id:string,field:'itemId'|'quantity'|'unitCost',value:string){setSource(undefined);setLines(rows=>rows.map(l=>l.lineId===id?{...l,[field]:value,...(field==='itemId'?{unitId:snapshot.items.find(i=>i.id===value)?.unitId??''}:{})}:l));}
+ async function file(file?:File){
+  const token=++readToken.current;setError('');setImportErrors([]);setCSV(null);setCSVSource(undefined);setImportPending(!!file);setReading(!!file);if(!file)return;
+  try{
+   if(file.size>1024*1024)throw new Error('الملف يتجاوز ١ ميجابايت.');const bytes=await file.arrayBuffer();const parsed=parseOpeningCSV(new TextDecoder('utf-8',{fatal:true}).decode(bytes));const hash=await crypto.subtle.digest('SHA-256',bytes);
+   if(token!==readToken.current)return;
+   const find=(name:string,fallback:number)=>{const i=parsed[0].findIndex(h=>h.toLowerCase()===name.toLowerCase());return i>=0?i:fallback;};setMapping({sku:find('sku',0),quantity:find('quantity',1),unitCost:find('unitCost',2),unit:find('unit',-1)});
+   setCSVSource({fileName:file.name.slice(0,200),sha256:[...new Uint8Array(hash)].map(n=>n.toString(16).padStart(2,'0')).join('')});setCSV(parsed);
+  }catch(e){if(token===readToken.current)setError(e instanceof Error?e.message:'تعذر قراءة الملف. استخدم CSV بترميز UTF-8.');}finally{if(token===readToken.current)setReading(false);}
+ }
+ function preview(){if(!csv)return;try{const result=mapOpeningCSV(csv,mapping,choices);setImportErrors(result.errors);if(result.errors.length)return;setLines(result.lines.map(l=>({...l,lineId:crypto.randomUUID()})));setSource(csvSource);setImportPending(false);setError('');}catch(e){setError(e instanceof Error?e.message:'راجع ربط الأعمدة.');}}
+ async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');try{if(reading||importPending||importErrors.length)throw new Error('اعرض سطور CSV وصحح أخطاءها أو ألغِ الاستيراد قبل الحفظ.');if(date>today())throw new Error('التاريخ لا يمكن أن يكون في المستقبل.');const doc=openingSchema.parse({operationId:crypto.randomUUID(),organizationId:snapshot.organizationId,locationId:location,type:'opening.post',businessDate:date,reason,capturedAt:new Date().toISOString(),schemaVersion:1,currency:'EGP',lines,source});await saveOpening(doc,initial?.id);saved();}catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع المواد والكميات والتكاليف. المادة لا تتكرر والكمية موجبة.');}finally{setBusy(false);}}
+ function template(){const blob=new Blob(['\uFEFFsku,quantity,unitCost,unit\r\n'],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='fodo-opening-template.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ return <section className="panel opening-editor"><div className="panel-heading"><h2>{initial?'تصحيح الرصيد الافتتاحي':'مستند رصيد افتتاحي جديد'}</h2><button className="secondary" disabled={busy} onClick={close}>إغلاق المستند</button></div>
+  <div className="opening-import"><button className="secondary" onClick={template}>تنزيل قالب CSV</button><label>استيراد CSV (UTF-8)<input type="file" accept=".csv,text/csv" aria-label="ملف الرصيد الافتتاحي" onChange={e=>void file(e.target.files?.[0])}/></label><p>اربط الأعمدة ثم اعرض السطور قبل الحفظ. الاستيراد لا ينشئ مواد جديدة. الوحدة اختيارية، والكمية دائماً بوحدة المخزون الأساسية.</p>
+   {importPending&&<button className="secondary" onClick={()=>{readToken.current++;setReading(false);setImportPending(false);setCSV(null);setCSVSource(undefined);setImportErrors([]);setError('');}}>إلغاء استيراد CSV</button>}{reading&&<p>جارٍ قراءة الملف…</p>}{csv&&<><div className="opening-mapping">{(['sku','quantity','unitCost','unit'] as const).map((key,i)=><label key={key}>{['كود المادة','الكمية','تكلفة الوحدة','الوحدة'][i]}<select aria-label={`عمود ${['كود المادة','الكمية','تكلفة الوحدة','الوحدة'][i]}`} value={mapping[key]} onChange={e=>{setMapping({...mapping,[key]:Number(e.target.value)});setImportPending(true);}}>{key==='unit'&&<option value={-1}>استخدام وحدة المخزون</option>}{csv[0].map((h,j)=><option value={j} key={j}>{h}</option>)}</select></label>)}</div><button className="secondary" onClick={preview}>معاينة سطور CSV</button><small>المعاينة تستبدل سطور النموذج ولا ترحّل مخزوناً.</small></>}
+   {importErrors.length>0&&<div role="alert" className="error">{importErrors.map((v,i)=><p className="error" key={i}>{v}</p>)}</div>}
+  </div>
+  <form onSubmit={e=>void submit(e)}><div className="form-row"><label>تاريخ الرصيد<input aria-label="تاريخ الرصيد" type="date" max={today()} required value={date} onChange={e=>setDate(e.target.value)}/></label><label>مرجع الرصيد<input aria-label="مرجع الرصيد" minLength={2} maxLength={200} required value={reason} onChange={e=>setReason(e.target.value)}/></label></div>
+   <div className="table-scroll"><table><thead><tr><th>المادة</th><th>الوحدة</th><th>الكمية</th><th>تكلفة الوحدة (ج.م)</th><th>القيمة (ج.م)</th><th>إجراء</th></tr></thead><tbody>{lines.map((l,i)=><tr key={l.lineId}><td><select aria-label={`مادة السطر ${i+1}`} value={l.itemId} required onChange={e=>change(l.lineId,'itemId',e.target.value)}>{choices.map(item=><option key={item.id} value={item.id} disabled={lines.some(x=>x.lineId!==l.lineId&&x.itemId===item.id)}>{item.name} · {item.sku}</option>)}</select></td><td>{snapshot.items.find(item=>item.id===l.itemId)?.unit??l.unitId}</td><td><input aria-label={`كمية السطر ${i+1}`} inputMode="decimal" dir="ltr" required value={l.quantity} onChange={e=>change(l.lineId,'quantity',normalizeNumber(e.target.value))}/></td><td><input aria-label={`تكلفة السطر ${i+1}`} inputMode="decimal" dir="ltr" required value={l.unitCost} onChange={e=>change(l.lineId,'unitCost',normalizeNumber(e.target.value))}/></td><td>{valid(l.quantity)&&valid(l.unitCost)?number(decimal(l.quantity).mul(l.unitCost).toString()):'—'}</td><td><button className="text-button" type="button" disabled={lines.length===1} aria-label={`حذف السطر ${i+1}`} onClick={()=>{setSource(undefined);setLines(lines.filter(x=>x.lineId!==l.lineId));}}>حذف</button></td></tr>)}</tbody></table></div>
+   <button className="secondary" type="button" disabled={lines.length>=200||lines.length>=choices.length} onClick={()=>{setSource(undefined);setLines([...lines,newLine(choices.find(i=>!lines.some(l=>l.itemId===i.id))?.id)]);}}>إضافة سطر</button>
+   <div className="operation-summary"><span>إجمالي الرصيد الافتتاحي المتوقع · {lines.length} مادة</span><strong>{number(total.toString())} ج.م</strong></div><p>حفظ المستند لا يغيّر الرصيد المؤكد حتى يقبل الخادم جميع السطور. الاستلام والهالك يعتمدان على قبول المستند أولاً.</p>
+   {error&&<p className="error" role="alert">{error}</p>}<div className="modal-actions"><button className="primary" disabled={busy||reading||importPending||importErrors.length>0} type="submit">{busy?'جارٍ الحفظ…':'حفظ الرصيد الافتتاحي'}</button><button className="secondary" disabled={busy} type="button" onClick={close}>إلغاء</button></div>
+  </form>
+ </section>;
+}

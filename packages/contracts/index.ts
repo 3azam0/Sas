@@ -21,7 +21,7 @@ export type Location = {id:string;name:string;kind:string;active?:boolean;revisi
 export type Balance = {locationId:string;itemId:string;quantity:string;value:string;average:string|null};
 export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;sequence:number};
 export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null};
-export type Snapshot = {organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[]};
+export type Snapshot = {organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];openings?:PostedOpening[]};
 export type CommandResult = {operationId:string;outcome:'accepted'|'needs_review';code?:string;message?:string;amount?:string};
 export class BusinessError extends Error { constructor(public code:string, message:string,public status=409){super(message);} }
 export const messages: Record<string,string> = {INSUFFICIENT_STOCK:'الرصيد المتاح لا يكفي. راجع العملية قبل إعادة إرسالها.',FORBIDDEN:'ليس لديك صلاحية لهذه المؤسسة أو الموقع.',PAYLOAD_CONFLICT:'معرّف العملية مستخدم لبيانات مختلفة.',INVALID_COMMAND:'تحقق من بيانات العملية.',AUTH_REQUIRED:'انتهت الجلسة. اتصل بالإنترنت وسجل الدخول مرة أخرى.'};
@@ -38,3 +38,14 @@ export const setupCommandSchema=z.discriminatedUnion('type',[
   z.object({...setupEnvelope,type:z.literal('item.save'),record:z.object({id:recordId,name:recordName,sku:z.string().trim().min(1).max(60).transform(v=>v.toUpperCase()),category:recordName,unitId:recordId,minimum:nonNegative,purchaseUnits:purchaseUnitsSchema,active:z.boolean()})})
 ]);
 export type SetupCommand=z.infer<typeof setupCommandSchema>;
+
+export const openingSchema=z.object({
+ operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),locationId:recordId,type:z.literal('opening.post'),
+ businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),
+ lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative})).min(1).max(200),
+ source:z.object({fileName:z.string().max(200),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).optional()
+}).superRefine((doc,ctx)=>{
+ if(new Set(doc.lines.map(l=>l.itemId)).size!==doc.lines.length||new Set([doc.operationId,...doc.lines.map(l=>l.lineId)]).size!==doc.lines.length+1)ctx.addIssue({code:'custom',message:'المادة ومعرّفات السطور يجب ألا تتكرر'});
+});
+export type OpeningDocument=z.infer<typeof openingSchema>;
+export type PostedOpening={document:OpeningDocument;amount:string;postedAt:string};

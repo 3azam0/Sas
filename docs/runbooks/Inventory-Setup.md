@@ -18,7 +18,7 @@ After a new build, stop the old Fodo console with Ctrl+C and start the same laun
 6. Record waste in the base unit. Inspect confirmed/local quantities, FIFO layers and movement history; the receipt retains supplier and pack metadata.
 7. Repeat setup and receipt capture offline after the app/data have downloaded, reload, then reconnect and synchronize. Setup uploads in dependency order before stock commands. Only server acceptance changes confirmed stock/value.
 
-Creating a material/location does not create opening stock. Opening imports and purchasing documents/returns are the next milestone.
+Creating a material/location does not create stock. Use **الرصيد الافتتاحي** for a pristine item/location; see the [opening stock walkthrough](./Opening-Stock.md). Purchasing documents/returns are next.
 
 ## Editing and review
 
@@ -30,6 +30,6 @@ Each setup save carries an expected revision and an operation ID. A second devic
 
 ## Recovery and validation
 
-Recovery version 3 exports both setup and stock commands. Import previews counts, validates organization/IDs, rejects conflicting payloads atomically and deduplicates known operations. Server acceptance is verified rather than trusted from the file. Versions 1/2 remain supported for stock-only archives. Earlier app builds cannot import version-3 archives and should not be used after setup edits.
+Recovery version 4 exports opening documents together with setup and stock commands. Import previews counts, validates organization/envelope/line IDs, rejects conflicting payloads atomically and deduplicates known operations. Server acceptance is verified rather than trusted from the file. Versions 1–3 remain readable. Earlier builds cannot import version 4 and should not be used after creating opening documents.
 
-Verification: 39 unit/integration tests and ten Chrome browser/process scenarios pass, including a full offline unit/supplier/location/item setup followed by pack receipt, reload, reconnect and FIFO waste. Desktop/mobile screenshots are saved in the workspace outputs. The production build/type check pass. Automated browser data is isolated from `.data-local`.
+Verification: 53 unit/integration tests and twelve Chrome browser/process scenarios pass, including a full offline unit/supplier/location/item setup followed by pack receipt, reload, reconnect and FIFO waste. Desktop/mobile screenshots are saved in the workspace outputs. The production build/type check pass. Automated browser data is isolated from `.data-local`.

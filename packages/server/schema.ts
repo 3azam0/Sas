@@ -9,6 +9,13 @@ CREATE TABLE IF NOT EXISTS stock_balances (organization_id text NOT NULL, locati
 CREATE TABLE IF NOT EXISTS layer_allocations (organization_id text NOT NULL, operation_id uuid, layer_id uuid, quantity numeric(18,6) NOT NULL CHECK(quantity>0), amount numeric(30,12) NOT NULL CHECK(amount>=0), PRIMARY KEY(organization_id,operation_id,layer_id), FOREIGN KEY(organization_id,layer_id) REFERENCES cost_layers(organization_id,id));
 CREATE TABLE IF NOT EXISTS audit_events (id bigserial PRIMARY KEY, organization_id text NOT NULL REFERENCES organizations(id), actor text NOT NULL, operation_id uuid NOT NULL, action text NOT NULL, posted_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS fifo_lookup ON cost_layers(organization_id,location_id,item_id,sequence);
+CREATE TABLE IF NOT EXISTS opening_documents(organization_id text NOT NULL REFERENCES organizations(id),operation_id uuid NOT NULL,payload jsonb NOT NULL,amount numeric(38,12) NOT NULL,posted_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(organization_id,operation_id));
+ALTER TABLE stock_entries ADD COLUMN IF NOT EXISTS opening_document_id uuid;
+DO $$ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='stock_opening_scope') THEN
+  ALTER TABLE stock_entries ADD CONSTRAINT stock_opening_scope FOREIGN KEY(organization_id,opening_document_id) REFERENCES opening_documents(organization_id,operation_id);
+ END IF;
+END $$;
 
 -- Additive setup migration: preserve all existing stock and operation IDs.
 CREATE TABLE IF NOT EXISTS units (organization_id text NOT NULL REFERENCES organizations(id), id text NOT NULL, name text NOT NULL, revision integer NOT NULL DEFAULT 1, PRIMARY KEY(organization_id,id), UNIQUE(organization_id,name));

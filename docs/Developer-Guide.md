@@ -1,6 +1,6 @@
 # Fodo SaaS Developer Guide
 
-Version 2.6 — 10 October 2026
+Version 2.7 — 10 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
@@ -8,7 +8,7 @@ This guide defines the implementation workflow and distinguishes the delivered l
 
 ## Implementation status and revised delivery order — 10 October 2026
 
-This version supersedes the original task order where it conflicts. Fodo is a working local inventory application: Arabic RTL web UI, editable items/units/suppliers/stock locations, purchase packs, receiving, waste, FIFO, durable local outboxes, recovery archives and reconnect synchronization. Production authentication, opening imports/purchasing documents, transfers, recipes, production, country adapters and billing remain planned.
+This version supersedes the original task order where it conflicts. Fodo is a working local inventory application: Arabic RTL web UI, editable items/units/suppliers/stock locations, purchase packs, multi-material opening stock with CSV preview, receiving, waste, FIFO, durable local outboxes, recovery archives and reconnect synchronization. Production authentication, purchase documents/returns, transfers, recipes, production, country adapters and billing remain planned.
 
 Current adapters: Next.js/React; Zustand for UI state; React Hook Form/Zod; custom CSS; Dexie/IndexedDB; PGlite development PostgreSQL; complete tenant snapshots. Tailwind/shadcn, TanStack Query, PowerSync, managed PostgreSQL and production Auth are future decisions/integrations, not installed capabilities. Do not rewrite stable UI state merely to match an earlier technology proposal.
 
@@ -20,11 +20,13 @@ Use development to show progress to the first client. Do not provision a dedicat
 
 The inventory setup milestone is delivered. Items, units, suppliers and stock locations can be created/edited offline. Receiving can reference a supplier and an item-specific purchase pack; inventory quantities are converted to the base unit, with cost explicitly entered per base unit. Prior pack definitions and an item's base unit are immutable, preserving queued operations and stock history. Records can be deactivated without deletion. Setup uploads precede dependent stock commands; stale revisions and duplicate codes enter review. Recovery version 3 includes setup and stock outboxes while older archives remain supported. See [Inventory setup walkthrough](./runbooks/Inventory-Setup.md).
 
-The next working milestone is opening stock and purchase documents/returns, delivered in three complete slices: 2A opening stock, 2B purchasing/receiving, and 2C supplier returns. This is a planned milestone, not delivered functionality. Sample development fixtures can be used until the client supplies their setup data. Transfers/counts and restaurant recipes/production/cost reports follow. Each milestone must work end to end before adding more SaaS administration. See [Phase 2 implementation plan](./Phase-2-Plan.md) for contracts, scope and acceptance scenarios.
+Phase 2A opening stock is delivered locally: bounded multi-material documents, UTF-8 CSV mapping/preview, base-unit costs, atomic stock/layer/audit posting, baseline uniqueness after consumption, same-ID retries, offline dependency sequencing and version-4 combined recovery. Snapshot and outboxes are read together to preserve the selected branch through setup acceptance. See the [opening stock walkthrough](./runbooks/Opening-Stock.md).
+
+The next working milestone is 2B purchase documents/partial receiving, followed by 2C source-linked supplier returns. These remain planned. Sample development fixtures can be used until the client supplies their setup data. Transfers/counts and restaurant recipes/production/cost reports follow. Each milestone must work end to end before adding more SaaS administration. See [Phase 2 implementation plan](./Phase-2-Plan.md) for contracts, scope and acceptance scenarios.
 
 ### Verified reliability delivery
 
-Same-organization renewal with queued work, review retry/correction/cancellation, and archive preview/restore are implemented. Application verification passed 39 unit/integration tests and ten browser/process scenarios, including setup revisions, tenant isolation, pack conversion validation, inactive records, migration reruns, combined setup/stock recovery and offline setup through receiving/waste in a new branch. Database restore and tamper rejection remain covered. TypeScript and the production build pass. Browser checks use a separate test database; they do not modify the client's local data. Remote branch and PR CI passed at `42d8edf` for the earlier workflow work; the new inventory setup is not yet published. The setup-helper fix has 22 local regression checks passing in both PowerShell versions. Squash merging, cleanup, immutable tags and staging/demo/production registrations are verified; main-protection payload correction still needs remote verification.
+Same-organization renewal with queued work, review retry/correction/cancellation, and archive preview/restore are implemented. Application verification passed 53 unit/integration tests and twelve browser/process scenarios, including setup revisions, tenant isolation, pack conversions, inactive records, migrations, combined recovery, opening baseline concurrency/atomic rollback, fractional opening FIFO, CSV validation, offline opening before waste and preserved branch selection. Database restore and tamper rejection remain covered. TypeScript and the production build pass. Browser checks use separate test data and do not modify the client's local database. Remote branch and PR CI passed at `42d8edf` for the earlier workflow work; the newer inventory setup and opening stock work are local. `feat/opening-stock` is stacked on `feat/inventory-setup` after planning commit `4c89131`; keep that relationship explicit when publishing/reviewing. The setup-helper fix has 22 local regression checks passing in both PowerShell versions. Squash merging, cleanup, immutable tags and staging/demo/production registrations are verified; main-protection payload correction still needs remote verification.
 
 All production start paths (`pnpm start`, `run.ps1 start`, and the Windows launcher) now share the saved origin and `.data-local`. Development uses port 3109 and `.data-dev`. Build identity is baked into the workspace footer and health response; the launcher refuses an older verified build and instructs a same-origin restart. `run.ps1 backup` runs the manual cold-backup utility. Existing data directories remain preserved.
 
@@ -39,7 +41,7 @@ Selected cloud project: `bkkxrptgwbrwredauopq` at `https://bkkxrptgwbrwredauopq.
 | 0C | Review, retry, cancel, correct and restore | Immutable operation history; changed data gets a new linked ID; restore validates scope and deduplicates |
 | 0D | Version control and backup/restore runbook | Git initialized with secrets/data ignored; a restore exercise proves database recovery |
 | 1 — delivered locally | Working inventory setup for the first client | Editable items, units, suppliers and locations; tenant-scoped persistence and reload; purchase packs and supplier receiving |
-| 2A — next | Opening stock | Previewed baseline posts once to a pristine item/location; offline save/reload/retry preserves quantity, value and audit |
+| 2A — delivered locally | Opening stock | Manual/CSV-previewed multi-material baseline posts atomically once to pristine item/locations; offline reload/retry and recovery preserve quantity, value and audit |
 | 2B | Purchase documents and receiving | Draft orders have no stock effects; partial receiving posts immutable line quantities, pack conversions and costs exactly once |
 | 2C | Supplier returns | Linked returns cannot exceed accepted receipt quantities or available source layers; reversal/retry retains inspectable cost and audit |
 | 3 | Multi-branch inventory flow | Counts, dispatch/receipt transfers, variance handling, offline recovery and backups |
@@ -500,7 +502,9 @@ Closed-period late arrivals require authorized correction/reopening policy; neve
 
 Use server staging tables and asynchronous jobs for large XLSX/CSV files. Parse types, preserve codes as text, normalize units/dates/Arabic numerals, limit file size/rows, and retain source-row errors.
 
-Opening-stock import invokes the posting engine, not direct balance insertion. Product changes and opening entries have separate references.
+Opening-stock import invokes the posting engine, not direct balance insertion. Product changes and opening entries have separate references. The implemented development slice accepts manual or UTF-8 CSV documents of at most 200 lines and 1 MiB input. Columns map to material code, positive base quantity, non-negative unit cost and optional exact base-unit label. Header/row/quote/number errors block a completed import preview. Final posting validates all lines before atomically creating their ledger entries, layers, balances, document receipt and audit. Any existing movement/balance in an item/location prevents another baseline, including a zero balance after consumption. The server's full history provides this guard independently of the latest-100 display limits. Large/XLSX staging jobs remain planned.
+
+Dexie version 3 adds an opening-document outbox without deleting existing records. Recovery version 4 includes document envelopes and line IDs, setup and stock operations; versions 1–3 remain readable. Validate cross-outbox identity collisions and scope, restore atomically, and reconcile server acceptance. Setup uploads precede opening documents; dependent stock commands wait for accepted baselines or enter review. Document corrections create new document/line IDs and linked immutable history. Accepted opening reversals and count adjustments are not implemented in this slice.
 
 Receipt-level sales deduplicate with source identifiers. Daily summaries need a declared append/replace/overlap policy. Report unsupported overlap rather than guessing.
 

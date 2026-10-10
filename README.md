@@ -14,9 +14,10 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 - Stable local origin, single-process database ownership, startup health checks, and verified local backup/restore helpers.
 - Inventory setup: create/edit items, units, suppliers and restaurant/warehouse/preparation locations; deactivate records while preserving their history.
 - Durable offline setup changes, revision-conflict review, supplier-linked receiving and item-specific purchase packs with server-validated base quantities.
-- Version-3 recovery archives include setup and dependent inventory operations; older stock archives remain supported.
+- Opening stock documents: multi-material base quantities/costs, bounded CSV mapping/preview, all-or-nothing acceptance, FIFO layers and immutable review history.
+- Offline opening documents synchronize before dependent stock operations. Version-4 recovery includes opening/setup/stock records; versions 1–3 remain readable.
 
-Open **إعداد المخزون** in the sidebar to configure your data. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md). The next milestone is opening stock and purchasing documents/returns; membership administration and dedicated demo infrastructure are deferred.
+Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Purchase documents/partial receiving and supplier returns are next; membership administration and dedicated demo infrastructure are deferred.
 
 ## Run on this Windows machine
 
