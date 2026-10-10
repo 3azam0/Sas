@@ -1,3 +1,4 @@
+import {returnTables} from './supplier-returns';
 import {purchaseTables} from './purchasing';
 export const schema = `
 CREATE TABLE IF NOT EXISTS organizations (id text PRIMARY KEY, name text NOT NULL);
@@ -41,4 +42,5 @@ DO $$ BEGIN
   END IF;
 END $$;
 ${purchaseTables}
+${returnTables}
 `;

@@ -15,11 +15,12 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 - Inventory setup: create/edit items, units, suppliers and restaurant/warehouse/preparation locations; deactivate records while preserving their history.
 - Durable offline setup changes, revision-conflict review, supplier-linked receiving and item-specific purchase packs with server-validated base quantities.
 - Opening stock documents: multi-material base quantities/costs, bounded CSV mapping/preview, all-or-nothing acceptance, FIFO layers and immutable review history.
-- Offline opening documents synchronize before dependent stock operations. Version-5 recovery includes purchase/opening/setup/stock records; versions 1–4 remain readable.
+- Offline opening documents synchronize before dependent stock operations. Format-6 recovery includes return/purchase/opening/setup/stock records and linked return corrections; formats 1–5 remain readable.
 
+- Supplier returns: source-layer availability, original-cost deductions, atomic multi-line posting, duplicate protection and durable offline review/correction. Gross received order quantities remain unchanged.
 - Purchase orders: offline drafts and submitted revisions, partial pack-based receiving, immutable costs/source links, outstanding quantities, cancellation and full-receipt reversal against untouched original layers.
 
-Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Supplier returns are next; membership administration and dedicated demo infrastructure are deferred.
+Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for original-cost returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Transfers and stock counts are next; membership administration and dedicated demo infrastructure are deferred.
 
 ## Run on this Windows machine
 

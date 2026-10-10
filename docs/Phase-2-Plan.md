@@ -1,6 +1,6 @@
 # Phase 2 — Opening stock, purchasing and supplier returns
 
-Revision: 10 October 2026. Phase 2A opening stock and 2B purchasing are delivered locally; 2C supplier returns remain planned. This follows inventory setup and precedes transfers/counts and restaurant cost control.
+Revision: 10 October 2026. Phase 2A opening stock, 2B purchasing and 2C supplier returns are delivered locally. This follows inventory setup and precedes transfers/counts and restaurant cost control.
 
 ## Scope and delivery order
 
@@ -48,9 +48,11 @@ Acceptance: order 20 kg; receive 8 kg and then 12 kg; verify outstanding quantit
 
 ## 2C — Supplier returns
 
+Delivered locally: accepted purchase-document receipt sources, original-cost atomic deductions, cumulative/source availability checks, offline preview/review, linked rejected-return correction and format-6 recovery (formats 1–5 readable). Verification: 82 unit/integration tests and eighteen browser/process scenarios; type checking and production build pass. See [Supplier returns walkthrough](./runbooks/Supplier-Returns.md). Unlinked simple receipts, accepted-return reversals and financial settlement remain deferred. Returns increment the order revision without reopening gross received quantities.
+
 Return accepted quantities against their originating receipt lines. Require supplier, source receipt, location, business date, reason and positive base quantities. A return is a stock movement with a financial reference; it is not a deletion of the original purchase.
 
-- Cap cumulative returns by the original accepted quantity minus earlier accepted returns and reversals. Also require the originating cost layer quantity still available in the source location.
+- Cap cumulative returns by the original accepted quantity minus earlier accepted returns. Reversed receipts cannot be returned. Also require the originating cost layer quantity still available in the source location.
 - Return the selected receipt's available layers at their original captured cost. Do not substitute another receipt's FIFO layer. Stock that was consumed or moved cannot be returned through this slice; bring transfers/traceability into scope later with an explicit policy.
 - Validate and deduct all lines atomically. Keep quantity, value, source allocations, result receipt and actor audit in the same transaction. Repeated delivery cannot deduct twice.
 - Capture a supplier credit-note reference where available, but leave its payment/accounting settlement separate from inventory acceptance.
@@ -70,7 +72,7 @@ Use existing Zustand UI state and React Hook Form/Zod; retain decimal arithmetic
 
 ## Git, environments and completion
 
-Inventory setup is local on `feat/inventory-setup`; Phase 2A is on `feat/opening-stock`, stacked after planning commit `4c89131`. These features are not claimed published or merged. Phase 2B is on `feat/purchase-documents`, stacked on `feat/opening-stock` at `8de87cc`. Submit inventory setup separately and document the stacked relationship when publishing Phase 2A. Keep the three Phase 2 slices as reviewable commits/PRs; run applicable checks before pushing. Publishing uses the selected repository, `3azam0/Sas`, and the developer guide's Git workflow. Do not merge or deploy as part of an implementation checkpoint.
+Inventory setup is local on `feat/inventory-setup`; Phase 2A is on `feat/opening-stock`, stacked after planning commit `4c89131`. These features are not claimed published or merged. Phase 2B is on `feat/purchase-documents`, stacked on `feat/opening-stock` at `8de87cc`. Submit inventory setup separately and document the stacked relationship when publishing Phase 2A. Phase 2C is on `feat/supplier-returns`, stacked after purchase-document commit `581ea72`. Keep the three Phase 2 slices as reviewable commits/PRs; run applicable checks before pushing. Publishing uses the selected repository, `3azam0/Sas`, and the developer guide's Git workflow. Do not merge or deploy as part of an implementation checkpoint.
 
 Use isolated test data and ports. Check the compiled production build for the new screens before telling the client they are available. Record exact verified checks and current commit; do not reuse earlier test totals as evidence for new functionality. Do not clear the user's local database or IndexedDB during testing.
 

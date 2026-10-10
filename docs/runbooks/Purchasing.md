@@ -33,10 +33,10 @@ IndexedDB version 4 adds the purchase outbox without removing setup/opening/stoc
 
 Receipt reversal can be saved offline, but its quantity/order effects are shown after server acceptance; synchronize the reversal before capturing its replacement. Posting sequence determines FIFO; backdated business dates do not reorder accepted layers.
 
-Recovery format 5 includes purchase actions and movement IDs alongside all earlier outboxes. Formats 1–4 remain readable. Import validates scope, references, IDs and payload conflicts, then restores atomically. Exported acceptance is never trusted without server reconciliation. Older application builds cannot read format 5; retain the current build when restoring a new archive.
+Recovery format 6 includes purchase/return actions, movement IDs and linked return corrections alongside all earlier outboxes. Formats 1–5 remain readable. Import validates scope, references, IDs and payload conflicts, then restores atomically. Exported acceptance is never trusted without server reconciliation. Older application builds cannot read format 6; retain the current build when restoring a new archive.
 
 ## Financial and release boundaries
 
-This slice records EGP net inventory cost for development. It does not calculate supplier payments, recoverable tax, discounts or freight, and its documents are not compliant tax invoices. Set and implement the client's financial allocation rules and real authentication before live operation. Membership/billing and separate demo infrastructure remain deferred. Source-linked supplier returns are Phase 2C; they are separate from reversing an erroneous entire receipt.
+This slice records EGP net inventory cost for development. It does not calculate supplier payments, recoverable tax, discounts or freight, and its documents are not compliant tax invoices. Set and implement the client's financial allocation rules and real authentication before live operation. Membership/billing and separate demo infrastructure remain deferred. Phase 2C source-linked supplier returns are delivered; see [Supplier returns](./Supplier-Returns.md). They are separate from reversing an erroneous entire receipt and do not reopen order receiving.
 
 Checks cover stock-free drafts, 8+12 partial receiving, competing revisions, same-ID retry, pack conversion, tenant scope, atomic receipt/reversal rollback, original layer availability, migrations, offline reload, ordered sync, recovery and phone layouts. Use isolated browser data and port 3114, leaving `.data-local` untouched.

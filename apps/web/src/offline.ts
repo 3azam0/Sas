@@ -1,7 +1,7 @@
 import {decimal} from '@saas/domain';
 import Dexie,{type Table} from 'dexie';
 import {z} from 'zod';
-import {commandSchema,setupCommandSchema,openingSchema,purchaseCommandSchema,type PurchaseCommand,type PurchaseOrder,type OpeningDocument,type SetupCommand,type Command,type DemoProfile,type Snapshot,type CommandResult} from '@saas/contracts';
+import {commandSchema,setupCommandSchema,openingSchema,purchaseCommandSchema,type PurchaseCommand,type PurchaseOrder,type ReturnSource,type OpeningDocument,type SetupCommand,type Command,type DemoProfile,type Snapshot,type CommandResult} from '@saas/contracts';
 export type LocalCommand={id:string;scope:DemoProfile;command:Command;status:'pending'|'acceptedAwaiting'|'accepted'|'needsReview'|'cancelled'|'superseded';error?:string;createdAt:string;sourceDeviceId?:string;replacesId?:string;replacementId?:string;resolvedAt?:string;resolution?:string};
 export type LocalSetup={id:string;scope:DemoProfile;command:SetupCommand;status:'pending'|'acceptedAwaiting'|'accepted'|'needsReview'|'cancelled';createdAt:string;error?:string;sourceDeviceId?:string};
 export type LocalOpening={id:string;scope:DemoProfile;document:OpeningDocument;status:LocalCommand['status'];createdAt:string;error?:string;sourceDeviceId?:string;replacesId?:string;replacementId?:string};
@@ -153,8 +153,8 @@ export async function resolveReview(scope:DemoProfile,id:string,action:'retry'|'
 const rowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:commandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),sourceDeviceId:z.uuid().optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional(),resolvedAt:z.iso.datetime().optional(),resolution:z.string().max(300).optional(),error:z.string().max(500).optional()});
 const setupRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:setupCommandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled']),createdAt:z.iso.datetime(),sourceDeviceId:z.uuid().optional(),error:z.string().max(500).optional()});
 const openingRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),document:openingSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),sourceDeviceId:z.uuid().optional(),error:z.string().max(500).optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional()});
-const purchaseRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:purchaseCommandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),error:z.string().max(500).optional(),sourceDeviceId:z.uuid().optional()});
-const archiveSchema=z.object({version:z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5)]),exportedAt:z.iso.datetime(),organizationId:z.enum(['grills','bistro']),commands:z.array(rowSchema).max(5000),setups:z.array(setupRowSchema).max(5000).optional(),openings:z.array(openingRowSchema).max(5000).optional(),purchases:z.array(purchaseRowSchema).max(5000).optional()}).superRefine((v,ctx)=>{if((v.version<3&&v.setups?.length)||(v.version<4&&v.openings?.length)||(v.version<5&&v.purchases?.length))ctx.addIssue({code:'custom',message:'إصدار ملف المستندات غير صالح'});});
+const purchaseRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:purchaseCommandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),error:z.string().max(500).optional(),sourceDeviceId:z.uuid().optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional()});
+const archiveSchema=z.object({version:z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5),z.literal(6)]),exportedAt:z.iso.datetime(),organizationId:z.enum(['grills','bistro']),commands:z.array(rowSchema).max(5000),setups:z.array(setupRowSchema).max(5000).optional(),openings:z.array(openingRowSchema).max(5000).optional(),purchases:z.array(purchaseRowSchema).max(5000).optional()}).superRefine((v,ctx)=>{if((v.version<3&&v.setups?.length)||(v.version<4&&v.openings?.length)||(v.version<5&&v.purchases?.length))ctx.addIssue({code:'custom',message:'إصدار ملف المستندات غير صالح'});if(v.version<6&&v.purchases?.some(r=>r.command.type==='purchase.return'||r.replacesId||r.replacementId))ctx.addIssue({code:'custom',message:'إصدار المرتجعات غير صالح'});});
 export type RecoveryPreview={archive:z.infer<typeof archiveSchema>;newCount:number;duplicateCount:number;acceptedCount:number;legacyCount:number};
 export async function previewRecovery(text:string,scope:DemoProfile):Promise<RecoveryPreview>{
  if(new TextEncoder().encode(text).length>10*1024*1024)throw new Error('الملف يتجاوز الحد المسموح: ١٠ ميجابايت.');
@@ -179,9 +179,14 @@ export async function previewRecovery(text:string,scope:DemoProfile):Promise<Rec
   if(existing){if(existing.scope!==scope||JSON.stringify(openingSchema.parse(existing.document))!==JSON.stringify(row.document))throw new Error('مستند موجود ببيانات مختلفة.');duplicateCount++;}
   else if(accepted.has(row.id))acceptedCount++;else newCount++;
  }
+ const purchaseHistory=[...await local.purchases.toArray(),...archive.purchases??[]];
  for(const row of archive.purchases??[]){
+  const validRelated=(id:string)=>{const other=purchaseHistory.find(r=>r.id===id);return other&&other.scope===scope&&other.command.type==='purchase.return'&&row.command.type==='purchase.return'&&other.command.orderId===row.command.orderId&&other.command.receiptId===row.command.receiptId?other:undefined;};
+  if(row.replacesId&&!validRelated(row.replacesId))throw new Error('رابط تصحيح المرتجع غير صالح أو يخص مؤسسة أخرى.');
+  if(row.replacementId&&validRelated(row.replacementId)?.replacesId!==row.id)throw new Error('سجل بديل المرتجع غير مكتمل.');
   if(row.scope!==scope||row.command.organizationId!==scope||row.id!==row.command.operationId)throw new Error('نطاق مستند الشراء غير صالح.');for(const id of purchaseIdentities(row.command))reserve(id,`purchase:${row.id}`);
   const c=row.command;if(c.type!=='purchase.save'&&!snapshot.purchaseOrders?.some(o=>o.orderId===c.orderId)&&!(archive.purchases??[]).some(r=>r.command.type==='purchase.save'&&r.command.orderId===c.orderId)&&!(await local.purchases.toArray()).some(r=>r.command.type==='purchase.save'&&r.command.orderId===c.orderId))throw new Error('أمر الشراء غير متاح في المؤسسة أو الملف.');if(c.type==='purchase.save'&&(!projected.locations.some(l=>l.id===c.locationId)||!projected.suppliers?.some(x=>x.id===c.supplierId)||c.lines.some(l=>!projected.items.some(i=>i.id===l.itemId))))throw new Error('يحتوي أمر الشراء مراجع غير متاحة في المؤسسة.');
+  if(c.type==='purchase.return'){const receipt=snapshot.purchaseReceipts?.find(r=>r.document.operationId===c.receiptId&&r.document.orderId===c.orderId);if(!receipt||!projected.locations.some(l=>l.id===c.locationId)||!projected.suppliers?.some(s=>s.id===c.supplierId)||c.lines.some(l=>!receipt.document.lines.some(x=>x.movementId===l.sourceMovementId)))throw new Error('مراجع المرتجع خارج نطاق المؤسسة أو غير متاحة.');}
   const existing=await local.purchases.get(row.id);if(existing){if(existing.scope!==scope||JSON.stringify(purchaseCommandSchema.parse(existing.command))!==JSON.stringify(row.command))throw new Error('مستند شراء موجود ببيانات مختلفة.');duplicateCount++;}else if(accepted.has(row.id))acceptedCount++;else newCount++;
  }
  for(const row of archive.commands){
@@ -199,7 +204,7 @@ export async function restoreRecovery(text:string,scope:DemoProfile){
   const preview=await previewRecovery(text,scope);const snapshot=requireGrant(await local.snapshots.get(scope));const accepted=new Set(snapshot.acceptedOperationIds);
   for(const row of preview.archive.setups??[]){if(await local.setups.get(row.id)||accepted.has(row.id))continue;await local.setups.add({...row,status:row.status==='cancelled'?'cancelled':row.status==='needsReview'?'needsReview':'pending'});}
   for(const row of preview.archive.openings??[]){if(await local.openings.get(row.id)||accepted.has(row.id))continue;await local.openings.add({...row,status:row.status==='cancelled'||row.status==='superseded'?row.status:row.status==='needsReview'?'needsReview':'pending'});}
-  for(const row of preview.archive.purchases??[]){if(await local.purchases.get(row.id)||accepted.has(row.id))continue;await local.purchases.add({...row,status:row.status==='cancelled'||row.status==='needsReview'?row.status:'pending'});}
+  for(const row of preview.archive.purchases??[]){if(await local.purchases.get(row.id)||accepted.has(row.id))continue;await local.purchases.add({...row,status:row.status==='cancelled'||row.status==='needsReview'||row.status==='superseded'?row.status:'pending'});}
   for(const row of preview.archive.commands){
    if(await local.commands.get(row.id)||accepted.has(row.id))continue;
    // A file cannot prove server acceptance. Same-ID delivery safely reconciles it.
@@ -209,10 +214,10 @@ export async function restoreRecovery(text:string,scope:DemoProfile){
   return preview;
  });
 }
-export async function recoveryArchive(scope:DemoProfile){return local.transaction('r',local.commands,local.setups,local.openings,local.purchases,async()=>({version:5,exportedAt:new Date().toISOString(),organizationId:scope,commands:await local.commands.where('scope').equals(scope).toArray(),setups:await local.setups.where('scope').equals(scope).toArray(),openings:await local.openings.where('scope').equals(scope).toArray(),purchases:await local.purchases.where('scope').equals(scope).toArray()}));}
+export async function recoveryArchive(scope:DemoProfile){return local.transaction('r',local.commands,local.setups,local.openings,local.purchases,async()=>({version:6,exportedAt:new Date().toISOString(),organizationId:scope,commands:await local.commands.where('scope').equals(scope).toArray(),setups:await local.setups.where('scope').equals(scope).toArray(),openings:await local.openings.where('scope').equals(scope).toArray(),purchases:await local.purchases.where('scope').equals(scope).toArray()}));}
 export async function downloadRecovery(scope:DemoProfile){const blob=new Blob([JSON.stringify(await recoveryArchive(scope),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`fodo-recovery-${scope}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
-export type LocalPurchase={id:string;scope:DemoProfile;command:PurchaseCommand;status:LocalCommand['status'];createdAt:string;error?:string;sourceDeviceId?:string};
+export type LocalPurchase={id:string;scope:DemoProfile;command:PurchaseCommand;status:LocalCommand['status'];createdAt:string;error?:string;sourceDeviceId?:string;replacesId?:string;replacementId?:string};
 export function projectPurchases(snapshot:Snapshot,rows:LocalPurchase[]):PurchaseOrder[]{
  const orders=new Map((snapshot.purchaseOrders??[]).map(o=>[o.orderId,structuredClone(o)]));
  for(const r of rows.filter(r=>r.scope===snapshot.organizationId&&(r.status==='pending'||r.status==='acceptedAwaiting')&&!snapshot.acceptedOperationIds.includes(r.id)).sort((a,b)=>a.command.expectedRevision-b.command.expectedRevision||a.createdAt.localeCompare(b.createdAt))){
@@ -225,19 +230,28 @@ export function projectPurchases(snapshot:Snapshot,rows:LocalPurchase[]):Purchas
 export function projectedPurchaseCommands(snapshot:Snapshot,rows:LocalPurchase[]):Command[]{
  const orders=projectPurchases(snapshot,rows);const commands:Command[]=[];
  for(const row of rows){const c=row.command;if(c.type!=='purchase.receive'||row.status!=='pending'&&row.status!=='acceptedAwaiting'||snapshot.acceptedOperationIds.includes(c.operationId))continue;const order=orders.find(o=>o.orderId===c.orderId);if(!order)continue;for(const l of c.lines){const def=order.document.lines.find(x=>x.lineId===l.orderLineId);if(def)commands.push({operationId:l.movementId,organizationId:c.organizationId,locationId:order.document.locationId,type:'receipt.post',itemId:def.itemId,quantity:decimal(l.enteredQuantity).mul(def.factor).toString(),unitCost:def.unitCost,reason:c.reference,businessDate:c.businessDate,capturedAt:c.capturedAt,schemaVersion:1});}}
+ for(const row of rows){const c=row.command;if(c.type!=='purchase.return'||row.status!=='pending'&&row.status!=='acceptedAwaiting'||snapshot.acceptedOperationIds.includes(c.operationId))continue;const source=snapshot.returnSources?.find(s=>s.receiptId===c.receiptId);for(const l of c.lines){const def=source?.lines.find(x=>x.sourceMovementId===l.sourceMovementId);if(def)commands.push({operationId:l.movementId,organizationId:c.organizationId,locationId:c.locationId,type:'waste.post',itemId:def.itemId,quantity:l.quantity,reason:c.reason,businessDate:c.businessDate,capturedAt:c.capturedAt,schemaVersion:1});}}
  return commands;
 }
-function purchaseIdentities(c:PurchaseCommand){return [c.operationId,...c.type==='purchase.receive'?c.lines.map(l=>l.movementId):[]];}
-export async function savePurchase(input:PurchaseCommand){
+function purchaseIdentities(c:PurchaseCommand){return [c.operationId,...(c.type==='purchase.receive'||c.type==='purchase.return')?c.lines.map(l=>l.movementId):[]];}
+export async function savePurchase(input:PurchaseCommand,replacesId?:string){
  const command=purchaseCommandSchema.parse(input);
  await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(command.organizationId)),rows=await local.purchases.where('scope').equals(command.organizationId).toArray();const owners=await identityOwners();
   if(purchaseIdentities(command).some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)))throw new Error('معرّف العملية مستخدم بالفعل.');
   const current=projectPurchases(snapshot,rows).find(o=>o.orderId===command.orderId);if((current?.revision??0)!==command.expectedRevision)throw new Error('تغير إصدار أمر الشراء. راجع آخر نسخة.');
-  if(rows.some(r=>r.command.orderId===command.orderId&&r.status==='needsReview'))throw new Error('راجع العمليات المرفوضة للأمر أولاً.');
-  await local.purchases.add({id:command.operationId,scope:command.organizationId,command,status:'pending',createdAt:command.capturedAt,sourceDeviceId:snapshot.access.deviceId});
+  if(command.type==='purchase.return'){const source=snapshot.returnSources?.find(s=>s.receiptId===command.receiptId&&s.orderId===command.orderId&&s.supplierId===command.supplierId&&s.locationId===command.locationId);if(!source||command.lines.some(l=>!source.lines.some(x=>x.sourceMovementId===l.sourceMovementId)))throw new Error('الاستلام الأصلي غير متاح في البيانات المقبولة. زامن أولاً.');}
+  const old=replacesId?rows.find(r=>r.id===replacesId):undefined;
+  if(replacesId&&(!old||old.status!=='needsReview'||snapshot.acceptedOperationIds.includes(old.id)||old.command.type!=='purchase.return'||command.type!=='purchase.return'||old.command.orderId!==command.orderId||old.command.receiptId!==command.receiptId))throw new Error('يمكن تصحيح المرتجع المرفوض فقط من المصدر نفسه.');
+  if(rows.some(r=>r.id!==replacesId&&r.command.orderId===command.orderId&&r.status==='needsReview'))throw new Error('راجع العمليات المرفوضة للأمر أولاً.');
+  await local.purchases.add({id:command.operationId,scope:command.organizationId,command,status:'pending',createdAt:command.capturedAt,sourceDeviceId:snapshot.access.deviceId,replacesId});if(old)await local.purchases.update(old.id,{status:'superseded',replacementId:command.operationId});
  });
 }
 export async function resolvePurchase(scope:DemoProfile,id:string,action:'retry'|'cancel'){
  await local.transaction('rw',local.purchases,local.snapshots,async()=>{const row=await local.purchases.get(id),s=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||s?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة العمليات المرفوضة فقط.');if(action==='retry')requireGrant(s);await local.purchases.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+}
+export function availableReturnSources(snapshot:Snapshot,rows:LocalPurchase[],excludeId?:string):ReturnSource[]{
+ const sources=structuredClone(snapshot.returnSources??[]);
+ for(const r of rows){const c=r.command;if(c.type!=='purchase.return'||r.scope!==snapshot.organizationId||r.id===excludeId||r.status!=='pending'&&r.status!=='acceptedAwaiting'||snapshot.acceptedOperationIds.includes(r.id))continue;const source=sources.find(s=>s.receiptId===c.receiptId);for(const line of c.lines){const def=source?.lines.find(l=>l.sourceMovementId===line.sourceMovementId);if(def)def.available=decimal(def.available).sub(line.quantity).toString();}}
+ return sources;
 }
