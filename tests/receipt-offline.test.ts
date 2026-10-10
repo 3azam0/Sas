@@ -20,11 +20,34 @@ it('leaves interrupted delivery pending; rejected receipts block dependent waste
  const posts:string[]=[];vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{if(options?.body)posts.push(url);return url==='/api/v1/receipts'?Response.json({message:'Invalid item'},{status:409}):Response.json(snapshot);}));await sync('grills');expect(posts).toEqual(['/api/v1/receipts']);expect((await local.commands.toArray())[0].status).toBe('needsReview');
 });
 it('restores receipts and correction links in the current archive format atomically, rejects conflicts/scope, and reads old archives',async()=>{
- await acceptSnapshot(snapshot);const d=receipt();await saveReceipt(d);await local.receipts.update(d.operationId,{status:'needsReview'});const corrected=receipt();await saveReceipt(corrected,d.operationId);const a=await recoveryArchive('grills');expect(a.version).toBe(13);await local.receipts.clear();expect((await restoreRecovery(JSON.stringify(a),'grills')).newCount).toBe(2);expect((await restoreRecovery(JSON.stringify(a),'grills')).duplicateCount).toBe(2);
+ await acceptSnapshot(snapshot);const d=receipt();await saveReceipt(d);await local.receipts.update(d.operationId,{status:'needsReview'});const corrected=receipt();await saveReceipt(corrected,d.operationId);const a=await recoveryArchive('grills');expect(a.version).toBe(14);await local.receipts.clear();expect((await restoreRecovery(JSON.stringify(a),'grills')).newCount).toBe(2);expect((await restoreRecovery(JSON.stringify(a),'grills')).duplicateCount).toBe(2);
  const bad=structuredClone(a);bad.receipts[1].document.reason='Changed';await expect(restoreRecovery(JSON.stringify(bad),'grills')).rejects.toThrow('بيانات مختلفة');await expect(restoreRecovery(JSON.stringify(a),'bistro')).rejects.toThrow('مؤسسة أخرى');const cycle=structuredClone(a);cycle.receipts.find(row=>row.id===d.operationId)!.replacesId=corrected.operationId;await expect(restoreRecovery(JSON.stringify(cycle),'grills')).rejects.toThrow();
  await expect(restoreRecovery(JSON.stringify({...a,version:9}),'grills')).rejects.toThrow('غير صالح');expect((await restoreRecovery(JSON.stringify({version:9,generation,organizationId:'grills',exportedAt:now(),commands:[]}),'grills')).newCount).toBe(0);
 });
 it('requires valid grant/references and fresh correction IDs; generation reset clears receipt queues',async()=>{
  await acceptSnapshot(snapshot);const d=receipt();await saveReceipt(d);await expect(resolveReceipt('grills',d.operationId,'cancel')).rejects.toThrow();await local.receipts.update(d.operationId,{status:'needsReview'});await resolveReceipt('grills',d.operationId,'retry');expect((await local.receipts.get(d.operationId))?.status).toBe('pending');await local.receipts.update(d.operationId,{status:'needsReview'});await resolveReceipt('grills',d.operationId,'cancel');
  await expect(saveReceipt({...receipt(),supplierId:'missing'})).rejects.toThrow('المورد');await expect(saveReceipt({...receipt(),businessDate:'2099-01-01'})).rejects.toThrow('المستقبل');await acceptSnapshot({...snapshot,access:{...snapshot.access,expiresAt:'2000-01-01T00:00:00Z'}});await expect(saveReceipt(receipt())).rejects.toThrow('انتهت');await acceptSnapshot({...snapshot,generation:crypto.randomUUID()});expect(await local.receipts.count()).toBe(0);await expect(restoreRecovery(JSON.stringify({version:10,generation,organizationId:'grills',exportedAt:now(),commands:[],receipts:[]}),'grills')).rejects.toThrow('إعادة');
+});
+const unitSnapshot:Snapshot={...snapshot,units:[{id:'kg',name:'kg',revision:1},{id:'grams',name:'جرام',revision:1},{id:'pieces',name:'عدد',revision:1}]};
+const convertedReceipt=():ReceiptDocument=>{const d=receipt();Object.assign(d.lines[0],{enteredQuantity:'2000',quantity:'2',receivingUnit:{unitId:'grams',name:'جرام',baseName:'kg',factor:'0.001'}});Object.assign(d.lines[1],{enteredQuantity:'2',quantity:'10',receivingUnit:{unitId:'pieces',name:'عدد',baseName:'kg',factor:'5'}});return d;};
+it('preserves catalog-unit conversions through offline reload, v14 recovery and delivery',async()=>{
+ await acceptSnapshot(unitSnapshot);const d=convertedReceipt();await saveReceipt(d);local.close();await local.open();expect((await local.receipts.get(d.operationId))?.document).toEqual(d);
+ expect(projectedQuantity(unitSnapshot,projectedReceiptCommands(unitSnapshot,await local.receipts.toArray()),'central','rice')).toBe('2.000000');
+ const archive=await recoveryArchive('grills');expect(archive.version).toBe(14);
+ await local.receipts.clear();await expect(restoreRecovery(JSON.stringify({...archive,version:13}),'grills')).rejects.toThrow('إصداره غير مدعوم');
+ expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(1);expect((await restoreRecovery(JSON.stringify(archive),'grills')).duplicateCount).toBe(1);
+ const delivered:ReceiptDocument[]=[];vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{
+  if(options?.body){delivered.push(JSON.parse(options.body));return Response.json({operationId:d.operationId,outcome:'accepted'});}
+  return Response.json({...unitSnapshot,acceptedOperationIds:delivered.length?[d.operationId,...d.lines.map(l=>l.lineId)]:[]});
+ }));await sync('grills');await sync('grills');expect(delivered).toEqual([d]);expect((await local.receipts.get(d.operationId))?.status).toBe('accepted');
+});
+it('rejects invalid unit calculations atomically and preserves captured names in historical recovery',async()=>{
+ await acceptSnapshot(unitSnapshot);const d=convertedReceipt();
+ await expect(saveReceipt({...d,lines:[{...d.lines[0],quantity:'3'},d.lines[1]]})).rejects.toThrow('كمية');
+ await expect(saveReceipt({...d,lines:[d.lines[0],{...d.lines[1],receivingUnit:{...d.lines[1].receivingUnit!,unitId:'foreign'}}]})).rejects.toThrow('المؤسسة');expect(await local.receipts.count()).toBe(0);
+ await saveReceipt(d);const archive=await recoveryArchive('grills');await local.receipts.clear();
+ await acceptSnapshot({...unitSnapshot,units:unitSnapshot.units!.map(u=>u.id==='grams'?{...u,name:'جرام جديد',revision:2}:u)});
+ expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(1);expect((await local.receipts.get(d.operationId))?.document.lines[0].receivingUnit?.name).toBe('جرام');
+ await expect(saveReceipt(convertedReceipt())).rejects.toThrow('تغيّر');
+ await local.receipts.clear();const legacy=receipt();await saveReceipt(legacy);const old=await recoveryArchive('grills');await local.receipts.clear();expect((await restoreRecovery(JSON.stringify({...old,version:13}),'grills')).newCount).toBe(1);
 });

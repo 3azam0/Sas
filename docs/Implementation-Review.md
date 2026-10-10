@@ -1,6 +1,14 @@
 # Fodo implementation review
 
-## Current checkpoint — inventory item composition, 11 October 2026
+## Current checkpoint — all receiving units, 11 October 2026
+
+**وحدة الاستلام** now includes all registered organization units and the item's fixed purchase packs. The base unit remains fixed. kg/g and litre/ml conversions are automatic; another unit requires explicit package contents/conversion for that receipt. Base quantity and line/document value preview before capture, with cost still per base inventory unit. Captured unit/base names and factor survive offline reload, accepted history, linked rejected-document correction and recovery. The server enforces scoped unit references, current names at posting, standard ratios, exact six-place arithmetic and whole-document atomicity. Historical recovery preserves captured names after later label edits; a stale pending document enters review at server posting. Existing pack and legacy stock queues retain their behavior.
+
+Local branch `feat/receiving-units` starts from composition checkpoint `5d6da5a`. Developer guide is version 2.20. The receipt JSON contract is additive; no database or Dexie schema migration is needed. Recovery export is version 14; versions 1–13 remain readable, while files containing catalog-unit receipt metadata require version 14. Verification passed: 216 unit/integration tests in 34 files, TypeScript, production build/offline manifest and three targeted browser scenarios. Coverage includes automatic/manual factors, foreign units, invalid arithmetic/precision, duplicate delivery, atomic rollback, offline recovery, linked correction, prior packs, receiving/waste and desktop/mobile fit. Screenshots are in the workspace outputs. The client catalog was verified unchanged: 328 items, 20 categories, six units, one main warehouse and zero movements/balances. The launcher and cloud project were preserved. Restart the existing local server at its saved address to load the build. See [Direct receiving walkthrough](./runbooks/Direct-Receiving.md).
+
+This change is a local checkpoint; it has not been pushed or deployed. Phase 4C2 sales consumption/refund and void rules remains next, followed by consumption variance reports.
+
+## Earlier checkpoint — inventory item composition, 11 October 2026
 
 Inventory setup now exposes **مكونات الصنف** and optional **فتح إعداد المكونات بعد الحفظ**. These open an existing stocked recipe for the item, or prefill a new definition with its name, proposed unique BOM code, output item and locked base unit. Users enter batch inputs/output and explicitly save/publish. Linked definitions are identified in the catalog as **صنف مركّب**. The route is organization/generation-scoped and handles an item saved offline before its recipe. Existing recipe versioning, nested components, costing and production provide the underlying behavior; definition changes remain stock-neutral. No new item schema, duplicate BOM engine or offline storage migration is introduced.
 

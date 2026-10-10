@@ -32,3 +32,34 @@ it('checks pack conversion, persists supplier/entered quantity and supports FIFO
  await expect(postReceiptDocument(db,access,{...doc(),lines:[{...d.lines[0],lineId:randomUUID(),quantity:'9'}]})).rejects.toMatchObject({code:'INVALID_CONVERSION'});
  await db.query("UPDATE organizations SET costing_method='fifo' WHERE id='bistro'");await postReceiptDocument(db,{...access,organizationId:'bistro'},{...doc(),organizationId:'bistro'});expect((await reconcileStock(db,'bistro')).every(r=>r.matches)).toBe(true);
 });
+it('posts catalog units with standard and explicit conversions, retaining history and exact base-unit value',async()=>{
+ await db.query("INSERT INTO units VALUES('grills','grams','جرام',1),('grills','pieces','عدد',1),('bistro','foreign-unit','وحدة أجنبية',1)");
+ const d=doc(),before=await getSnapshot(db,access);
+ Object.assign(d.lines[0],{quantity:'0.75',enteredQuantity:'750',receivingUnit:{unitId:'grams',name:'جرام',baseName:'كجم',factor:'0.001'}});
+ Object.assign(d.lines[1],{quantity:'10',enteredQuantity:'2',receivingUnit:{unitId:'pieces',name:'عدد',baseName:'كجم',factor:'5'}});
+ expect((await postReceiptDocument(db,access,d)).amount).toBe('1015.000000000000');
+ const s=await getSnapshot(db,access);
+ expect(s.receipts?.find(r=>r.document.operationId===d.operationId)?.document).toEqual(d);
+ expect(Number(s.balances.find(b=>b.itemId==='rice'&&b.locationId==='central')!.quantity)-Number(before.balances.find(b=>b.itemId==='rice'&&b.locationId==='central')!.quantity)).toBe(0.75);
+ expect(s.entries.find(e=>e.operationId===d.lines[0].lineId)).toMatchObject({quantity:'0.750000',amount:'15.000000000000',enteredQuantity:'750.000000',purchaseUnitId:null});
+ await postReceiptDocument(db,access,d);expect((await getSnapshot(db,access)).entries.filter(e=>e.receiptDocumentId===d.operationId)).toHaveLength(2);
+ expect((await reconcileStock(db,'grills')).every(r=>r.matches)).toBe(true);
+});
+it('atomically rejects false conversions, foreign units, stale names and excessive fractional precision',async()=>{
+ const before=await getSnapshot(db,access);
+ const badLine=(changes:Record<string,unknown>)=>({...doc().lines[1],quantity:'1',enteredQuantity:'1000',receivingUnit:{unitId:'grams',name:'جرام',baseName:'كجم',factor:'0.001'},...changes});
+ for(const [line,code] of [
+  [badLine({quantity:'2',receivingUnit:{unitId:'grams',name:'جرام',baseName:'كجم',factor:'0.002'}}),'INVALID_CONVERSION'],
+  [badLine({quantity:'0.9'}),'INVALID_CONVERSION'],
+  [badLine({receivingUnit:{unitId:'foreign-unit',name:'وحدة أجنبية',baseName:'كجم',factor:'0.001'}}),'INVALID_UNIT'],
+  [badLine({receivingUnit:{unitId:'grams',name:'جرام قديم',baseName:'كجم',factor:'0.001'}}),'INVALID_UNIT'],
+  [badLine({quantity:'0.000001',enteredQuantity:'0.0001'}),'INVALID_CONVERSION']
+ ] as const){await expect(postReceiptDocument(db,access,{...doc(),lines:[doc().lines[0],line]})).rejects.toMatchObject({code});}
+ const after=await getSnapshot(db,access);expect(after.balances).toEqual(before.balances);expect(after.layers).toEqual(before.layers);expect(after.acceptedOperationIds).toEqual(before.acceptedOperationIds);expect(after.receipts).toEqual(before.receipts);
+});
+it('rejects incomplete, zero-factor and simultaneous pack/catalog-unit metadata',()=>{
+ const d=doc(),receivingUnit={unitId:'grams',name:'جرام',baseName:'كجم',factor:'0.001'};
+ for(const changes of [{receivingUnit},{enteredQuantity:'2'},{receivingUnit:{...receivingUnit,factor:'0'},enteredQuantity:'2'},{receivingUnit,enteredQuantity:'2',purchaseUnitId:randomUUID()}]){
+  expect(receiptDocumentSchema.safeParse({...d,lines:[{...d.lines[0],...changes}]}).success).toBe(false);
+ }
+});

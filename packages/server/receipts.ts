@@ -3,6 +3,7 @@ import type {PGlite} from '@electric-sql/pglite';
 import {createHash} from 'node:crypto';
 import {receiptDocumentSchema,BusinessError,type Access,type CommandResult} from '@saas/contracts';
 import {decimal} from '@saas/domain';
+import {validateReceiptLineConversion} from '../domain/receiving';
 import {addIncomingStock} from './incoming';
 
 export async function postReceiptDocument(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
@@ -25,13 +26,14 @@ export async function postReceiptDocument(db:PGlite,access:Access,input:unknown)
   const ids=[doc.operationId,...doc.lines.map(l=>l.lineId)];
   const collision=await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND operation_id=ANY($2::uuid[]) UNION ALL SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=ANY($2::uuid[])',[doc.organizationId,ids]);
   if(collision.rows.length)throw new BusinessError('PAYLOAD_CONFLICT','أحد معرّفات السطور مستخدم بالفعل.');
+  const units=(await tx.query<import('@saas/contracts').Unit>('SELECT id,name,revision FROM units WHERE organization_id=$1',[doc.organizationId])).rows;
   let total=decimal('0');
   for(const line of doc.lines){
    const item=(await tx.query<{active:boolean;unit_id:string;purchase_units: import('@saas/contracts').PurchaseUnit[]}>('SELECT active,unit_id,purchase_units FROM items WHERE organization_id=$1 AND id=$2',[doc.organizationId,line.itemId])).rows[0];
    if(!item)throw new BusinessError('INVALID_REFERENCE','إحدى المواد خارج نطاق المؤسسة أو لم تتم مزامنتها.');
    if(!item.active)throw new BusinessError('INACTIVE_RECORD','إحدى المواد غير نشطة.');
    if(item.unit_id!==line.unitId)throw new BusinessError('INVALID_UNIT','وحدة أحد السطور لا تطابق وحدة المخزون الأساسية.');
-   if(line.purchaseUnitId){const pack=item.purchase_units.find(p=>p.id===line.purchaseUnitId),converted=pack?decimal(line.enteredQuantity!).mul(pack.factor):null;if(!converted||converted.decimalPlaces()>6||!converted.eq(line.quantity))throw new BusinessError('INVALID_CONVERSION','كمية وحدة الشراء لا تطابق كمية المخزون.');}
+   validateReceiptLineConversion(line,{unitId:item.unit_id,unit:units.find(u=>u.id===item.unit_id)?.name??'',purchaseUnits:item.purchase_units},units);
    total=total.add(decimal(line.quantity).mul(line.unitCost));
   }
   const amount=total.toFixed(12);
