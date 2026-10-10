@@ -1,3 +1,5 @@
+import {productionSchema,type ProductionDocument} from '@saas/contracts';
+import {validateProduction} from '../../../packages/domain/production';
 import {recipeCommandSchema,type RecipeCommand,type Recipe} from '@saas/contracts';
 import {validateRecipe} from '../../../packages/domain/recipes';
 import {receiptDocumentSchema,type ReceiptDocument} from '@saas/contracts';
@@ -13,13 +15,13 @@ export type LocalOpening={id:string;scope:DemoProfile;document:OpeningDocument;s
 class LocalDatabase extends Dexie {
  snapshots!:Table<Snapshot,DemoProfile>;commands!:Table<LocalCommand,string>;preferences!:Table<{key:string;value:string},string>;
  setups!:Table<LocalSetup,string>;
- recipes!:Table<LocalRecipe,string>;receipts!:Table<LocalReceipt,string>;openings!:Table<LocalOpening,string>;purchases!:Table<LocalPurchase,string>;transfers!:Table<LocalTransfer,string>;counts!:Table<LocalCount,string>;
- constructor(name='restaurant-saas-v1'){super(name);this.version(1).stores({snapshots:'organizationId',commands:'id,scope,status,createdAt',preferences:'key'});this.version(2).stores({setups:'id,scope,status,createdAt'});this.version(3).stores({openings:'id,scope,status,createdAt'});this.version(4).stores({purchases:'id,scope,status,createdAt'});this.version(5).stores({transfers:'id,scope,status,createdAt'});this.version(6).stores({counts:'id,scope,status,createdAt'});this.version(7).stores({receipts:'id,scope,status,createdAt'});this.version(8).stores({recipes:'id,scope,status,createdAt'});}
+ productions!:Table<LocalProduction,string>;recipes!:Table<LocalRecipe,string>;receipts!:Table<LocalReceipt,string>;openings!:Table<LocalOpening,string>;purchases!:Table<LocalPurchase,string>;transfers!:Table<LocalTransfer,string>;counts!:Table<LocalCount,string>;
+ constructor(name='restaurant-saas-v1'){super(name);this.version(1).stores({snapshots:'organizationId',commands:'id,scope,status,createdAt',preferences:'key'});this.version(2).stores({setups:'id,scope,status,createdAt'});this.version(3).stores({openings:'id,scope,status,createdAt'});this.version(4).stores({purchases:'id,scope,status,createdAt'});this.version(5).stores({transfers:'id,scope,status,createdAt'});this.version(6).stores({counts:'id,scope,status,createdAt'});this.version(7).stores({receipts:'id,scope,status,createdAt'});this.version(8).stores({recipes:'id,scope,status,createdAt'});this.version(9).stores({productions:'id,scope,status,createdAt'});}
 }
 export const local=new LocalDatabase();
 function requireGrant(snapshot:Snapshot|undefined){if(!snapshot||!Number.isFinite(Date.parse(snapshot.access.expiresAt))||Date.parse(snapshot.access.expiresAt)<=Date.now())throw new Error('انتهت صلاحية العمل دون اتصال. جدد الجلسة عبر الإنترنت؛ عملياتك محفوظة.');return snapshot;}
 function bindGeneration(snapshot:Snapshot,command:{generation?:string}){if(command.generation&&command.generation!==snapshot.generation)throw new Error('العملية تخص بيانات قبل إعادة التطوير. حدّث الشاشة.');if(snapshot.generation)command.generation=snapshot.generation;}
-export async function saveCommand(command:Command){command=commandSchema.parse(command);await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{const snapshot=requireGrant(await local.snapshots.get(command.organizationId));bindGeneration(snapshot,command);if((await identityOwners()).has(command.operationId)||await local.setups.get(command.operationId)||(await local.openings.toArray()).some(o=>o.id===command.operationId||o.document.lines.some(l=>l.lineId===command.operationId)))throw new Error('معرّف العملية مستخدم بالفعل.');await local.commands.add({id:command.operationId,scope:command.organizationId,command,status:'pending',createdAt:command.capturedAt,sourceDeviceId:snapshot.access.deviceId});});}
+export async function saveCommand(command:Command){command=commandSchema.parse(command);await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{const snapshot=requireGrant(await local.snapshots.get(command.organizationId));bindGeneration(snapshot,command);if((await identityOwners()).has(command.operationId)||await local.setups.get(command.operationId)||(await local.openings.toArray()).some(o=>o.id===command.operationId||o.document.lines.some(l=>l.lineId===command.operationId)))throw new Error('معرّف العملية مستخدم بالفعل.');await local.commands.add({id:command.operationId,scope:command.organizationId,command,status:'pending',createdAt:command.capturedAt,sourceDeviceId:snapshot.access.deviceId});});}
 export function projectSetup(snapshot:Snapshot,rows:LocalSetup[]):Snapshot{
  const result={...snapshot,items:[...snapshot.items],locations:[...snapshot.locations],units:[...(snapshot.units??[])],suppliers:[...(snapshot.suppliers??[])]};
  const pending=rows.filter(r=>r.scope===snapshot.organizationId&&(r.status==='pending'||r.status==='acceptedAwaiting')&&!snapshot.acceptedOperationIds.includes(r.id));
@@ -35,7 +37,7 @@ export function projectSetup(snapshot:Snapshot,rows:LocalSetup[]):Snapshot{
 }
 export async function saveSetup(input:SetupCommand){
  const command=setupCommandSchema.parse(input);
- await local.transaction('rw',[local.setups,local.snapshots,local.commands,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.setups,local.snapshots,local.commands,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   bindGeneration(requireGrant(await local.snapshots.get(command.organizationId)),command);
   const rows=await local.setups.where('scope').equals(command.organizationId).toArray();
   if(rows.some(r=>r.command.type===command.type&&r.command.record.id===command.record.id&&(r.status==='pending'||r.status==='acceptedAwaiting')))throw new Error('يوجد تعديل محفوظ لهذا السجل. زامنه أولاً قبل تعديل جديد.');
@@ -50,10 +52,11 @@ export async function resolveSetup(scope:DemoProfile,id:string,action:'retry'|'c
   await local.setups.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});
  });
 }
-export async function acceptSnapshot(snapshot:Snapshot){await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{const previous=await local.snapshots.get(snapshot.organizationId);if(snapshot.generation&&previous&&previous.generation!==snapshot.generation){for(const table of [local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes])await table.where('scope').equals(snapshot.organizationId).delete();}await local.snapshots.put(snapshot);for(const row of await local.recipes.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.recipes.update(row.id,{status:'accepted',error:undefined});for(const row of await local.receipts.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.receipts.update(row.id,{status:'accepted',error:undefined});for(const row of await local.counts.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.counts.update(row.id,{status:'accepted',error:undefined});for(const row of await local.transfers.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.transfers.update(row.id,{status:'accepted',error:undefined});const accepted=new Set(snapshot.acceptedOperationIds);const rows=await local.commands.where('scope').equals(snapshot.organizationId).toArray();for(const row of rows)if(accepted.has(row.id))await local.commands.update(row.id,{status:'accepted',error:undefined});const setups=await local.setups.where('scope').equals(snapshot.organizationId).toArray();for(const row of setups)if(accepted.has(row.id))await local.setups.update(row.id,{status:'accepted',error:undefined});for(const row of await local.purchases.where('scope').equals(snapshot.organizationId).toArray())if(accepted.has(row.id))await local.purchases.update(row.id,{status:'accepted',error:undefined});for(const row of await local.openings.where('scope').equals(snapshot.organizationId).toArray())if(accepted.has(row.id))await local.openings.update(row.id,{status:'accepted',error:undefined});});}
+export async function acceptSnapshot(snapshot:Snapshot){await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{const previous=await local.snapshots.get(snapshot.organizationId);if(snapshot.generation&&previous&&previous.generation!==snapshot.generation){for(const table of [local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions])await table.where('scope').equals(snapshot.organizationId).delete();}await local.snapshots.put(snapshot);for(const row of await local.productions.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.productions.update(row.id,{status:'accepted',error:undefined});for(const row of await local.recipes.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.recipes.update(row.id,{status:'accepted',error:undefined});for(const row of await local.receipts.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.receipts.update(row.id,{status:'accepted',error:undefined});for(const row of await local.counts.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.counts.update(row.id,{status:'accepted',error:undefined});for(const row of await local.transfers.where('scope').equals(snapshot.organizationId).toArray())if(snapshot.acceptedOperationIds.includes(row.id))await local.transfers.update(row.id,{status:'accepted',error:undefined});const accepted=new Set(snapshot.acceptedOperationIds);const rows=await local.commands.where('scope').equals(snapshot.organizationId).toArray();for(const row of rows)if(accepted.has(row.id))await local.commands.update(row.id,{status:'accepted',error:undefined});const setups=await local.setups.where('scope').equals(snapshot.organizationId).toArray();for(const row of setups)if(accepted.has(row.id))await local.setups.update(row.id,{status:'accepted',error:undefined});for(const row of await local.purchases.where('scope').equals(snapshot.organizationId).toArray())if(accepted.has(row.id))await local.purchases.update(row.id,{status:'accepted',error:undefined});for(const row of await local.openings.where('scope').equals(snapshot.organizationId).toArray())if(accepted.has(row.id))await local.openings.update(row.id,{status:'accepted',error:undefined});});}
 export async function bootstrap(expectedScope?:DemoProfile){const response=await fetch('/api/v1/bootstrap',{cache:'no-store'});if(!response.ok)throw new Error(response.status===401?'انتهت الجلسة. جدد الجلسة للمزامنة.':'تعذر تنزيل البيانات');const snapshot=await response.json() as Snapshot;if(expectedScope&&snapshot.organizationId!==expectedScope)throw new Error('الجلسة تخص مؤسسة أخرى. أعد الدخول للمؤسسة الصحيحة.');await acceptSnapshot(snapshot);return snapshot;}
 async function identityOwners(){
  const owners=new Map<string,string>();
+ for(const row of await local.productions.toArray())for(const id of productionIdentities(row.document))owners.set(id,`production:${row.id}`);
  for(const row of await local.recipes.toArray())for(const id of recipeIdentities(row.command))owners.set(id,`recipe:${row.id}`);
  for(const row of await local.receipts.toArray())for(const id of [row.id,...row.document.lines.map(l=>l.lineId)])owners.set(id,`receipt:${row.id}`);
  for(const row of await local.counts.toArray())for(const id of countIdentities(row.command))owners.set(id,`count:${row.id}`);
@@ -68,7 +71,7 @@ export async function saveOpening(input:OpeningDocument,replacesId?:string){
  const document=openingSchema.parse(input);
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  if(document.businessDate>today)throw new Error('تاريخ الرصيد الافتتاحي لا يمكن أن يكون في المستقبل.');
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(document.organizationId));bindGeneration(snapshot,document);
   const projected=projectSetup(snapshot,await local.setups.where('scope').equals(document.organizationId).toArray());
   const old=replacesId?await local.openings.get(replacesId):undefined;
@@ -86,7 +89,7 @@ export async function saveOpening(input:OpeningDocument,replacesId?:string){
  });
 }
 export async function resolveOpening(scope:DemoProfile,id:string,action:'retry'|'cancel'){
- await local.transaction('rw',[local.snapshots,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.snapshots,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const row=await local.openings.get(id),snapshot=await local.snapshots.get(scope);
   if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة المستندات المرفوضة فقط.');
   if(action==='retry')requireGrant(snapshot);
@@ -141,15 +144,26 @@ export async function sync(scope:DemoProfile){
   const purchaseBlockers=(await local.purchases.where('scope').equals(scope).toArray()).filter(r=>r.status==='pending'||r.status==='acceptedAwaiting'||r.status==='needsReview');
   const rows=await local.commands.where('scope').equals(scope).toArray();
   const documents=await local.receipts.where('scope').equals(scope).toArray();
-  const queue=[...rows,...documents].filter(r=>(r.status==='pending'||r.status==='acceptedAwaiting')&&r.createdAt<=cutoff).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
+  const batches=await local.productions.where('scope').equals(scope).toArray();
+  const queue=[...rows,...documents,...batches].filter(r=>(r.status==='pending'||r.status==='acceptedAwaiting')&&r.createdAt<=cutoff).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
   for(const row of queue){
+   if('document'in row&&row.document.type==='production.post'){
+    const d=row.document,latest=await bootstrap(scope);
+    const earlier=await productionBlocker(scope,d,row.createdAt,row.id);
+    if(!latest.recipeVersions?.some(v=>v.versionId===d.versionId)||earlier){await local.productions.update(row.id,{status:'needsReview',error:earlier??'إصدار الوصفة لم يقبل. راجع نشره.'});continue;}
+    const response=await fetch('/api/v1/production',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(d)});
+    if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الإنتاج. الدفعة محفوظة.');
+    const result=await response.json() as CommandResult;await local.productions.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع دفعة الإنتاج'});if(response.ok)confirmed=await bootstrap(scope);continue;
+   }
    if('document'in row){
-    if(blockers.some(o=>o.document.locationId===row.document.locationId&&o.document.lines.some(l=>row.document.lines.some(x=>x.itemId===l.itemId)))){await local.receipts.update(row.id,{status:'needsReview',error:'الرصيد الافتتاحي لم يقبل بعد. راجع مستنده.'});continue;}
+    const receipt=row.document;if(receipt.type!=='receipt.document')continue;
+    if(blockers.some(o=>o.document.locationId===receipt.locationId&&o.document.lines.some(l=>receipt.lines.some(x=>x.itemId===l.itemId)))){await local.receipts.update(row.id,{status:'needsReview',error:'الرصيد الافتتاحي لم يقبل بعد. راجع مستنده.'});continue;}
     const response=await fetch('/api/v1/receipts',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.document)});
     if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الاستلام. المستندات محفوظة.');
     const result=await response.json() as CommandResult;await local.receipts.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع مستند الاستلام'});
     if(response.ok)confirmed=await bootstrap(scope);continue;
    }
+   if(row.command.type==='waste.post'&&await unresolvedProductionFor(scope,row.command.locationId,[row.command.itemId],row.createdAt)){await local.commands.update(row.id,{status:'needsReview',error:'دفعة الإنتاج السابقة لم تقبل. راجعها أولاً.'});continue;}
    if(row.command.type==='waste.post'&&(await local.receipts.where('scope').equals(scope).toArray()).some(r=>(r.status==='pending'||r.status==='acceptedAwaiting'||r.status==='needsReview')&&r.createdAt<=row.createdAt&&r.document.locationId===row.command.locationId&&r.document.lines.some(l=>l.itemId===row.command.itemId))){await local.commands.update(row.id,{status:'needsReview',error:'مستند الاستلام السابق لم يقبل. راجع مستنده.'});continue;}
 
    if(transferBlockers.some(r=>r.command.type==='transfer.receive'&&projectTransfers((confirmed??purchaseSnapshot)!,transferRows).find(t=>t.transferId===r.command.transferId)?.document.destinationId===row.command.locationId)){await local.commands.update(row.id,{status:'needsReview',error:'استلام التحويل لم يقبل بعد. راجع مستنده.'});continue;}
@@ -176,6 +190,7 @@ export async function sync(scope:DemoProfile){
    const row=transferQueue.splice(index,1)[0];
    await uploadStockUntil(row.createdAt);
    const dispatch=row.command;
+   if(dispatch.type==='transfer.dispatch'&&await unresolvedProductionFor(scope,dispatch.sourceId,dispatch.lines.map(l=>l.itemId),row.createdAt)){await local.transfers.update(row.id,{status:'needsReview',error:'دفعة الإنتاج السابقة لم تقبل. راجعها أولاً.'});continue;}
    if(dispatch.type==='transfer.dispatch'&&(await local.receipts.where('scope').equals(scope).toArray()).some(r=>r.status==='needsReview'&&r.createdAt<=row.createdAt&&r.document.locationId===dispatch.sourceId&&r.document.lines.some(l=>dispatch.lines.some(x=>x.itemId===l.itemId)))){await local.transfers.update(row.id,{status:'needsReview',error:'مستند الاستلام السابق لم يقبل. راجع مستنده.'});continue;}
    const current=(await local.snapshots.get(scope))?.transfers?.find(t=>t.transferId===row.command.transferId);
    if(row.command.expectedRevision>(current?.revision??0)){await local.transfers.update(row.id,{status:'needsReview',error:'الإرسال أو الإصدار السابق لم يقبل. راجع التحويل.'});continue;}
@@ -208,7 +223,7 @@ export async function sync(scope:DemoProfile){
  return run();
 }
 export async function resolveReview(scope:DemoProfile,id:string,action:'retry'|'cancel'|'correct',replacement?:Command){
- await local.transaction('rw',[local.commands,local.snapshots,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.commands,local.snapshots,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const row=await local.commands.get(id);const snapshot=await local.snapshots.get(scope);
   if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة العمليات المرفوضة فقط. حدّث البيانات أولاً.');
   if(action!=='cancel')requireGrant(snapshot);
@@ -230,14 +245,15 @@ const transferRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),
 const countRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:countCommandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),error:z.string().max(500).optional(),sourceDeviceId:z.uuid().optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional()});
 const receiptRowSchema=openingRowSchema.extend({document:receiptDocumentSchema});
 const recipeRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),command:recipeCommandSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled']),createdAt:z.iso.datetime(),sourceDeviceId:z.uuid().optional(),error:z.string().max(500).optional()});
-const archiveSchema=z.object({version:z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5),z.literal(6),z.literal(7),z.literal(8),z.literal(9),z.literal(10),z.literal(11)]),generation:z.uuid().optional(),exportedAt:z.iso.datetime(),organizationId:z.enum(['grills','bistro']),commands:z.array(rowSchema).max(5000),setups:z.array(setupRowSchema).max(5000).optional(),openings:z.array(openingRowSchema).max(5000).optional(),purchases:z.array(purchaseRowSchema).max(5000).optional(),transfers:z.array(transferRowSchema).max(5000).optional(),recipes:z.array(recipeRowSchema).max(5000).optional(),receipts:z.array(receiptRowSchema).max(5000).optional(),counts:z.array(countRowSchema).max(5000).optional()}).superRefine((v,ctx)=>{if(v.version<11&&v.recipes?.length)ctx.addIssue({code:'custom',message:'إصدار الوصفات غير صالح'});if(v.version<10&&v.receipts?.length)ctx.addIssue({code:'custom',message:'إصدار مستندات الاستلام غير صالح'});if(v.version<8&&v.counts?.length)ctx.addIssue({code:'custom',message:'إصدار الجرد غير صالح'});if(v.version<7&&v.transfers?.length)ctx.addIssue({code:'custom',message:'إصدار التحويلات غير صالح'});if((v.version<3&&v.setups?.length)||(v.version<4&&v.openings?.length)||(v.version<5&&v.purchases?.length))ctx.addIssue({code:'custom',message:'إصدار ملف المستندات غير صالح'});if(v.version<6&&v.purchases?.some(r=>r.command.type==='purchase.return'||r.replacesId||r.replacementId))ctx.addIssue({code:'custom',message:'إصدار المرتجعات غير صالح'});});
+const productionRowSchema=z.object({id:z.uuid(),scope:z.enum(['grills','bistro']),document:productionSchema,status:z.enum(['pending','acceptedAwaiting','accepted','needsReview','cancelled','superseded']),createdAt:z.iso.datetime(),sourceDeviceId:z.uuid().optional(),error:z.string().optional(),replacesId:z.uuid().optional(),replacementId:z.uuid().optional()});
+const archiveSchema=z.object({version:z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5),z.literal(6),z.literal(7),z.literal(8),z.literal(9),z.literal(10),z.literal(11),z.literal(12)]),generation:z.uuid().optional(),exportedAt:z.iso.datetime(),organizationId:z.enum(['grills','bistro']),commands:z.array(rowSchema).max(5000),setups:z.array(setupRowSchema).max(5000).optional(),openings:z.array(openingRowSchema).max(5000).optional(),purchases:z.array(purchaseRowSchema).max(5000).optional(),transfers:z.array(transferRowSchema).max(5000).optional(),productions:z.array(productionRowSchema).max(5000).optional(),recipes:z.array(recipeRowSchema).max(5000).optional(),receipts:z.array(receiptRowSchema).max(5000).optional(),counts:z.array(countRowSchema).max(5000).optional()}).superRefine((v,ctx)=>{if(v.version<12&&v.productions?.length)ctx.addIssue({code:'custom',message:'إصدار الإنتاج غير صالح'});if(v.version<11&&v.recipes?.length)ctx.addIssue({code:'custom',message:'إصدار الوصفات غير صالح'});if(v.version<10&&v.receipts?.length)ctx.addIssue({code:'custom',message:'إصدار مستندات الاستلام غير صالح'});if(v.version<8&&v.counts?.length)ctx.addIssue({code:'custom',message:'إصدار الجرد غير صالح'});if(v.version<7&&v.transfers?.length)ctx.addIssue({code:'custom',message:'إصدار التحويلات غير صالح'});if((v.version<3&&v.setups?.length)||(v.version<4&&v.openings?.length)||(v.version<5&&v.purchases?.length))ctx.addIssue({code:'custom',message:'إصدار ملف المستندات غير صالح'});if(v.version<6&&v.purchases?.some(r=>r.command.type==='purchase.return'||r.replacesId||r.replacementId))ctx.addIssue({code:'custom',message:'إصدار المرتجعات غير صالح'});});
 export type RecoveryPreview={archive:z.infer<typeof archiveSchema>;newCount:number;duplicateCount:number;acceptedCount:number;legacyCount:number};
 export async function previewRecovery(text:string,scope:DemoProfile):Promise<RecoveryPreview>{
  if(new TextEncoder().encode(text).length>10*1024*1024)throw new Error('الملف يتجاوز الحد المسموح: ١٠ ميجابايت.');
  let archive:z.infer<typeof archiveSchema>;try{archive=archiveSchema.parse(JSON.parse(text));}catch{throw new Error('ملف الاسترداد غير صالح أو إصداره غير مدعوم.');}
  if(archive.organizationId!==scope)throw new Error('ملف الاسترداد يخص مؤسسة أخرى.');
  const snapshot=requireGrant(await local.snapshots.get(scope));if(snapshot.generation&&archive.generation!==snapshot.generation)throw new Error('نسخة الاسترداد تخص بيانات قبل إعادة التطوير.');const accepted=new Set(snapshot.acceptedOperationIds);const seen=new Set<string>();let newCount=0,duplicateCount=0,acceptedCount=0;
- if(snapshot.generation){for(const row of [...archive.commands,...archive.setups??[],...archive.openings??[],...archive.purchases??[],...archive.transfers??[],...archive.counts??[],...archive.receipts??[],...archive.recipes??[]]){const payload='document'in row?row.document:row.command;if(payload.generation!==snapshot.generation)throw new Error('تحتوي النسخة عمليات من قبل إعادة بيانات التطوير.');}}
+ if(snapshot.generation){for(const row of [...archive.commands,...archive.setups??[],...archive.openings??[],...archive.purchases??[],...archive.transfers??[],...archive.counts??[],...archive.receipts??[],...archive.recipes??[],...archive.productions??[]]){const payload='document'in row?row.document:row.command;if(payload.generation!==snapshot.generation)throw new Error('تحتوي النسخة عمليات من قبل إعادة بيانات التطوير.');}}
  const setupRows=archive.setups??[];
  const owners=await identityOwners();
  const reserve=(id:string,owner:string)=>{if(seen.has(id)||(owners.has(id)&&owners.get(id)!==owner))throw new Error('معرّف مكرر أو مستخدم لعملية مختلفة.');seen.add(id);};
@@ -270,6 +286,15 @@ export async function previewRecovery(text:string,scope:DemoProfile):Promise<Rec
   if(!definition)throw new Error('مسودة الوصفة غير متاحة في المؤسسة أو الملف.');
   if(c.type==='recipe.save')validateRecipe(recipeProjection,c.recipeId,definition,false);
   const existing=await local.recipes.get(row.id);if(existing){if(existing.scope!==scope||JSON.stringify(recipeCommandSchema.parse(existing.command))!==JSON.stringify(c))throw new Error('إجراء وصفة موجود ببيانات مختلفة.');duplicateCount++;}else if(accepted.has(row.id))acceptedCount++;else newCount++;
+ }
+ const productionHistory=[...await local.productions.toArray(),...archive.productions??[]];
+ for(const row of archive.productions??[]){const d=row.document;if(row.scope!==scope||d.organizationId!==scope||row.id!==d.operationId)throw new Error('نطاق مستند الإنتاج غير صالح.');for(const id of productionIdentities(d))reserve(id,`production:${row.id}`);
+  validateProduction(recipeProjection,d,false);
+  const chain=new Set([row.id]);let link=row.replacesId;while(link){if(chain.has(link))throw new Error('دورة في تصحيح الإنتاج.');chain.add(link);link=productionHistory.find(r=>r.id===link)?.replacesId;}
+  if(row.replacesId){const old=productionHistory.find(r=>r.id===row.replacesId);if(!old||old.scope!==scope||old.status!=='superseded'||old.replacementId!==row.id||old.document.inputLocationId!==d.inputLocationId||old.document.outputLocationId!==d.outputLocationId)throw new Error('رابط تصحيح الإنتاج غير صالح.');}
+  if(row.status==='superseded'&&!row.replacementId)throw new Error('سجل تصحيح الإنتاج غير مكتمل.');
+  if(row.replacementId){const next=productionHistory.find(r=>r.id===row.replacementId);if(!next||next.scope!==scope||next.replacesId!==row.id||next.document.inputLocationId!==d.inputLocationId||next.document.outputLocationId!==d.outputLocationId)throw new Error('بديل الإنتاج غير صالح.');}
+  const existing=await local.productions.get(row.id);if(existing){if(existing.scope!==scope||JSON.stringify(productionSchema.parse(existing.document))!==JSON.stringify(d))throw new Error('مستند إنتاج موجود ببيانات مختلفة.');duplicateCount++;}else if(accepted.has(row.id))acceptedCount++;else newCount++;
  }
  const receiptHistory=[...await local.receipts.toArray(),...archive.receipts??[]];
  for(const row of archive.receipts??[]){
@@ -324,12 +349,13 @@ export async function previewRecovery(text:string,scope:DemoProfile):Promise<Rec
   else if(accepted.has(row.id))acceptedCount++;
   else newCount++;
  }
- return {archive,newCount,duplicateCount,acceptedCount,legacyCount:[...archive.commands,...setupRows,...archive.openings??[],...archive.purchases??[],...archive.transfers??[],...archive.counts??[],...archive.receipts??[],...archive.recipes??[]].filter(r=>!r.sourceDeviceId).length};
+ return {archive,newCount,duplicateCount,acceptedCount,legacyCount:[...archive.commands,...setupRows,...archive.openings??[],...archive.purchases??[],...archive.transfers??[],...archive.counts??[],...archive.receipts??[],...archive.recipes??[],...archive.productions??[]].filter(r=>!r.sourceDeviceId).length};
 }
 export async function restoreRecovery(text:string,scope:DemoProfile){
- return local.transaction('rw',[local.commands,local.snapshots,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ return local.transaction('rw',[local.commands,local.snapshots,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const preview=await previewRecovery(text,scope);const snapshot=requireGrant(await local.snapshots.get(scope));const accepted=new Set(snapshot.acceptedOperationIds);
   for(const row of preview.archive.setups??[]){if(await local.setups.get(row.id)||accepted.has(row.id))continue;await local.setups.add({...row,status:row.status==='cancelled'?'cancelled':row.status==='needsReview'?'needsReview':'pending'});}
+  for(const row of preview.archive.productions??[]){if(await local.productions.get(row.id)||accepted.has(row.id))continue;await local.productions.add({...row,status:row.status==='cancelled'||row.status==='needsReview'||row.status==='superseded'?row.status:'pending'});}
   for(const row of preview.archive.recipes??[]){if(await local.recipes.get(row.id)||accepted.has(row.id))continue;await local.recipes.add({...row,status:row.status==='cancelled'||row.status==='needsReview'?row.status:'pending'});}
   for(const row of preview.archive.receipts??[]){if(await local.receipts.get(row.id)||accepted.has(row.id))continue;await local.receipts.add({...row,status:row.status==='cancelled'||row.status==='needsReview'||row.status==='superseded'?row.status:'pending'});}
   for(const row of preview.archive.openings??[]){if(await local.openings.get(row.id)||accepted.has(row.id))continue;await local.openings.add({...row,status:row.status==='cancelled'||row.status==='superseded'?row.status:row.status==='needsReview'?'needsReview':'pending'});}
@@ -345,7 +371,7 @@ export async function restoreRecovery(text:string,scope:DemoProfile){
   return preview;
  });
 }
-export async function recoveryArchive(scope:DemoProfile){return local.transaction('r',[local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.snapshots],async()=>({version:11,generation:(await local.snapshots.get(scope))?.generation,exportedAt:new Date().toISOString(),organizationId:scope,commands:await local.commands.where('scope').equals(scope).toArray(),setups:await local.setups.where('scope').equals(scope).toArray(),openings:await local.openings.where('scope').equals(scope).toArray(),purchases:await local.purchases.where('scope').equals(scope).toArray(),transfers:await local.transfers.where('scope').equals(scope).toArray(),recipes:await local.recipes.where('scope').equals(scope).toArray(),receipts:await local.receipts.where('scope').equals(scope).toArray(),counts:await local.counts.where('scope').equals(scope).toArray()}));}
+export async function recoveryArchive(scope:DemoProfile){return local.transaction('r',[local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions,local.snapshots],async()=>({version:12,generation:(await local.snapshots.get(scope))?.generation,exportedAt:new Date().toISOString(),organizationId:scope,commands:await local.commands.where('scope').equals(scope).toArray(),setups:await local.setups.where('scope').equals(scope).toArray(),openings:await local.openings.where('scope').equals(scope).toArray(),purchases:await local.purchases.where('scope').equals(scope).toArray(),transfers:await local.transfers.where('scope').equals(scope).toArray(),productions:await local.productions.where('scope').equals(scope).toArray(),recipes:await local.recipes.where('scope').equals(scope).toArray(),receipts:await local.receipts.where('scope').equals(scope).toArray(),counts:await local.counts.where('scope').equals(scope).toArray()}));}
 export async function downloadRecovery(scope:DemoProfile){const blob=new Blob([JSON.stringify(await recoveryArchive(scope),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`fodo-recovery-${scope}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
 export type LocalPurchase={id:string;scope:DemoProfile;command:PurchaseCommand;status:LocalCommand['status'];createdAt:string;error?:string;sourceDeviceId?:string;replacesId?:string;replacementId?:string};
@@ -367,7 +393,7 @@ export function projectedPurchaseCommands(snapshot:Snapshot,rows:LocalPurchase[]
 function purchaseIdentities(c:PurchaseCommand){return [c.operationId,...(c.type==='purchase.receive'||c.type==='purchase.return')?c.lines.map(l=>l.movementId):[]];}
 export async function savePurchase(input:PurchaseCommand,replacesId?:string){
  const command=purchaseCommandSchema.parse(input);
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(command.organizationId)),rows=await local.purchases.where('scope').equals(command.organizationId).toArray();const owners=await identityOwners();bindGeneration(snapshot,command);
   if(purchaseIdentities(command).some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)))throw new Error('معرّف العملية مستخدم بالفعل.');
   const current=projectPurchases(snapshot,rows).find(o=>o.orderId===command.orderId);if((current?.revision??0)!==command.expectedRevision)throw new Error('تغير إصدار أمر الشراء. راجع آخر نسخة.');
@@ -409,7 +435,7 @@ export function projectedTransferCommands(snapshot:Snapshot,rows:LocalTransfer[]
 }
 export async function saveTransfer(input:TransferCommand,replacesId?:string){
  const c=transferCommandSchema.parse(input);
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(c.organizationId)),rows=await local.transfers.where('scope').equals(c.organizationId).toArray(),old=replacesId?rows.find(r=>r.id===replacesId):undefined;
   bindGeneration(snapshot,c);
   if(replacesId&&(!old||old.status!=='needsReview'||snapshot.acceptedOperationIds.includes(old.id)||!sameTransferCorrection(old.command,c)))throw new Error('يمكن تصحيح التحويل المرفوض فقط مع الحفاظ على المصدر والوجهة.');
@@ -425,7 +451,7 @@ export async function saveTransfer(input:TransferCommand,replacesId?:string){
  });
 }
 export async function resolveTransfer(scope:DemoProfile,id:string,action:'retry'|'cancel'){
- await local.transaction('rw',[local.snapshots,local.transfers,local.counts,local.receipts,local.recipes],async()=>{const row=await local.transfers.get(id),snapshot=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة التحويلات المرفوضة فقط.');if(action==='retry')requireGrant(snapshot);await local.transfers.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+ await local.transaction('rw',[local.snapshots,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{const row=await local.transfers.get(id),snapshot=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة التحويلات المرفوضة فقط.');if(action==='retry')requireGrant(snapshot);await local.transfers.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
 }
 
 export type LocalCount={id:string;scope:DemoProfile;command:CountCommand;status:LocalCommand['status'];createdAt:string;error?:string;sourceDeviceId?:string;replacesId?:string;replacementId?:string};
@@ -446,12 +472,13 @@ async function hasUnresolvedStock(scope:DemoProfile,locationId:string){
  if((await local.commands.where('scope').equals(scope).toArray()).some(r=>active(r)&&r.command.locationId===locationId)||(await local.openings.where('scope').equals(scope).toArray()).some(r=>active(r)&&r.document.locationId===locationId))return true;
  const snapshot=(await local.snapshots.get(scope))!,purchases=await local.purchases.where('scope').equals(scope).toArray(),orders=projectPurchases(snapshot,purchases);
  if(purchases.some(r=>active(r)&&(r.command.type==='purchase.receive'||r.command.type==='purchase.reverse'||r.command.type==='purchase.return')&&orders.find(o=>o.orderId===r.command.orderId)?.document.locationId===locationId))return true;
+ if((await local.productions.where('scope').equals(scope).toArray()).some(r=>active(r)&&(r.document.inputLocationId===locationId||r.document.outputLocationId===locationId)))return true;
  const transfers=await local.transfers.where('scope').equals(scope).toArray();return transfers.some(r=>{if(!active(r)||r.command.type==='transfer.loss')return false;const d=r.command.type==='transfer.dispatch'?r.command:definitionForTransfer(snapshot,transfers,r.command.transferId);return d&&(r.command.type==='transfer.dispatch'?d.sourceId:d.destinationId)===locationId;});
 }
 function definitionForTransfer(snapshot:Snapshot,rows:LocalTransfer[],id:string){return snapshot.transfers?.find(t=>t.transferId===id)?.document??rows.find(r=>r.command.type==='transfer.dispatch'&&r.command.transferId===id)?.command as import('@saas/contracts').TransferDispatch|undefined;}
 export async function saveCount(input:CountCommand,replacesId?:string){
  const c=countCommandSchema.parse(input);
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(c.organizationId)),rows=await local.counts.where('scope').equals(c.organizationId).toArray(),current=projectCounts(snapshot,rows).find(d=>d.countId===c.countId),owners=await identityOwners();bindGeneration(snapshot,c);
   if(countIdentities(c).some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)))throw new Error('معرّف الجرد أو حركة التسوية مستخدم بالفعل.');
   if((current?.revision??0)!==c.expectedRevision)throw new Error('تغير إصدار الجرد. زامن وراجع البيانات.');if(current&&current.state!=='draft')throw new Error('الجرد معتمد أو ملغى. لا يمكن تعديله.');
@@ -467,7 +494,7 @@ export async function saveCount(input:CountCommand,replacesId?:string){
  });
 }
 export async function resolveCount(scope:DemoProfile,id:string,action:'retry'|'cancel'){
- await local.transaction('rw',[local.snapshots,local.counts,local.receipts,local.recipes],async()=>{const r=await local.counts.get(id),s=await local.snapshots.get(scope);if(!r||r.scope!==scope||r.status!=='needsReview'||s?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة إجراءات الجرد المرفوضة فقط.');if(action==='retry')requireGrant(s);await local.counts.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+ await local.transaction('rw',[local.snapshots,local.counts,local.receipts,local.recipes,local.productions],async()=>{const r=await local.counts.get(id),s=await local.snapshots.get(scope);if(!r||r.scope!==scope||r.status!=='needsReview'||s?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة إجراءات الجرد المرفوضة فقط.');if(action==='retry')requireGrant(s);await local.counts.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
 }
 
 export type LocalReceipt={id:string;scope:DemoProfile;document:ReceiptDocument;status:LocalCommand['status'];createdAt:string;error?:string;sourceDeviceId?:string;replacesId?:string;replacementId?:string};
@@ -479,7 +506,7 @@ function validateReceiptReferences(snapshot:Snapshot,doc:ReceiptDocument){
 export async function saveReceipt(input:ReceiptDocument,replacesId?:string){
  const document=receiptDocumentSchema.parse(input);
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());if(document.businessDate>today)throw new Error('تاريخ الاستلام لا يمكن أن يكون في المستقبل.');
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(document.organizationId));bindGeneration(snapshot,document);
   const projected=projectSetup(snapshot,await local.setups.where('scope').equals(document.organizationId).toArray());validateReceiptReferences(projected,document);
   if(!projected.locations.some(l=>l.id===document.locationId&&l.active!==false)||document.lines.some(l=>!projected.items.some(i=>i.id===l.itemId&&i.active!==false))||document.supplierId&&!projected.suppliers?.some(s=>s.id===document.supplierId&&s.active))throw new Error('الموقع أو إحدى المواد أو المورد غير نشط.');
@@ -490,7 +517,7 @@ export async function saveReceipt(input:ReceiptDocument,replacesId?:string){
  });
 }
 export async function resolveReceipt(scope:DemoProfile,id:string,action:'retry'|'cancel'){
- await local.transaction('rw',[local.snapshots,local.receipts,local.recipes],async()=>{const row=await local.receipts.get(id),s=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||s?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة الاستلام المرفوض فقط.');if(action==='retry')requireGrant(s);await local.receipts.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+ await local.transaction('rw',[local.snapshots,local.receipts,local.recipes,local.productions],async()=>{const row=await local.receipts.get(id),s=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||s?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة الاستلام المرفوض فقط.');if(action==='retry')requireGrant(s);await local.receipts.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
 }
 export function projectedReceiptCommands(snapshot:Snapshot,rows:LocalReceipt[]):Command[]{return rows.filter(r=>r.scope===snapshot.organizationId&&(r.status==='pending'||r.status==='acceptedAwaiting')&&!snapshot.acceptedOperationIds.includes(r.id)).flatMap(r=>r.document.lines.map(l=>({...r.document,...l,operationId:l.lineId,type:'receipt.post' as const})));}
 
@@ -507,7 +534,7 @@ export function projectRecipes(snapshot:Snapshot,rows:LocalRecipe[]):Snapshot{
 }
 export async function saveRecipe(input:RecipeCommand){
  const c=recipeCommandSchema.parse(input);
- await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes],async()=>{
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(c.organizationId));bindGeneration(snapshot,c);const rows=await local.recipes.where('scope').equals(c.organizationId).toArray();
   const projected=projectRecipes(projectSetup(snapshot,await local.setups.where('scope').equals(c.organizationId).toArray()),rows),current=projected.recipes?.find(r=>r.recipeId===c.recipeId);
   if((current?.revision??0)!==c.expectedRevision)throw new Error('تغير إصدار الوصفة. افتح أحدث مسودة.');
@@ -520,5 +547,38 @@ export async function saveRecipe(input:RecipeCommand){
  });
 }
 export async function resolveRecipeAction(scope:DemoProfile,id:string,action:'retry'|'cancel'){
- await local.transaction('rw',[local.snapshots,local.recipes],async()=>{const row=await local.recipes.get(id),snapshot=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة إجراءات الوصفة المرفوضة فقط.');if(action==='retry')requireGrant(snapshot);await local.recipes.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+ await local.transaction('rw',[local.snapshots,local.recipes,local.productions],async()=>{const row=await local.recipes.get(id),snapshot=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||snapshot?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة إجراءات الوصفة المرفوضة فقط.');if(action==='retry')requireGrant(snapshot);await local.recipes.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+}
+
+export type LocalProduction={id:string;scope:DemoProfile;document:ProductionDocument;status:LocalCommand['status'];createdAt:string;sourceDeviceId?:string;error?:string;replacesId?:string;replacementId?:string};
+function productionIdentities(d:ProductionDocument){return [d.operationId,d.outputMovementId,...d.lines.map(l=>l.movementId)];}
+export async function saveProduction(input:ProductionDocument,replacesId?:string){
+ const document=productionSchema.parse(input);
+ await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions],async()=>{
+  const snapshot=requireGrant(await local.snapshots.get(document.organizationId));bindGeneration(snapshot,document);
+  const projected=projectRecipes(projectSetup(snapshot,await local.setups.where('scope').equals(document.organizationId).toArray()),await local.recipes.where('scope').equals(document.organizationId).toArray());validateProduction(projected,document);
+  const old=replacesId?await local.productions.get(replacesId):undefined;
+  if(replacesId&&(!old||old.scope!==document.organizationId||old.status!=='needsReview'||snapshot.acceptedOperationIds.includes(old.id)||old.document.inputLocationId!==document.inputLocationId||old.document.outputLocationId!==document.outputLocationId))throw new Error('يمكن تصحيح دفعة مرفوضة في المواقع نفسها فقط.');
+  const owners=await identityOwners();if(productionIdentities(document).some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)))throw new Error('معرّف الإنتاج أو السطر مستخدم بالفعل.');
+  await local.productions.add({id:document.operationId,scope:document.organizationId,document,status:'pending',createdAt:document.capturedAt,sourceDeviceId:snapshot.access.deviceId,replacesId});if(old)await local.productions.update(old.id,{status:'superseded',replacementId:document.operationId});
+ });
+}
+export async function resolveProduction(scope:DemoProfile,id:string,action:'retry'|'cancel'){
+ await local.transaction('rw',[local.snapshots,local.productions],async()=>{const row=await local.productions.get(id),s=await local.snapshots.get(scope);if(!row||row.scope!==scope||row.status!=='needsReview'||s?.acceptedOperationIds.includes(id))throw new Error('يمكن معالجة الإنتاج المرفوض فقط.');if(action==='retry')requireGrant(s);await local.productions.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});});
+}
+export function projectedProductionCommands(snapshot:Snapshot,rows:LocalProduction[]):Command[]{
+ return rows.filter(r=>r.scope===snapshot.organizationId&&(r.status==='pending'||r.status==='acceptedAwaiting')&&!snapshot.acceptedOperationIds.includes(r.id)).flatMap(r=>{const d=r.document,version=snapshot.recipeVersions?.find(v=>v.versionId===d.versionId);return [...d.lines.filter(l=>decimal(l.quantity).gt(0)).map(l=>({operationId:l.movementId,organizationId:d.organizationId,locationId:d.inputLocationId,type:'waste.post' as const,itemId:l.itemId,quantity:l.quantity,reason:d.reference,businessDate:d.businessDate,capturedAt:d.capturedAt,schemaVersion:1 as const})),...(version&&decimal(d.actualOutput).gt(0)?[{operationId:d.outputMovementId,organizationId:d.organizationId,locationId:d.outputLocationId,type:'receipt.post' as const,itemId:version.definition.outputItemId!,quantity:d.actualOutput,unitCost:'0',reason:d.reference,businessDate:d.businessDate,capturedAt:d.capturedAt,schemaVersion:1 as const}]:[])];});
+}
+async function unresolvedProductionFor(scope:DemoProfile,location:string,items:string[],cutoff:string,exclude?:string){
+ const s=await local.snapshots.get(scope);return (await local.productions.where('scope').equals(scope).toArray()).some(r=>r.id!==exclude&&r.createdAt<=cutoff&&(r.status==='pending'||r.status==='acceptedAwaiting'||r.status==='needsReview')&&!s?.acceptedOperationIds.includes(r.id)&&(r.document.inputLocationId===location&&r.document.lines.some(l=>items.includes(l.itemId))||r.document.outputLocationId===location&&items.includes(s?.recipeVersions?.find(v=>v.versionId===r.document.versionId)?.definition.outputItemId??'')));
+}
+async function productionBlocker(scope:DemoProfile,d:ProductionDocument,cutoff:string,id:string){
+ const s=(await local.snapshots.get(scope))!,items=d.lines.filter(l=>decimal(l.quantity).gt(0)).map(l=>l.itemId),active=(r:{status:string;createdAt:string;id:string})=>r.id!==id&&r.createdAt<=cutoff&&['pending','acceptedAwaiting','needsReview'].includes(r.status)&&!s.acceptedOperationIds.includes(r.id);
+ if(await unresolvedProductionFor(scope,d.inputLocationId,items,cutoff,id))return 'دفعة إنتاج سابقة لم تقبل؛ راجعها أولاً.';
+ if((await local.openings.where('scope').equals(scope).toArray()).some(r=>active(r)&&r.document.locationId===d.inputLocationId&&r.document.lines.some(l=>items.includes(l.itemId))))return 'الرصيد الافتتاحي لم يقبل؛ راجع مستنده.';
+ if((await local.receipts.where('scope').equals(scope).toArray()).some(r=>active(r)&&r.document.locationId===d.inputLocationId&&r.document.lines.some(l=>items.includes(l.itemId))))return 'استلام مواد سابق لم يقبل؛ راجع مستنده.';
+ if((await local.commands.where('scope').equals(scope).toArray()).some(r=>active(r)&&r.command.locationId===d.inputLocationId&&items.includes(r.command.itemId)))return 'حركة مادة سابقة لم تقبل؛ راجعها أولاً.';
+ const transfers=await local.transfers.where('scope').equals(scope).toArray();if(transfers.some(r=>{if(!active(r)||r.command.type==='transfer.loss')return false;const dispatch=definitionForTransfer(s,transfers,r.command.transferId);return dispatch&&(r.command.type==='transfer.dispatch'?dispatch.sourceId:dispatch.destinationId)===d.inputLocationId&&dispatch.lines.some(l=>items.includes(l.itemId));}))return 'تحويل مواد سابق لم يقبل؛ راجع مستنده.';
+ const purchases=await local.purchases.where('scope').equals(scope).toArray();if(purchases.some(r=>active(r)&&r.command.type==='purchase.receive'&&projectPurchases(s,purchases).find(o=>o.orderId===r.command.orderId)?.document.locationId===d.inputLocationId))return 'استلام شراء سابق لم يقبل؛ راجع مستنده.';
+ return null;
 }

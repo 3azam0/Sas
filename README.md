@@ -26,7 +26,7 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 
 Normal startup contains no sample catalog or stock. The authorized one-time development reset removes old setup and transaction data; later restarts preserve your entries. Browser synchronization replaces old snapshots and queues with the current generation. Automated fixture data is isolated and requires SAAS_SEED_FIXTURES=1.
 
-Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Use **استلام مواد → إضافة مادة أخرى** for direct multi-item receiving; see [direct receiving](docs/runbooks/Direct-Receiving.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for source-linked returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Open **التحويلات** for dispatch, partial receiving and explicit transit loss; see the [transfers walkthrough](docs/runbooks/Transfers.md). Counts/reconciliation are delivered locally in **الجرد والتسوية**; see the [stock counts walkthrough](docs/runbooks/Stock-Counts.md). Open **الوصفات والتكاليف** for versioned recipes, pinned sub-recipes, batch/portion costs and food-cost estimates; see [Recipes and costing](docs/runbooks/Recipes.md). Production/yield is next; membership administration and dedicated demo infrastructure are deferred.
+Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Use **استلام مواد → إضافة مادة أخرى** for direct multi-item receiving; see [direct receiving](docs/runbooks/Direct-Receiving.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for source-linked returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Open **التحويلات** for dispatch, partial receiving and explicit transit loss; see the [transfers walkthrough](docs/runbooks/Transfers.md). Counts/reconciliation are delivered locally in **الجرد والتسوية**; see the [stock counts walkthrough](docs/runbooks/Stock-Counts.md). Open **الوصفات والتكاليف** for versioned recipes, pinned sub-recipes, batch/portion costs and food-cost estimates; see [Recipes and costing](docs/runbooks/Recipes.md). Open **الإنتاج والتحضير** to post pinned-version preparation batches, actual ingredient usage, usable output and separate abnormal waste; see [Production and yield](docs/runbooks/Production.md). Sales imports and consumption reconciliation are next; membership administration and dedicated demo infrastructure are deferred.
 
 ## Run on this Windows machine
 
@@ -93,10 +93,9 @@ The selected Supabase project is `bkkxrptgwbrwredauopq`. Its public URL and publ
 
 ## Next implementation stages
 
-1. Production batches, input/output costing, yield and waste (Phase 4B).
-2. External POS sales imports, actual versus theoretical consumption, food cost and profitability.
-3. Real authentication, managed database/access controls and isolated production configuration before live operation.
-4. Later: production sync scaling, POS, memberships, subscription/module entitlements and country adapters. Dedicated demo infrastructure remains deferred.
+1. External POS sales imports, actual versus theoretical consumption, food cost and profitability (Phase 4C).
+2. Real authentication, managed database/access controls and isolated production configuration before live operation.
+3. Later: production sync scaling, POS, memberships, subscription/module entitlements and country adapters. Dedicated demo infrastructure remains deferred.
 
 Egyptian e-invoicing/e-receipts, other Arab country tax integrations, multi-currency accounting, production authorization, and SaaS billing are not implemented here. Tax settings must remain country adapters in the master plan. This local demo does not establish compliance.
 

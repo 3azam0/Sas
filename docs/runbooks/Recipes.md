@@ -1,6 +1,6 @@
 # Recipes and ingredient costing — Phase 4A
 
-Delivered locally on 10 October 2026. Open **الوصفات والتكاليف** from the main menu. Definitions and estimates are available; production posting and sales consumption are the following milestones.
+Delivered locally on 10 October 2026. Open **الوصفات والتكاليف** from the main menu. Definitions and estimates are available. Stocked preparation posting is also delivered under **الإنتاج والتحضير**; sales consumption is next.
 
 ## Create a recipe
 
@@ -45,12 +45,12 @@ Save and request publication offline while the organization's work grant remains
 
 Network/authentication failures preserve queued actions. Business rejection enters review. Retry sends the unchanged action; cancellation applies only to a rejected action and has no stock effect. After cancellation, reopen the latest draft and save a fresh action to correct its definition. If an earlier draft or child publication is rejected, dependent actions also need review.
 
-Recovery format **11** includes recipe actions together with existing outboxes. Export from the sync center, then preview/restore into the same organization and generation with a valid grant. Identical actions are skipped; conflicting payloads abort the whole restore. Cancelled history stays cancelled. Formats 1–10 remain readable subject to the existing scope/generation checks. Database backups and browser recovery exports cover different data; unsynchronized device actions require the browser export.
+Current recovery format **12** includes recipe and production actions together with existing outboxes (recipes were introduced in format 11). Export from the sync center, then preview/restore into the same organization and generation with a valid grant. Identical actions are skipped; conflicting payloads abort the whole restore. Cancelled history stays cancelled. Formats 1–11 remain readable subject to the existing scope/generation checks. Database backups and browser recovery exports cover different data; unsynchronized device actions require the browser export.
 
 ## Development reset behavior
 
 A costing-method transaction reset retains recipe definitions and versions, clears stock/prices and rotates generation so obsolete queued actions cannot return. A catalog-clearing reset also removes recipe dependencies, versions and definitions before their referenced catalog records. Recipe delivery does not itself reset or populate the client's database.
 
-## Next: production and yield
+## Production and the next milestone
 
-Phase 4B will select a pinned recipe version, capture actual inputs and usable output, consume stock once using the organization's policy and allocate value to stocked outputs. Yield, abnormal waste and failed batches need explicit posting rules. Sales imports and actual-versus-theoretical consumption follow in Phase 4C. See the [Phase 4 plan](../Phase-4-Plan.md).
+Phase 4B selects a pinned stocked-preparation version, captures actual inputs and usable output, consumes stock once using the organization's policy and allocates value to stocked output. Normal yield loss, abnormal waste and failed batches have separate posting rules; see [Production walkthrough](./Production.md). Sales imports and actual-versus-theoretical consumption are next in Phase 4C. See the [Phase 4 plan](../Phase-4-Plan.md).

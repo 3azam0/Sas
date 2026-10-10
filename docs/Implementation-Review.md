@@ -1,6 +1,16 @@
 # Fodo implementation review
 
-## Current checkpoint — recipe cost control, 10 October 2026
+## Current checkpoint — production and yield, 10 October 2026
+
+Phase 4B is delivered on local branch `feat/production-yield`, starting from recipe checkpoint `9baa335`. **الإنتاج والتحضير** captures pinned stocked-preparation versions, input/output locations, planned versus actual usable output, actual base-material consumption, abnormal waste and explicit zero-output failed batches. Server acceptance posts document, ingredient issues, exact-cost output layers, allocated values, deduplication and audit together. FIFO fractional output uses adjacent six-decimal prices to conserve twelve-decimal value; moving average blends the output into its destination pool. Stocked children are consumed without also issuing their raw ingredients. Independent stock reconciliation runs before/after posting; shortages roll back the full batch.
+
+Dexie schema 9/recovery format 12 include production in generation checks, global identities, tenant switching, all-location review, projections and atomic archive restore. Setup and pinned recipe publication precede production. Stock operations settle in capture order; pending/rejected production blocks affected count approval, while accepted production invalidates an older count baseline. Failed batches consume actual materials and create no output. Rejected batches support unchanged retry/cancellation and linked fresh-ID correction. Accepted production reversal, server draft lifecycle, substitutions, coproducts and overhead allocation remain deferred.
+
+Validation: 186 unit/integration tests across 30 files, TypeScript and production build/offline manifest passed. 33 browser/process scenarios passed (31 fixture regressions plus 2 isolated empty-workspace checks). Production desktop/mobile screenshots are saved in the output directory; responsive navigation accommodates the added module. The recipe browser regression selects its own created recipe explicitly and waits for offline publication to finish before reload.
+
+Developer guide is version 2.17. Next: Phase 4C external POS sales imports, refunds/voids and actual-versus-theoretical consumption. Memberships, billing, dedicated demo infrastructure and production access remain deferred. No client data was reset, seeded or migrated to the cloud. Local completion does not imply a push, merge or deployment. Restart the existing Fodo server at its saved origin after the local build to see the new module.
+
+## Earlier recipe cost-control checkpoint — 10 October 2026
 
 Phase 4A is delivered on local branch `feat/recipe-cost-control`, stacked on multi-item receiving commit `f3eab23`. Main-menu **الوصفات والتكاليف** supports stock-neutral drafts, immutable publication, exact child-version pinning, compatible unit conversions, positive batch output, optional net selling price and stocked/non-stocked preparations. Cost estimates expose batch/output-unit cost, food-cost percentage and gross contribution using accepted location stock average or latest receiving price. Missing prices and shortages are separate; valid zero costs remain valid.
 
