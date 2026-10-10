@@ -6,7 +6,7 @@
 
 Local branch `feat/receiving-units` starts from composition checkpoint `5d6da5a`. Developer guide is version 2.20. The receipt JSON contract is additive; no database or Dexie schema migration is needed. Recovery export is version 14; versions 1–13 remain readable, while files containing catalog-unit receipt metadata require version 14. Verification passed: 216 unit/integration tests in 34 files, TypeScript, production build/offline manifest and three targeted browser scenarios. Coverage includes automatic/manual factors, foreign units, invalid arithmetic/precision, duplicate delivery, atomic rollback, offline recovery, linked correction, prior packs, receiving/waste and desktop/mobile fit. Screenshots are in the workspace outputs. The client catalog was verified unchanged: 328 items, 20 categories, six units, one main warehouse and zero movements/balances. The launcher and cloud project were preserved. Restart the existing local server at its saved address to load the build. See [Direct receiving walkthrough](./runbooks/Direct-Receiving.md).
 
-This change is a local checkpoint; it has not been pushed or deployed. Phase 4C2 sales consumption/refund and void rules remains next, followed by consumption variance reports.
+Code checkpoint: `4360db3` (`feat(receiving): support all catalog units with explicit conversions`). This change is local; it has not been pushed or deployed. Phase 4C2 sales consumption/refund and void rules remains next, followed by consumption variance reports.
 
 ## Earlier checkpoint — inventory item composition, 11 October 2026
 
