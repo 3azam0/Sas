@@ -1,6 +1,6 @@
 # Fodo SaaS Developer Guide
 
-Version 2.20 — 11 October 2026
+Version 2.21 — 11 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
@@ -13,6 +13,10 @@ This version supersedes the original task order where it conflicts. Fodo is a wo
 Current adapters: Next.js/React; Zustand for UI state; React Hook Form/Zod; custom CSS; Dexie/IndexedDB; PGlite development PostgreSQL; complete tenant snapshots. Tailwind/shadcn, TanStack Query, PowerSync, managed PostgreSQL and production Auth are future decisions/integrations, not installed capabilities. Do not rewrite stable UI state merely to match an earlier technology proposal.
 
 ### Current priority: working application for the first client
+
+The remaining UI work is tracked in [UI and forms completion plan](./UI-UX-Remaining-Work.md). The current `feat/ui-form-polish` changes are local and awaiting final browser verification: TypeScript, the rebuilt production bundle/offline manifest and 216 unit/integration tests passed. Four of five targeted browser scenarios passed before the latest repair; the new mobile receiving check exposed clipped footer actions. The dialog structure was repaired and rebuilt, but that browser check still needs to be rerun. Do not record this checkpoint as delivered yet.
+
+UI/forms follow-up: improve the existing Arabic RTL Fodo interface with consistent readable controls, clear required/optional labels, grouped setup/receiving fields, contextual help and inline errors that focus the relevant input. Long dialogs need a bounded scroll body with their title/close and save/cancel controls remaining reachable. Improve mobile navigation height and touch targets, table readability, keyboard focus and shared styling of existing workflow editors. Keep the navy/orange identity and current form labels/actions, tenant/offline logic, inventory arithmetic and data intact. No client reset, new demo data, launcher changes or business-feature expansion. Work on `feat/ui-form-polish`, stacked from receiving checkpoint `a4fd1dc`; validate actual desktop/mobile views and save/cancel/reload paths before recording delivery.
 
 Receiving-unit follow-up is delivered locally: **وحدة الاستلام** exposes every organization unit alongside the item's fixed purchase packs, keeping the inventory base unit unchanged. Standard kg/g and litre/ml conversions are automatic; other unit relationships require an explicit positive factor per receipt line, never an assumed factor of one. Base quantity/value previews retain cost entry per base inventory unit. Receipt JSON captures the chosen unit names/factor for history and rejected-document correction; local/server validation enforces tenant references, standard ratios, exact arithmetic and six-place quantity limits. New unit metadata extends the receipt contract without a database/Dexie schema migration. Recovery exports format 14, with formats 1–13 still readable. The client's 328 items, 20 categories, six units and main warehouse were verified unchanged with zero stock movements/balances. No units or client fixtures were seeded. See [Direct receiving](./runbooks/Direct-Receiving.md).
 
