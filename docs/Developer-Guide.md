@@ -10,9 +10,11 @@ Button actions keep their click target stable when focus leaves an empty require
 
 # Fodo SaaS Developer Guide
 
-Version 2.25 — 11 October 2026
+Version 2.26 — 11 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
+
+The user has approved temporary trial data in the existing hosted client workspace. See [temporary client data](./runbooks/Temporary-Client-Data.md) and the [verified menu trial release](./releases/client-sample-data-2026-10-11.md). The hosted workspace now has 99 menu mappings, 100 published recipes, 338 catalog items (original 328 plus 10 additions), stock and purchasing/production/sales examples. Prepare the private baseline backup and guarded cleanup before posting sample operations. Prices/recipes/yields are assumptions; original catalog/profile/access must survive cleanup. Real activity begins only after the trial is removed. The production UI retains its normal workflows and no development reset is exposed.
 
 This guide defines the development and release workflow. Fodo now has both local development and a hosted first-client workspace. Code snippets and API names below remain proposed contracts unless the implementation-status section states otherwise.
 

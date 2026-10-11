@@ -13,10 +13,11 @@ import {postRecipe} from '../packages/server/recipes';
 import {postProduction} from '../packages/server/production';
 import {postMenuItem,postSalesImport} from '../packages/server/sales';
 import {generationInput} from '../packages/server/request-generation';
+import {databaseJsonType} from './postgres-json';
 
 declare const Deno:{env:{get(name:string):string|undefined};serve(handler:(request:Request)=>Promise<Response>):void};
 const required=(key:string)=>{const value=Deno.env.get(key);if(!value)throw new Error(`Missing ${key}`);return value;};
-const sql=postgres(required('SUPABASE_DB_URL'),{prepare:false,max:1,idle_timeout:20,connect_timeout:10,ssl:'require'});
+const sql=postgres(required('SUPABASE_DB_URL'),{prepare:false,max:1,idle_timeout:20,connect_timeout:10,ssl:'require',types:{json:databaseJsonType}});
 const base=required('SUPABASE_URL');
 const secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??JSON.parse(required('SUPABASE_SECRET_KEYS')).default;
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
