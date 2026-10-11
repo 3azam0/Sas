@@ -2,6 +2,8 @@ import type {Metadata,Viewport} from 'next';
 import './globals.css';
 import './organization.css';
 import './form-polish.css';
+import './cost-control.css';
+import './screen-polish.css';
 export const metadata:Metadata={title:'Fodo | إدارة المخزون والتكاليف',description:'إدارة المخزون والتكاليف والفروع والعمل دون اتصال',manifest:'/manifest.webmanifest'};
 export const viewport:Viewport={width:'device-width',initialScale:1,themeColor:'#d94b20'};
 export default function Layout({children}:{children:React.ReactNode}){return <html lang="ar" dir="rtl"><body>{children}</body></html>;}

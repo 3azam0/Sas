@@ -6,11 +6,13 @@ The first client is واحة أولاد سعد. Its name, logo and contact detai
 
 Direct stock balance editing and selective sales deduction are documented in [stock balance editing](./runbooks/Stock-Balance-Editing.md), [sales import](./runbooks/Sales-Import.md) and the [client stock behavior release](./releases/client-stock-behavior-2026-10-11.md). Existing tables and JSON documents carry the new metadata; retain applied migrations and the offline database version.
 
+All-screen UI delivery is now hosted: shared pagination, filters and ordering across the 14 main workspace screens and report lists; native dropdown spacing; clearer selected sales deduction and cost-only components; responsive histories and a unified local sync center. Long editors preserve values and validation across pages. See [list controls](./runbooks/UI-Lists.md) and the [verified UI release](./releases/all-screen-ui-2026-10-11.md). This supersedes older local-only UI checkpoint statements below. Paging operates on the downloaded snapshot; full server-history pagination is a separate future task.
+
 Button actions keep their click target stable when focus leaves an empty required field. Defer blur feedback when focus moves to a button; submit still validates every field, while moving between fields keeps inline feedback. This prevents the first Add ingredient click from being lost as validation changes the form height.
 
 # Fodo SaaS Developer Guide
 
-Version 2.26 — 11 October 2026
+Version 2.27 — 11 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 

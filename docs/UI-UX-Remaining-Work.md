@@ -1,3 +1,9 @@
+# Current delivery update — 11 October 2026
+
+All 14 main workspace screens now use shared pagination, filters and sorting on their relevant lists. Dropdown horizontal padding and responsive forms are improved. The hosted release is verified at `fb6bc4d544733047`; see [list behavior](./runbooks/UI-Lists.md) and [release evidence](./releases/all-screen-ui-2026-10-11.md). The guide is version 2.27. No client data was posted or reset during this work. The dated local checkpoint below is retained as history; its catalog counts, delivery state and proposed next phases are not the current hosted state.
+
+---
+
 # Fodo — إكمال الواجهة والنماذج
 
 آخر تحديث: ١١ أكتوبر ٢٠٢٦. الحالة: **تنفيذ مراحل الواجهة 0–5 مكتمل محلياً** على `feat/ui-form-polish`. النطاق هو تطبيق الويب العربي الحالي للمخزون والتحكم في التكاليف والعمل دون اتصال، للعميل الأول.
@@ -33,7 +39,7 @@
 
 نجح TypeScript والبناء الإنتاجي وملف أصول العمل دون اتصال (٤١ أصلًا)، ونجح **٢١٦ اختبار وحدة وتكامل في ٣٤ ملفاً** و**٤٣ سيناريو متصفح/مشغّل**: ٤١ حالة ببيانات اختبار منفصلة وحالتان من حساب فارغ.
 
-قياس البحث بين ٣٢٨ صنفاً: **388 مللي ثانية** من تعبئة البحث حتى ظهور الخيارات المطابقة، شاملًا كلفة أتمتة المتصفح. هذه قراءة محلية واحدة وليست قياساً لأجهزة العملاء أو وعداً بزمن ثابت؛ لا يوجد ما يبرر إضافة تقسيم صفحات للقائمة الحالية.
+قياس البحث بين ٣٢٨ صنفاً: **388 مللي ثانية** من تعبئة البحث حتى ظهور الخيارات المطابقة، شاملًا كلفة أتمتة المتصفح. هذه قراءة محلية واحدة وليست قياساً لأجهزة العملاء أو وعداً بزمن ثابت؛ أضيف تقسيم الصفحات لاحقًا بطلب المستخدم كما هو موضح في تحديث التسليم أدناه.
 
 تُراجع اللقطات في مجلد مخرجات `Fodo-UI-Verification-20261011` ومع لقطات الإعداد والاستلام والوصفات والإنتاج والمبيعات. التحقق في متصفحات وشاشات محاكاة؛ لم يُختبر كل جهاز فعلي أو لوحة مفاتيح نظام تشغيل.
 

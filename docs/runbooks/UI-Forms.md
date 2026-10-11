@@ -31,7 +31,7 @@ Review rows appear first. A source/replacement reference opens its workspace, se
 
 ## Import sales and recover work
 
-Sales import separates source/location, file or pasted CSV, column mapping and preview. Resolve invalid/unmapped/conflicting rows, then confirm completed sales before saving. Repeated accepted details still follow existing deduplication rules. This UI change does not post inventory consumption from sales.
+Sales import separates source/location, file or pasted CSV, column mapping and preview. Resolve invalid/unmapped/conflicting rows, then confirm completed sales before saving. Repeated accepted details still follow existing deduplication rules. New accepted sales deduct available quantities of ingredients selected in the pinned recipe version; all recipe components still contribute to estimated cost. Shortages are accepted and highlighted under the existing hosted policy. This UI release does not change that policy. See [list controls](./UI-Lists.md) for pagination, ordering and hidden-row validation.
 
 Recovery requires a Fodo JSON archive. Invalid files show an Arabic error associated with the file control and keep confirmation disabled. Preview valid archives and their new/duplicate/accepted counts before confirming. Escape closes idle dialogs; actions are disabled during processing. Session renewal retains queued documents.
 

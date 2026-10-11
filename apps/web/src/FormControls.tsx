@@ -41,7 +41,7 @@ function useFeedback(node:React.RefObject<Control|null>,kind?:NumericKind){
 export function FormInput({validateAs,hint,...props}:InputHTMLAttributes<HTMLInputElement>&{validateAs?:NumericKind;hint?:string}){
  const node=useRef<HTMLInputElement>(null),{id,message,context,check}=useFeedback(node,validateAs);
  const described=[props['aria-describedby'],message?id+'-error':undefined,hint?id+'-hint':undefined].filter(Boolean).join(' ')||undefined;
- return <><input {...props} ref={node} aria-invalid={message?true:props['aria-invalid']} aria-describedby={described} onBlur={e=>{props.onBlur?.(e);if(!(e.relatedTarget instanceof HTMLButtonElement))context?.report(id,check());}} onChange={e=>{props.onChange?.(e);if(message||context?.submitted)context?.report(id,check());}}/>{(props.required||hint)&&props.type!=='checkbox'&&<small className="field-hint" id={id+'-hint'}>{props.required&&<span className="field-required">* مطلوب{hint?' · ':''}</span>}{hint}</small>}{message&&<small className="field-error" id={id+'-error'}>{message}</small>}</>;
+ return <><input {...props} ref={node} aria-invalid={message?true:props['aria-invalid']} aria-describedby={described} onInput={e=>{props.onInput?.(e);if(props.type==='date')props.onChange?.(e as unknown as React.ChangeEvent<HTMLInputElement>);}} onBlur={e=>{props.onBlur?.(e);if(!(e.relatedTarget instanceof HTMLButtonElement))context?.report(id,check());}} onChange={e=>{props.onChange?.(e);if(message||context?.submitted)context?.report(id,check());}}/>{(props.required||hint)&&props.type!=='checkbox'&&<small className="field-hint" id={id+'-hint'}>{props.required&&<span className="field-required">* مطلوب{hint?' · ':''}</span>}{hint}</small>}{message&&<small className="field-error" id={id+'-error'}>{message}</small>}</>;
 }
 export const FormSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>>(function FormSelect(props,forwarded){
  const node=useRef<HTMLSelectElement>(null),{id,message,context,check}=useFeedback(node);
@@ -59,14 +59,21 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
 function safeButtons(node:ReactNode,busy:boolean):ReactNode{
  return Children.map(node,child=>{
   if(!isValidElement<{children?:ReactNode;type?:string;disabled?:boolean}>(child))return child;
+  // Render-prop collections retain their own children; the enclosing fieldset handles busy state.
+  if(typeof child.props.children==='function')return child;
   const children=safeButtons(child.props.children,busy);
   return cloneElement(child,child.type==='button'?{type:child.props.type??'button',disabled:busy||child.props.disabled,children}:{children});
  });
 }
-function focusControl(node:Control|null|undefined,form:HTMLFormElement|null){
+export function focusControl(node:Control|null|undefined,form:HTMLFormElement|null){
  if(!node)return;
+ if(node.closest('[data-collection-row]')?.hasAttribute('hidden')){
+  node.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));
+  requestAnimationFrame(()=>focusControl(node,form));
+  return;
+ }
  node.focus({preventScroll:true});
- const body=form?.querySelector<HTMLElement>('.workflow-body');
+ const body=form?.querySelector<HTMLElement>('.workflow-body,.modal-body');
  if(body?.contains(node)){
   const field=(node.closest('label,td')??node).getBoundingClientRect(),viewport=body.getBoundingClientRect();
   const top=field.top<viewport.top+12?field.top-viewport.top-12:field.bottom>viewport.bottom-12?field.bottom-viewport.bottom+12:0;
