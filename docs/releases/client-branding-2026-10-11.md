@@ -15,3 +15,5 @@ Validation: 226 tests across 37 files passed; six focused profile/auth tests als
 The Supabase security advisor reported no database-policy findings. Its existing [leaked password protection notice](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) remains; this branding update does not change Auth settings.
 
 Source branch: `feat/client-branding`, based on the hosted release checkpoint. This update does not merge main. Public client details are recorded in `docs/clients/wahat-awlad-saed.json`; credentials and generated build/browser outputs remain ignored.
+
+Offline-card layout follow-up: `العمل دون اتصال` now uses its own content height instead of stretching to the inventory-category chart. Verified on the hosted site at 1440, 1024 and 390px widths, with the full content and synchronization link visible and no runtime errors. Local production/offline and hosted builds passed. Hosted build `b82596db1badc34b`; deployment `982e39d0ec7a4607a9aeaca007886525`, published at 13:50 UTC.
