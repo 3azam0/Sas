@@ -39,7 +39,7 @@ test('all catalog receiving units support offline conversion, required package c
  let rejected=false;
  await page.route('**/api/v1/receipts',async route=>{if(!rejected){rejected=true;const payload=route.request().postDataJSON();await route.fulfill({status:409,json:{operationId:payload.operationId,outcome:'needs_review',message:'رفض اختبار للتحقق من تصحيح الوحدات'}});}else await route.continue();});
  await context.setOffline(false);await page.getByRole('button',{name:'مزامنة الآن',exact:true}).first().click();
- await expect(history.locator('summary')).toContainText('يحتاج مراجعة');await history.getByRole('button',{name:'تصحيح الاستلام',exact:true}).click();
+ await expect(history.locator('summary')).toContainText('تحتاج مراجعة');await history.getByRole('button',{name:'تصحيح الاستلام',exact:true}).click();
  await expect(page.getByLabel('وحدة الاستلام',{exact:true})).toHaveValue(/unit:/);
  await expect(page.getByLabel('الكمية (جرام)',{exact:true})).toHaveValue('500');await expect(page.getByLabel('محتوى وحدة السطر 2',{exact:true})).toHaveValue('5');
  await page.getByLabel('محتوى وحدة السطر 2',{exact:true}).fill('4');await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();

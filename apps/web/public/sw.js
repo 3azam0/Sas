@@ -1,4 +1,4 @@
-// Fodo build: 1791667157658
+// Fodo build: 1791707623164
 const PREFIX='madar-shell-';
 self.addEventListener('install',event=>event.waitUntil((async()=>{const response=await fetch('/precache.json',{cache:'no-store'});if(!response.ok)throw new Error('Build manifest unavailable');const manifest=await response.json();const cache=await caches.open(PREFIX+manifest.version);await cache.addAll(manifest.assets);await self.skipWaiting();})()));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{const names=await caches.keys();const active=names.filter(n=>n.startsWith(PREFIX)).sort((a,b)=>Number(b.slice(PREFIX.length))-Number(a.slice(PREFIX.length)))[0];await Promise.all(names.filter(n=>n.startsWith(PREFIX)&&n!==active).map(n=>caches.delete(n)));await self.clients.claim();})()));
