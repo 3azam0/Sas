@@ -1,12 +1,16 @@
 # Current scope amendment
 
-The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate theoretical usage only in this release. Earlier delivery entries below remain historical checkpoints.
+The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate all theoretical usage; new imports deduct only ingredients selected in their pinned recipe version. Imports with shortages succeed, deduct available stock and highlight the recorded shortage. Older sales and recipes without selections remain calculation-only. Earlier delivery entries below remain historical checkpoints.
 
 The first client is واحة أولاد سعد. Its name, logo and contact details belong to its tenant profile; clicking المؤسسة الحالية opens the details dialog. The home page keeps the operational overview. See the [organization profile runbook](./runbooks/Organization-Profile.md) and [verified branding release](./releases/client-branding-2026-10-11.md). Keep the hosted bootstrap schema and applied migrations immutable; append later schema changes and save their actual migration version.
 
+Direct stock balance editing and selective sales deduction are documented in [stock balance editing](./runbooks/Stock-Balance-Editing.md), [sales import](./runbooks/Sales-Import.md) and the [client stock behavior release](./releases/client-stock-behavior-2026-10-11.md). Existing tables and JSON documents carry the new metadata; retain applied migrations and the offline database version.
+
+Button actions keep their click target stable when focus leaves an empty required field. Defer blur feedback when focus moves to a button; submit still validates every field, while moving between fields keeps inline feedback. This prevents the first Add ingredient click from being lost as validation changes the form height.
+
 # Fodo SaaS Developer Guide
 
-Version 2.24 — 11 October 2026
+Version 2.25 — 11 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
@@ -70,8 +74,8 @@ Selected cloud project: `bkkxrptgwbrwredauopq` at `https://bkkxrptgwbrwredauopq.
 | 4A — delivered locally | Recipes and ingredient estimates | Immutable pinned versions, conversions, output yield, stock-neutral offline publication, missing-price visibility and recovery |
 | 4B — delivered locally | Production and yield | Pinned inputs, actual usable output, atomic selected-policy consumption/output, abnormal waste, failed batches and exact allocated value |
 | 4C1 — delivered locally | Menu mapping and completed sales | Pinned mapping revisions, CSV preview, external-detail deduplication, stock-neutral offline capture and recovery |
-| 4C2 — delivered | Theoretical sales reporting and hosted client access | Pinned unique accepted sales, current cost basis, missing-price completeness, no stock deduction |
-| 4C3 — later | Period reconciliation | Actual/theoretical comparisons and explicit financial corrections; sales remain stock-neutral |
+| 4C2 — delivered | Theoretical reporting, selective sales deduction and hosted access | Pinned unique sales; every ingredient remains in estimated cost; selected materials deduct available stock with persisted shortage warnings |
+| 4C3 — later | Period reconciliation | Actual/theoretical comparisons, explicit financial corrections and shortage reconciliation |
 | Before live use | Production deployment and minimum access | Real authenticated access for the configured organization, permission checks, isolated production data, migrations and verified restore; no public development-session bypass |
 | Later | Membership administration and broader SaaS operations | Invitations, role-management screens, additional client onboarding, billing and dedicated demo/staging configuration when needed |
 | 5 | Egypt pilot and market adapters | Supported device matrix, regional settings, applicable fiscal integration and operational acceptance |

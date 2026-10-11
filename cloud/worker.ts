@@ -23,7 +23,7 @@ export async function handle(request:Request,env:Env,assets:Assets,buildId:strin
   if(request.headers.get('Origin')!==url.origin)return error(403,'مصدر الطلب غير مسموح.');
   if(Number(request.headers.get('Content-Length')??0)>1024*1024)return error(413,'الطلب يتجاوز الحد المسموح.');
  }
- if(path==='/api/v1/health'&&request.method==='GET')return json({service:'fodo',buildVersion:buildId,mode:'hosted',salesStockPolicy:'calculation_only'});
+ if(path==='/api/v1/health'&&request.method==='GET')return json({service:'fodo',buildVersion:buildId,mode:'hosted',salesStockPolicy:'selected_available_stock',salesShortagePolicy:'accept_and_highlight'});
  if(path==='/api/v1/auth/login'&&request.method==='POST'){
   const text=await request.text();if(text.length>2048)return error(413,'الطلب يتجاوز الحد المسموح.');
   let body:{email:string;password:string;deviceId:string};try{body=JSON.parse(text);}catch{return error(400,'بيانات الطلب غير صالحة.');}

@@ -113,11 +113,12 @@ export type TransferAction={document:TransferCommand;amount:string;postedAt:stri
 
 const countEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),countId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
 export const countCommandSchema=z.discriminatedUnion('type',[
- z.object({...countEnvelope,type:z.literal('count.save'),locationId:recordId,businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),cutoffAt:z.iso.datetime(),stockSequence:z.string().regex(/^(?:0|[1-9]\d{0,18})$/),currency:z.literal('EGP'),lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,expectedQuantity:nonNegative,countedQuantity:nonNegative,surplusUnitCost:nonNegative.optional()})).min(1).max(200)}),
+ z.object({...countEnvelope,type:z.literal('count.save'),entryMode:z.literal('balance_edit').optional(),locationId:recordId,businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),cutoffAt:z.iso.datetime(),stockSequence:z.string().regex(/^(?:0|[1-9]\d{0,18})$/),currency:z.literal('EGP'),lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,expectedQuantity:nonNegative,countedQuantity:nonNegative,surplusUnitCost:nonNegative.optional()})).min(1).max(200)}),
  z.object({...countEnvelope,type:z.literal('count.finalize'),costPolicy:z.literal('explicit'),lines:z.array(z.object({lineId:z.uuid(),movementId:z.uuid()})).min(1).max(200)}),
  z.object({...countEnvelope,type:z.literal('count.cancel'),reason:z.string().trim().min(2).max(200)})
 ]).superRefine((c,ctx)=>{
  if(c.operationId===c.countId)ctx.addIssue({code:'custom',message:'معرّف الجرد مستقل عن العملية'});
+ if(c.type==='count.save'&&c.entryMode==='balance_edit'&&(c.lines.length!==1||c.lines[0].expectedQuantity===c.lines[0].countedQuantity))ctx.addIssue({code:'custom',message:'تعديل الرصيد لمادة واحدة وبكمية جديدة مختلفة'});
  if('lines'in c){const refs=c.lines.map(l=>l.lineId),ids=c.type==='count.save'?c.lines.map(l=>l.itemId):c.lines.map(l=>l.movementId);if(new Set(refs).size!==refs.length||new Set(ids).size!==ids.length||refs.some(id=>id===c.operationId||id===c.countId)||(c.type==='count.finalize'&&ids.some(id=>id===c.operationId||id===c.countId||refs.includes(id))))ctx.addIssue({code:'custom',message:'المواد ومعرّفات سطور الجرد يجب ألا تتكرر'});}
 });
 export type CountCommand=z.infer<typeof countCommandSchema>;
@@ -131,13 +132,14 @@ export const recipeInputUnitSchema=z.enum(['base','g','kg','ml','l']);
 const recipeComponentFields={lineId:z.uuid(),unitId:recordId,inputUnit:recipeInputUnitSchema,enteredQuantity:quantitySchema,quantity:quantitySchema};
 export const recipeDefinitionSchema=z.object({
  code:z.string().trim().min(1).max(60).transform(v=>v.toUpperCase()),name:recordName,
- outputMode:z.enum(['stocked','non_stocked']),outputItemId:recordId.optional(),outputUnitId:recordId,outputQuantity:quantitySchema,effectiveDate:z.iso.date(),salePrice:nonNegative.optional(),
+ outputMode:z.enum(['stocked','non_stocked']),outputItemId:recordId.optional(),outputUnitId:recordId,outputQuantity:quantitySchema,effectiveDate:z.iso.date(),salePrice:nonNegative.optional(),salesStockItemIds:z.array(recordId).max(200).optional(),
  lines:z.array(z.discriminatedUnion('kind',[
   z.object({...recipeComponentFields,kind:z.literal('material'),itemId:recordId}),
   z.object({...recipeComponentFields,kind:z.literal('recipe'),versionId:z.uuid()})
  ])).min(1).max(200)
 }).superRefine((d,ctx)=>{
  if((d.outputMode==='stocked')!==!!d.outputItemId)ctx.addIssue({code:'custom',message:'الناتج المخزني يحتاج مادة مخزون؛ الناتج غير المخزني لا يرتبط بمادة'});
+ if(new Set(d.salesStockItemIds??[]).size!==(d.salesStockItemIds??[]).length)ctx.addIssue({code:'custom',message:'مواد الخصم عند البيع لا تتكرر'});
  if(new Set(d.lines.map(l=>l.lineId)).size!==d.lines.length||new Set(d.lines.map(l=>l.kind==='material'?`item:${l.itemId}`:`version:${l.versionId}`)).size!==d.lines.length)ctx.addIssue({code:'custom',message:'مكونات الوصفة ومعرّفات السطور لا تتكرر'});
 });
 const recipeEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),recipeId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
@@ -180,4 +182,6 @@ export const salesImportSchema=z.object({generation:z.uuid().optional(),operatio
 });
 export type SalesLine=z.infer<typeof salesLineSchema>;
 export type SalesImportDocument=z.infer<typeof salesImportSchema>;
-export type ImportedSales={document:SalesImportDocument;acceptedLineIds:string[];duplicateLineIds:string[];netAmount:string;postedAt:string};
+export type SalesStockDeduction={movementId:string;itemId:string;businessDate:string;quantity:string;amount:string};
+export type SalesStockShortage={itemId:string;businessDate:string;requiredQuantity:string;deductedQuantity:string;shortageQuantity:string};
+export type ImportedSales={document:SalesImportDocument;acceptedLineIds:string[];duplicateLineIds:string[];netAmount:string;postedAt:string;stockDeductions?:SalesStockDeduction[];stockDeductionAmount?:string;stockShortages?:SalesStockShortage[]};

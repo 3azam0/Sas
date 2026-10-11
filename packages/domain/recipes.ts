@@ -23,6 +23,8 @@ export function validateRecipe(snapshot:Pick<Snapshot,'items'|'units'|'recipeVer
   if(d.outputMode==='stocked'&&(item?.id===d.outputItemId||child?.definition.outputItemId===d.outputItemId))throw new BusinessError('RECIPE_CYCLE','الناتج لا يمكن أن يكون مكوناً لنفسه.');
  }
  validateRecipeGraph(recipeId,d,snapshot.recipeVersions??[]);
+ const available=salesStockOptions(recipeId,d,snapshot.recipeVersions??[]);
+ if((d.salesStockItemIds??[]).some(id=>!available.some(r=>r.itemId===id)))throw new BusinessError('INVALID_SALES_STOCK','اختر مواد خصم موجودة في هذا الإصدار؛ التحضير المخزني يخصم مادة الناتج فقط عند البيع.');
 }
 export function validateRecipeGraph(recipeId:string,definition:RecipeDefinition,versions:RecipeVersion[]){
  let nodes=0;const visit=(id:string,d:RecipeDefinition,path:Set<string>,depth:number)=>{
@@ -43,4 +45,10 @@ export function estimateRecipe(snapshot:Snapshot,recipeId:string,d:RecipeDefinit
   return {...r,unitCost,amount:unitCost===null?null:decimal(r.quantity).mul(unitCost).toString(),available:balance?.quantity??'0',shortage:decimal(balance?.quantity??'0').lt(r.quantity),source:policy==='stock_average'?'متوسط المخزون المتبقي':price?`آخر استلام · ${price.businessDate}`:'لا يوجد سعر استلام',sourceOperationId:policy==='latest_receipt'?price?.sourceOperationId:undefined};});
  const complete=!!locationId&&lines.every(l=>l.amount!==null),knownSubtotal=lines.reduce((s,l)=>s.add(l.amount??'0'),decimal('0')).toString();const batchCost=complete?knownSubtotal:null,unitCost=batchCost===null?null:decimal(batchCost).div(d.outputQuantity).toString();const positiveSale=d.salePrice!==undefined&&decimal(d.salePrice).gt(0);
  return {lines,complete,knownSubtotal,batchCost,unitCost,foodCostPercent:unitCost!==null&&positiveSale?decimal(unitCost).div(d.salePrice!).mul('100').toString():null,grossContribution:unitCost!==null&&positiveSale?decimal(d.salePrice!).sub(unitCost).toString():null};
+}
+
+// The selling recipe owns its selection. Stocked preparations stop expansion,
+// so a sale cannot deduct both a prepared item and the ingredients used to make it.
+export function salesStockOptions(recipeId:string,d:RecipeDefinition,versions:RecipeVersion[]):RecipeRequirement[]{
+ return d.outputMode==='stocked'?[{itemId:d.outputItemId!,quantity:d.outputQuantity,paths:[d.name]}]:resolveRecipe(recipeId,d,versions);
 }

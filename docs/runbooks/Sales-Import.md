@@ -1,6 +1,10 @@
 # Menu mapping and completed sales — Phase 4C1
 
-Open **المبيعات**. This slice saves completed sales and their recipe mappings. It does not yet issue stock, post refunds/voids, calculate finalized food cost or replace your POS.
+Open **المبيعات**. Completed sales retain their recipe mappings and pinned versions. New sales issue only selected materials up to availability, with shortages highlighted. Refunds/voids and finalized full recipe food cost remain deferred.
+
+In the recipe draft, use **خصم المخزون عند البيع** to select materials. Unchecked materials still contribute to estimated recipe cost. Non-stocked child recipes expand to ingredients; stocked preparations appear as their output material. When selling a stocked preparation itself, choose its output rather than raw inputs. Publish the version and update the menu mapping to use it. Existing sales keep their prior selection and history.
+
+The import preview lists selected required, available, expected deducted and shortage quantities. A shortage permits saving and acceptance. The server values available issues using the organization's FIFO/moving average, records the actual shortage as of acceptance and never creates negative balances. **سجل المبيعات** highlights required/deducted/missing quantities and the accepted selected stock value separately from full estimated recipe cost. Later additions do not automatically backfill a historical shortage. Duplicate imported details never issue twice; ordinary mapping, identity, tenant and corrupt-ledger checks remain enforced.
 
 ## Map your menu codes
 

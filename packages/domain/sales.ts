@@ -1,6 +1,7 @@
 import {BusinessError,menuItemSchema,salesLineSchema,type MenuItem,type SalesLine,type SalesImportDocument,type Snapshot} from '@saas/contracts';
 import {decimal} from './index';
 import {normalizeNumber,parseOpeningCSV} from './opening-import';
+import {salesStockOptions} from './recipes';
 export const salesCSV=parseOpeningCSV;
 export type SalesCSVMapping={transactionId:number;lineKey:number;code:number;businessDate:number;quantity:number;netAmount:number;status:number};
 export const saleKey=(source:string,locationId:string,l:Pick<SalesLine,'businessDate'|'transactionId'|'lineKey'>)=>JSON.stringify([source,locationId,l.businessDate,l.transactionId,l.lineKey]);
@@ -33,4 +34,22 @@ export function previewSales(snapshot:Pick<Snapshot,'salesImports'>,doc:SalesImp
  const known=acceptedSales(snapshot);
  const lines=doc.lines.map(l=>{const old=known.get(saleKey(doc.source,doc.locationId,l));return {line:l,state:old?salePayload(old)===salePayload(l)?'duplicate' as const:'conflict' as const:'new' as const};});
  return {lines,newCount:lines.filter(l=>l.state==='new').length,duplicateCount:lines.filter(l=>l.state==='duplicate').length,conflictCount:lines.filter(l=>l.state==='conflict').length,netAmount:lines.filter(l=>l.state==='new').reduce((sum,l)=>sum.add(l.line.netAmount),decimal('0')).toFixed(6)};
+}
+
+export function salesStockRequirements(snapshot:Pick<Snapshot,'recipeVersions'>,lines:SalesLine[]){
+ const totals=new Map<string,{itemId:string;businessDate:string;quantity:string}>();
+ for(const sale of lines){
+  const version=snapshot.recipeVersions?.find(v=>v.versionId===sale.versionId);if(!version)throw new BusinessError('INVALID_RECIPE','إصدار وصفة البيع غير متاح.');
+  const d=version.definition,selected=new Set(d.salesStockItemIds??[]);if(!selected.size)continue;const options=salesStockOptions(version.recipeId,d,snapshot.recipeVersions??[]);
+  if([...selected].some(id=>!options.some(r=>r.itemId===id)))throw new BusinessError('INVALID_SALES_STOCK','مواد خصم الإصدار لا تطابق مكوناته.');
+  for(const r of options.filter(r=>selected.has(r.itemId))){
+   const key=JSON.stringify([sale.businessDate,r.itemId]),old=totals.get(key),q=decimal(r.quantity).mul(sale.quantity).mul(sale.outputPerSale).div(d.outputQuantity);
+   totals.set(key,{itemId:r.itemId,businessDate:sale.businessDate,quantity:decimal(old?.quantity??'0').add(q).toString()});
+  }
+ }
+ // Aggregate first, then round once per material/day to the inventory's six places.
+ return [...totals.values()].sort((a,b)=>a.businessDate.localeCompare(b.businessDate)||a.itemId.localeCompare(b.itemId)).map(r=>{
+  const q=decimal(r.quantity).toDecimalPlaces(6);if(q.gt('999999999.999999'))throw new BusinessError('QUANTITY_TOO_LARGE','قسّم ملف البيع؛ كمية خصم المادة تتجاوز الحد.');
+  return {...r,quantity:q.toFixed(6)};
+ }).filter(r=>decimal(r.quantity).gt(0));
 }

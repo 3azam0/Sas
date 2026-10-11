@@ -50,6 +50,8 @@ export async function postCount(db:Database,access:Access,input:unknown):Promise
   const revision=c.expectedRevision+1;let amount:string|undefined;
   if(c.type==='count.save'){
    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());if(c.businessDate>today||Date.parse(c.cutoffAt)>Date.now()+300000)throw new BusinessError('FUTURE_DATE','تاريخ أو وقت الجرد في المستقبل.');
+   if(current&&current.payload.entryMode!==c.entryMode)throw new BusinessError('BASELINE_MISMATCH','نوع التسوية ثابت؛ استخدم مستنداً جديداً.');
+   if(c.entryMode==='balance_edit'&&!(await tx.query('SELECT 1 FROM items WHERE organization_id=$1 AND id=$2 AND active',[c.organizationId,c.lines[0].itemId])).rows.length)throw new BusinessError('INVALID_REFERENCE','مادة تعديل الرصيد غير نشطة.');
    if(current&&current.payload.locationId!==c.locationId)throw new BusinessError('INVALID_REFERENCE','لا يمكن نقل الجرد إلى موقع آخر.');
    if(current&&(current.payload.stockSequence!==c.stockSequence||current.payload.cutoffAt!==c.cutoffAt||c.lines.some(l=>{const old=current.payload.lines.find(x=>x.itemId===l.itemId);return old&&!decimal(old.expectedQuantity).eq(l.expectedQuantity);})))throw new BusinessError('BASELINE_MISMATCH','تعديل المسودة يحافظ على أساسها. أنشئ جرداً جديداً بعد إعادة العد الفعلي.');
    if(!(await tx.query('SELECT 1 FROM locations WHERE organization_id=$1 AND id=$2 AND active',[c.organizationId,c.locationId])).rows.length)throw new BusinessError('INVALID_REFERENCE','موقع الجرد غير متاح أو غير نشط.');

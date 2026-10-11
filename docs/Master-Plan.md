@@ -1,6 +1,6 @@
 # Current scope amendment
 
-The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate theoretical usage only in this release. Earlier delivery entries below remain historical checkpoints.
+The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate all theoretical usage; new imports deduct only ingredients selected in their pinned recipe version. Imports with shortages succeed, deduct available stock and highlight the recorded shortage. Older sales and recipes without selections remain calculation-only. Earlier delivery entries below remain historical checkpoints.
 
 # Fodo — Modular Business Management SaaS Master Plan
 
