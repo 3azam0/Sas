@@ -1,8 +1,8 @@
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {randomUUID,createHash} from 'node:crypto';
 import {BusinessError,costingCommandSchema,type Access,type CostingMethod,type CommandResult} from '@saas/contracts';
 import {addIncomingStock} from './incoming';
-type Tx=Pick<PGlite,'query'>;
+type Tx=Pick<Database,'query'>;
 export async function seedDevelopmentStock(tx:Tx,org:string,method:CostingMethod){
  const sites=(await tx.query<{id:string}>('SELECT id FROM locations WHERE organization_id=$1 AND active ORDER BY id',[org])).rows;
  const items=(await tx.query<{id:string}>('SELECT id FROM items WHERE organization_id=$1 AND active ORDER BY id',[org])).rows;
@@ -16,12 +16,12 @@ export async function resetDevelopmentOrganization(tx:Tx,org:string,method:Costi
  if(clearCatalog)for(const table of ['menu_items','recipe_dependencies','recipe_versions','recipe_revisions','recipes','items','suppliers','units','locations'])await tx.query(`DELETE FROM ${table} WHERE organization_id=$1`,[org]);
  await tx.query('UPDATE organizations SET costing_method=$2,costing_revision=costing_revision+1,generation=gen_random_uuid(),development_baseline=true,development_empty_baseline=true WHERE id=$1',[org,method]);
 }
-export async function initializeDevelopmentBaseline(db:PGlite){
+export async function initializeDevelopmentBaseline(db:Database){
  if(process.env.SAAS_DEMO_MODE!=='1')return;
  await db.transaction(async tx=>{const orgs=(await tx.query<{id:string}>('SELECT id FROM organizations WHERE NOT development_empty_baseline FOR UPDATE')).rows;for(const org of orgs)await resetDevelopmentOrganization(tx,org.id,'moving_average',true);});
 }
 // Online development configuration explicitly clears transactions; never converts posted live history.
-export async function postCosting(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postCosting(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  if(process.env.SAAS_DEMO_MODE!=='1')throw new BusinessError('FORBIDDEN','إعادة بيانات التطوير متاحة في بيئة التطوير فقط.',403);
  const p=costingCommandSchema.safeParse(input);if(!p.success)throw new BusinessError('INVALID_COMMAND','اختر طريقة التكلفة وأكد إعادة البيانات التجريبية.',400);const c=p.data;
  if(c.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','الجلسة غير متاحة لهذه المؤسسة.',403);

@@ -1,5 +1,5 @@
 import {planIssue,applyIssue} from './valuation';
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {BusinessError,type SupplierReturn,type CommandResult,type PostedSupplierReturn,type ReturnSource} from '@saas/contracts';
 import {decimal} from '@saas/domain';
@@ -16,7 +16,7 @@ DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='stock_retur
 CREATE INDEX IF NOT EXISTS stock_return_lookup ON stock_entries(organization_id,supplier_return_id);
 `;
 type SourceRow={receiptId:string;orderId:string;supplierId:string;locationId:string;reference:string;sourceMovementId:string;itemId:string;unitId:string;unitName:string;quantity:string;available:string;returned:string;unitCost:string};
-export async function returnSnapshot(tx:Pick<PGlite,'query'>,org:string){
+export async function returnSnapshot(tx:Pick<Database,'query'>,org:string){
  const docs=await tx.query<PostedSupplierReturn>('SELECT payload AS document,amount::text,COALESCE(inventory_amount,amount)::text AS "inventoryAmount",(COALESCE(inventory_amount,amount)-amount)::text AS "valuationDifference",posted_at::text AS "postedAt" FROM supplier_returns WHERE organization_id=$1 ORDER BY posted_at',[org]);
  const sources=await tx.query<SourceRow>(`SELECT r.operation_id AS "receiptId",r.order_id AS "orderId",e.supplier_id AS "supplierId",e.location_id AS "locationId",e.reason AS reference,e.operation_id AS "sourceMovementId",e.item_id AS "itemId",i.unit_id AS "unitId",i.unit AS "unitName",e.quantity::text,l.remaining::text AS available,l.unit_cost::text AS "unitCost",COALESCE((SELECT sum(x.quantity) FROM supplier_return_lines x WHERE x.organization_id=e.organization_id AND x.source_movement_id=e.operation_id),0)::text AS returned FROM purchase_receipts r JOIN stock_entries e ON e.organization_id=r.organization_id AND e.purchase_receipt_id=r.operation_id AND e.type='purchase.receive' JOIN cost_layers l ON l.organization_id=e.organization_id AND l.sequence=e.sequence JOIN items i ON i.organization_id=e.organization_id AND i.id=e.item_id WHERE r.organization_id=$1 AND NOT r.reversed ORDER BY r.posted_at,e.sequence`,[org]);
  const grouped=new Map<string,ReturnSource>();for(const row of sources.rows){let source=grouped.get(row.receiptId);if(!source){source={receiptId:row.receiptId,orderId:row.orderId,supplierId:row.supplierId,locationId:row.locationId,reference:row.reference,lines:[]};grouped.set(row.receiptId,source);}source.lines.push({sourceMovementId:row.sourceMovementId,itemId:row.itemId,unitId:row.unitId,unitName:row.unitName,quantity:row.quantity,available:row.available,returned:row.returned,unitCost:row.unitCost});}
@@ -24,7 +24,7 @@ export async function returnSnapshot(tx:Pick<PGlite,'query'>,org:string){
 }
 // Caller holds the tenant and order locks. Only original receipt layers qualify;
 // aggregate branch stock and other receipts must never satisfy a source return.
-export async function postReturnLines(tx:Pick<PGlite,'query'>,c:SupplierReturn):Promise<string>{
+export async function postReturnLines(tx:Pick<Database,'query'>,c:SupplierReturn):Promise<string>{
  const receipt=(await tx.query<{reversed:boolean}>('SELECT reversed FROM purchase_receipts WHERE organization_id=$1 AND operation_id=$2 AND order_id=$3 FOR UPDATE',[c.organizationId,c.receiptId,c.orderId])).rows[0];if(!receipt||receipt.reversed)throw new BusinessError('INVALID_REFERENCE','الاستلام الأصلي غير متاح أو تم عكسه.');
  const ids=[c.operationId,...c.lines.map(l=>l.movementId)];if((await tx.query('SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=ANY($2::uuid[]) UNION ALL SELECT 1 FROM stock_entries WHERE organization_id=$1 AND operation_id=ANY($2::uuid[])',[c.organizationId,ids])).rows.length)throw new BusinessError('PAYLOAD_CONFLICT','معرّف المستند أو سطر المرتجع مستخدم بالفعل.');
  const prepared=[];let total=decimal('0'),inventory=decimal('0');

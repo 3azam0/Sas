@@ -1,9 +1,9 @@
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {recipeCommandSchema,BusinessError,type Access,type CommandResult,type Recipe,type RecipeVersion,type Item,type Unit,type ReceiptPrice} from '@saas/contracts';
 import {validateRecipe} from '../domain/recipes';
 import {assertGeneration} from './valuation';
-type Tx=Pick<PGlite,'query'>;
+type Tx=Pick<Database,'query'>;
 export const recipeTables=`
 CREATE TABLE IF NOT EXISTS recipes(organization_id text NOT NULL REFERENCES organizations(id),recipe_id uuid NOT NULL,code text NOT NULL,revision integer NOT NULL,state text NOT NULL CHECK(state IN ('draft','published')),payload jsonb NOT NULL,published_version_id uuid,PRIMARY KEY(organization_id,recipe_id),UNIQUE(organization_id,code));
 CREATE TABLE IF NOT EXISTS recipe_versions(organization_id text NOT NULL,version_id uuid NOT NULL,recipe_id uuid NOT NULL,version_number integer NOT NULL,payload jsonb NOT NULL,published_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(organization_id,version_id),UNIQUE(organization_id,recipe_id,version_number),FOREIGN KEY(organization_id,recipe_id) REFERENCES recipes(organization_id,recipe_id));
@@ -18,7 +18,7 @@ export async function recipeSnapshot(tx:Tx,org:string){
  const receiptPrices=(await tx.query<ReceiptPrice>(`SELECT DISTINCT ON(location_id,item_id) location_id AS "locationId",item_id AS "itemId",(amount/quantity)::text AS "unitCost",business_date::text AS "businessDate",posted_at::text AS "postedAt",operation_id AS "sourceOperationId" FROM stock_entries WHERE organization_id=$1 AND quantity>0 AND type IN ('receipt.post','purchase.receive') ORDER BY location_id,item_id,sequence DESC`,[org])).rows;
  return {recipes,recipeVersions,receiptPrices};
 }
-export async function postRecipe(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postRecipe(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const parsed=recipeCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_RECIPE','راجع تعريف الوصفة والمكونات والكميات.',400);const c=parsed.data,org=c.organizationId;
  if(org!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','الجلسة لا تسمح بتعديل هذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');

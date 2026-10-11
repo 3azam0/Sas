@@ -1,3 +1,7 @@
+# Current scope amendment
+
+The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate theoretical usage only in this release. Earlier delivery entries below remain historical checkpoints.
+
 # Phase 4 — restaurant cost control
 
 ## 4A: recipes and transparent cost estimates — delivered locally
@@ -44,6 +48,10 @@ Acceptance: stock-neutral sales capture, source/branch/tenant/date separation, l
 
 Verification passed: 202 unit/integration tests across 33 files, 35 browser/process scenarios (33 fixture regressions plus 2 isolated empty-workspace checks), TypeScript, production build and offline manifest. See [Sales import walkthrough](./runbooks/Sales-Import.md).
 
-## 4C2–4C3: consumption and reconciliation (next)
+## 4C2: theoretical sales reporting — delivered
 
-Consume accepted pinned sales under the selected inventory policy, respecting stocked preparation boundaries and handling refunds/voids explicitly. Then add actual-versus-theoretical consumption and food-cost reports. Membership, subscriptions, separate demo deployment, country tax adapters and production access controls remain deferred under the current development scope.
+Use unique accepted sales, their pinned versions and saved output-per-sale. Resolve non-stocked recipes, stopping at stocked preparation boundaries (including a stocked root). Aggregate by location and business-date range. Estimate quantities/cost using current stock-average or latest-receipt prices, expose missing prices and zero values, and label the result as an estimate. Do not create sales stock entries or change balances/layers. Offline pending imports enter the report only after server acceptance.
+
+## 4C3: period reconciliation — later
+
+Add independently reconciled actual/theoretical period comparisons and explicit completed-sale financial corrections. Sales remain calculation-only unless the user explicitly agrees to change that policy. Billing, membership administration, demo provisioning and country-specific fiscal adapters remain deferred. Hosted authentication and database tenant isolation are implemented as part of the first-client release.

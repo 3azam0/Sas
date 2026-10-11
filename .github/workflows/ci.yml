@@ -37,6 +37,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Build hosted frontend and backend without deployment credentials
+        run: pnpm build:cloud
+        env:
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_not_a_live_key
       - run: pnpm exec playwright install --with-deps chrome
       - name: Offline, recovery and launcher scenarios
         run: pnpm test:browser

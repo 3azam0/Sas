@@ -1,12 +1,12 @@
 import {assertGeneration} from './valuation';
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {receiptDocumentSchema,BusinessError,type Access,type CommandResult} from '@saas/contracts';
 import {decimal} from '@saas/domain';
 import {validateReceiptLineConversion} from '../domain/receiving';
 import {addIncomingStock} from './incoming';
 
-export async function postReceiptDocument(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postReceiptDocument(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const parsed=receiptDocumentSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_RECEIPT','تحقق من سطور الاستلام (٢٠٠ سطر كحد أقصى).',400);
  const doc=parsed.data;
  if(doc.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);

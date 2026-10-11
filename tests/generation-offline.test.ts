@@ -29,11 +29,11 @@ it('retains pending work on a failed preflight and uses the current generation w
 });
 it('allows a matching recovery archive and rejects old or missing generations without partial writes',async()=>{
  await acceptSnapshot(snapshot);await saveCommand(command());const archive=await recoveryArchive('grills');expect(archive.version).toBe(14);expect(archive.generation).toBe(generation);await local.commands.clear();expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(1);await local.commands.clear();
- for(const stale of [{...archive,generation:crypto.randomUUID()},{...archive,version:8,generation:undefined}])await expect(restoreRecovery(JSON.stringify(stale),'grills')).rejects.toThrow('قبل إعادة');
+ for(const stale of [{...archive,generation:crypto.randomUUID()},{...archive,version:8,generation:undefined}])await expect(restoreRecovery(JSON.stringify(stale),'grills')).rejects.toThrow('نسخة سابقة');
  expect(await local.commands.count()).toBe(0);
 });
 it('rejects a stale open form and prevents relabelling old payloads inside a current archive',async()=>{
  await acceptSnapshot(snapshot);const c={...command(),generation};await saveCommand(c);const archive=await recoveryArchive('grills');const fresh={...snapshot,generation:crypto.randomUUID()};await acceptSnapshot(fresh);
  await expect(saveCommand({...c,operationId:crypto.randomUUID()})).rejects.toThrow('قبل إعادة');
- await expect(restoreRecovery(JSON.stringify({...archive,generation:fresh.generation}),'grills')).rejects.toThrow('قبل إعادة');expect(await local.commands.count()).toBe(0);
+ await expect(restoreRecovery(JSON.stringify({...archive,generation:fresh.generation}),'grills')).rejects.toThrow('نسخة سابقة');expect(await local.commands.count()).toBe(0);
 });

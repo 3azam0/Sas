@@ -1,5 +1,5 @@
 import {assertGeneration,planIssue,applyIssue} from './valuation';
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {BusinessError,countCommandSchema,type Access,type CommandResult,type CountDefinition,type CountChange,type FinalizedCount,type StockCount,type StockReconciliation,type Layer} from '@saas/contracts';
 import {allocateFIFO,decimal} from '@saas/domain';
@@ -19,14 +19,14 @@ CREATE INDEX IF NOT EXISTS stock_location_item_lookup ON stock_entries(organizat
 `;
 
 // Aggregate each independent source first; joining raw rows would multiply values.
-export async function reconcileStock(tx:Pick<PGlite,'query'>,org:string):Promise<StockReconciliation[]>{
+export async function reconcileStock(tx:Pick<Database,'query'>,org:string):Promise<StockReconciliation[]>{
  const balances=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",quantity::text,value::text FROM stock_balances WHERE organization_id=$1',[org])).rows;
  const ledger=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",sum(quantity)::text AS quantity,sum(amount)::text AS value FROM stock_entries WHERE organization_id=$1 GROUP BY location_id,item_id',[org])).rows;
  const layers=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",sum(remaining)::text AS quantity,sum(COALESCE(remaining_value,remaining*unit_cost))::text AS value FROM cost_layers WHERE organization_id=$1 GROUP BY location_id,item_id',[org])).rows;
  const key=(r:{locationId:string;itemId:string})=>JSON.stringify([r.locationId,r.itemId]);const b=new Map(balances.map(r=>[key(r),r])),e=new Map(ledger.map(r=>[key(r),r])),l=new Map(layers.map(r=>[key(r),r]));
  return [...new Set([...b.keys(),...e.keys(),...l.keys()])].map(k=>{const row=b.get(k)??e.get(k)??l.get(k)!;const balanceQuantity=b.get(k)?.quantity??'0',balanceValue=b.get(k)?.value??'0',ledgerQuantity=e.get(k)?.quantity??'0',ledgerValue=e.get(k)?.value??'0',layerQuantity=l.get(k)?.quantity??'0',layerValue=l.get(k)?.value??'0';return {locationId:row.locationId,itemId:row.itemId,balanceQuantity,balanceValue,ledgerQuantity,ledgerValue,layerQuantity,layerValue,matches:decimal(balanceQuantity).eq(ledgerQuantity)&&decimal(balanceQuantity).eq(layerQuantity)&&decimal(balanceValue).eq(ledgerValue)&&decimal(balanceValue).eq(layerValue)};});
 }
-export async function countSnapshot(tx:Pick<PGlite,'query'>,org:string){
+export async function countSnapshot(tx:Pick<Database,'query'>,org:string){
  const docs=(await tx.query<StockCount>('SELECT count_id AS "countId",revision,state,payload AS document,posted_at::text AS "postedAt" FROM stock_counts WHERE organization_id=$1 ORDER BY posted_at',[org])).rows;
  const finals=(await tx.query<FinalizedCount>('SELECT payload AS document,changes,amount::text,posted_at::text AS "postedAt" FROM count_finalizations WHERE organization_id=$1',[org])).rows;
  const revisions=(await tx.query<{countId:string;revision:number;command:import('@saas/contracts').CountCommand;postedAt:string}>('SELECT count_id AS "countId",revision,payload AS command,posted_at::text AS "postedAt" FROM count_revisions WHERE organization_id=$1 ORDER BY posted_at,revision',[org])).rows;
@@ -34,7 +34,7 @@ export async function countSnapshot(tx:Pick<PGlite,'query'>,org:string){
  return {counts:docs.map(d=>({...d,finalization:finals.find(f=>f.document.countId===d.countId)})),countRevisions:revisions,stockCheckpoints:points,reconciliation:await reconcileStock(tx,org)};
 }
 
-export async function postCount(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postCount(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const parsed=countCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من مستند الجرد.',400);const c=parsed.data;
  if(c.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');

@@ -1,11 +1,11 @@
 import {assertGeneration,planIssue,applyIssue} from './valuation';
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {openingSchema,BusinessError,type Access,type CommandResult} from '@saas/contracts';
 import {decimal} from '@saas/domain';
 import {addIncomingStock} from './incoming';
 
-export async function postOpening(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postOpening(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const parsed=openingSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_OPENING','تحقق من سطور الرصيد الافتتاحي (٢٠٠ سطر كحد أقصى).',400);
  const doc=parsed.data;
  if(doc.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);

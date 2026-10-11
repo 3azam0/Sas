@@ -1,16 +1,47 @@
 {
-  "name": "restaurant-saas", "private": true, "version": "0.1.0",
-  "packageManager": "pnpm@11.25.0", "engines": { "node": ">=24 <25" },
+  "name": "restaurant-saas",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
-    "dev": "node scripts/next.mjs dev", "build": "node scripts/next.mjs build && node scripts/precache.mjs",
-    "start": "node scripts/next.mjs start", "typecheck": "tsc --noEmit",
-    "test": "vitest run", "test:e2e": "playwright test", "test:browser": "node scripts/browser-check.mjs", "check": "pnpm typecheck && pnpm test",
-    "setup:check": "node scripts/environment.mjs"
+    "dev": "node scripts/next.mjs dev",
+    "build": "node scripts/next.mjs build && node scripts/precache.mjs",
+    "start": "node scripts/next.mjs start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:browser": "node scripts/browser-check.mjs",
+    "check": "pnpm typecheck && pnpm test",
+    "setup:check": "node scripts/environment.mjs",
+    "build:cloud": "node scripts/build-cloud.mjs",
+    "test:cloud": "node scripts/verify-cloud.mjs",
+    "types:cloud": "wrangler types cloud/worker-configuration.d.ts --config .cloud-build/wrangler.json --include-runtime false --strict-vars false"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.5.8", "next": "16.4.0", "react": "19.3.0", "react-dom": "19.3.0",
-    "dexie": "4.4.6", "dexie-react-hooks": "4.4.0", "decimal.js": "10.6.0",
-    "zustand": "5.0.15", "zod": "4.6.5", "react-hook-form": "7.89.0"
+    "@electric-sql/pglite": "0.5.8",
+    "decimal.js": "10.6.0",
+    "dexie": "4.4.6",
+    "dexie-react-hooks": "4.4.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "7.89.0",
+    "zod": "4.6.5",
+    "zustand": "5.0.15"
   },
-  "devDependencies": { "typescript": "5.9.3", "@types/node": "24.10.1", "@types/react": "19.3.0", "@types/react-dom": "19.3.0", "vitest": "5.0.3", "fake-indexeddb": "6.2.5", "@playwright/test": "1.64.0" }
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261011.1",
+    "@playwright/test": "1.64.0",
+    "@types/node": "24.10.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2",
+    "fake-indexeddb": "6.2.5",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3",
+    "wrangler": "4.149.0"
+  }
 }

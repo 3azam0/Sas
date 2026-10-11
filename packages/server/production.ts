@@ -1,4 +1,4 @@
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash,randomUUID} from 'node:crypto';
 import {productionSchema,BusinessError,type Access,type CommandResult,type PostedProduction,type Snapshot,type ProductionLineCost} from '@saas/contracts';
 import {decimal} from '@saas/domain';
@@ -17,8 +17,8 @@ ALTER TABLE stock_entries ADD COLUMN IF NOT EXISTS production_id uuid;
 DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='stock_production_scope') THEN ALTER TABLE stock_entries ADD CONSTRAINT stock_production_scope FOREIGN KEY(organization_id,production_id) REFERENCES production_batches(organization_id,operation_id); END IF; END $$;
 CREATE INDEX IF NOT EXISTS stock_production_lookup ON stock_entries(organization_id,production_id);
 `;
-export async function productionSnapshot(tx:Pick<PGlite,'query'>,org:string){return {productions:(await tx.query<{result:PostedProduction}>('SELECT result FROM production_batches WHERE organization_id=$1 ORDER BY posted_at DESC',[org])).rows.map(r=>r.result)};}
-export async function postProduction(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function productionSnapshot(tx:Pick<Database,'query'>,org:string){return {productions:(await tx.query<{result:PostedProduction}>('SELECT result FROM production_batches WHERE organization_id=$1 ORDER BY posted_at DESC',[org])).rows.map(r=>r.result)};}
+export async function postProduction(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const parsed=productionSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_PRODUCTION','راجع الكميات والناتج وأسباب الهالك أو فشل الدفعة.',400);const c=parsed.data,org=c.organizationId;
  if(org!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','الجلسة لا تسمح بالإنتاج لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');

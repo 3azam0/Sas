@@ -10,6 +10,7 @@ test('all catalog receiving units support offline conversion, required package c
  const names=['جرام','عدد','لتر','رول','أنبوبة','لوح'];
  for(const name of names){if(before.units.some((u:any)=>u.name===name))continue;
   await page.getByRole('button',{name:'إضافة وحدة',exact:true}).click();await page.getByLabel('اسم السجل').fill(name);await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();
+  await expect(page.getByRole('dialog')).not.toBeVisible(); // Wait for the durable save before reload.
  }
  await page.reload();await page.getByLabel('الموقع',{exact:true}).selectOption('cairo');await page.getByRole('button',{name:'استلام مواد',exact:true}).click();
  await page.getByLabel('المادة',{exact:true}).selectOption('rice');

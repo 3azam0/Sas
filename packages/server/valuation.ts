@@ -1,7 +1,7 @@
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {BusinessError,type CostingMethod,type Layer} from '@saas/contracts';
 import {allocateFIFO,decimal} from '@saas/domain';
-type Tx=Pick<PGlite,'query'>;
+type Tx=Pick<Database,'query'>;
 export async function assertAveragePool(tx:Tx,org:string,location:string,item:string){
  if(await costingMethod(tx,org)!=='moving_average')return;
  const b=(await tx.query<{quantity:string;value:string}>('SELECT quantity::text,value::text FROM stock_balances WHERE organization_id=$1 AND location_id=$2 AND item_id=$3 FOR UPDATE',[org,location,item])).rows[0]??{quantity:'0',value:'0'};

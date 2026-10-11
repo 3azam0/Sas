@@ -16,3 +16,6 @@ apps/web/public/precache.json
 !.env.example
 .data*/
 backups/
+
+.cloud-build/
+cloud/generated-assets.ts

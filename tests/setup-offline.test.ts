@@ -7,6 +7,15 @@ const snapshot:Snapshot={organizationId:'grills',organizationName:'Fixture',curr
 const unit=()=>setupCommandSchema.parse({operationId:crypto.randomUUID(),organizationId:'grills',type:'unit.save',record:{id:crypto.randomUUID(),name:'كجم اختبار'},expectedRevision:0,capturedAt:now(),schemaVersion:1});
 const item=(unitId:string)=>setupCommandSchema.parse({operationId:crypto.randomUUID(),organizationId:'grills',type:'item.save',record:{id:crypto.randomUUID(),name:'مادة اختبار',sku:'TEST',category:'مواد غذائية',unitId,minimum:'0',active:true,purchaseUnits:[]},expectedRevision:0,capturedAt:now(),schemaVersion:1});
 afterEach(async()=>{vi.unstubAllGlobals();await local.setups.clear();await local.commands.clear();await local.snapshots.clear();});
+it('round-trips hosted tenant recovery while rejecting a different organization',async()=>{
+ const organizationId=crypto.randomUUID(),generation=crypto.randomUUID();
+ await acceptSnapshot({...snapshot,organizationId,generation,access:{...snapshot.access,organizationId}});
+ const command={...unit(),organizationId,generation};await saveSetup(command);
+ const text=JSON.stringify(await recoveryArchive(organizationId));await local.setups.clear();
+ expect((await restoreRecovery(text,organizationId)).newCount).toBe(1);
+ expect((await local.setups.get(command.operationId))?.scope).toBe(organizationId);
+ await expect(restoreRecovery(text,'grills')).rejects.toThrow('مؤسسة أخرى');
+});
 it('persists offline setup through reload and projects new items without changing confirmed stock',async()=>{
  await acceptSnapshot(snapshot);const u=unit(),i=item(u.record.id);await saveSetup(u);await saveSetup(i);local.close();await local.open();
  const projected=projectSetup(snapshot,await local.setups.toArray());expect(projected.items[0]).toMatchObject({id:i.record.id,unit:'كجم اختبار'});expect(projected.balances).toHaveLength(0);expect(snapshot.items).toHaveLength(0);

@@ -1,6 +1,6 @@
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import {returnSnapshot,postReturnLines} from './supplier-returns';
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash,randomUUID} from 'node:crypto';
 import {purchaseCommandSchema,BusinessError,type Access,type CommandResult,type PurchaseOrder,type PurchaseDefinition,type PurchaseReceipt,type Item} from '@saas/contracts';
 import {decimal} from '@saas/domain';
@@ -17,13 +17,13 @@ CREATE INDEX IF NOT EXISTS purchase_receipts_order_lookup ON purchase_receipts(o
 CREATE INDEX IF NOT EXISTS stock_purchase_receipt_lookup ON stock_entries(organization_id,purchase_receipt_id);
 CREATE INDEX IF NOT EXISTS cost_layer_origin_lookup ON cost_layers(organization_id,sequence);
 `;
-export async function purchaseSnapshot(tx:Pick<PGlite,'query'>,org:string){
+export async function purchaseSnapshot(tx:Pick<Database,'query'>,org:string){
  const orders=await tx.query<PurchaseOrder>('SELECT order_id AS "orderId",revision,state,payload AS document,received FROM purchase_orders WHERE organization_id=$1 ORDER BY order_id',[org]);
  const receipts=await tx.query<PurchaseReceipt>('SELECT payload AS document,amount::text,posted_at::text AS "postedAt",reversed FROM purchase_receipts WHERE organization_id=$1 ORDER BY posted_at',[org]);
  const revisions=await tx.query<{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}>('SELECT order_id AS "orderId",revision,payload AS record FROM purchase_revisions WHERE organization_id=$1 ORDER BY order_id,revision',[org]);
  return {purchaseOrders:orders.rows,purchaseReceipts:receipts.rows,purchaseRevisions:revisions.rows,...await returnSnapshot(tx,org)};
 }
-export async function postPurchase(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postPurchase(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const parsed=purchaseCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_PURCHASE','تحقق من بيانات مستند الشراء.',400);const c=parsed.data;
  if(c.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');

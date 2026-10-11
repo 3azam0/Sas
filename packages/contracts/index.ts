@@ -1,10 +1,10 @@
 import { z } from 'zod';
 export type CostingMethod='fifo'|'moving_average';
-export const costingCommandSchema=z.object({operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),generation:z.uuid(),expectedRevision:z.number().int().min(1),method:z.enum(['fifo','moving_average']),resetSamples:z.literal(true)});
+export const costingCommandSchema=z.object({operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),generation:z.uuid(),expectedRevision:z.number().int().min(1),method:z.enum(['fifo','moving_average']),resetSamples:z.literal(true)});
 export type CostingCommand=z.infer<typeof costingCommandSchema>;
 export const quantitySchema = z.string().regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/, 'أدخل كمية موجبة حتى ٦ منازل عشرية').refine(v => Number(v) > 0, 'الكمية يجب أن تكون أكبر من صفر');
 export const commandSchema = z.object({
-  generation:z.uuid().optional(),operationId: z.uuid(), organizationId: z.enum(['grills','bistro']), locationId: z.string().min(1).max(80),
+  generation:z.uuid().optional(),operationId: z.uuid(), organizationId: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/), locationId: z.string().min(1).max(80),
   type: z.enum(['receipt.post','waste.post']), itemId: z.string().min(1).max(80), quantity: quantitySchema,
   unitCost: z.string().regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/).optional(),
   reason: z.string().trim().min(2).max(200), businessDate: z.iso.date(), capturedAt: z.iso.datetime(), schemaVersion:z.literal(1),
@@ -14,7 +14,8 @@ export const commandSchema = z.object({
   if(!!v.purchaseUnitId!==!!v.enteredQuantity || (v.type==='waste.post'&&(v.purchaseUnitId||v.supplierId)))ctx.addIssue({code:'custom',message:'بيانات وحدة الشراء أو المورد غير صالحة'});
 });
 export type Command = z.infer<typeof commandSchema>;
-export type DemoProfile = 'grills' | 'bistro';
+export type DemoProfile = string;
+export const organizationIdSchema=z.string().regex(/^[A-Za-z0-9_-]{1,80}$/);
 export type Access = { organizationId: DemoProfile; userId: string; deviceId: string; expiresAt: string };
 export type PurchaseUnit={id:string;name:string;factor:string};
 export type Unit={id:string;name:string;revision:number};
@@ -33,7 +34,7 @@ const recordId=z.string().min(1).max(80);
 const recordName=z.string().trim().min(2).max(100);
 const nonNegative=z.string().regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/);
 const purchaseUnitsSchema=z.array(z.object({id:z.uuid(),name:recordName,factor:quantitySchema})).max(20).refine(rows=>new Set(rows.map(r=>r.id)).size===rows.length&&new Set(rows.map(r=>r.name.toLocaleLowerCase())).size===rows.length,'وحدات الشراء يجب أن تكون مختلفة');
-const setupEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
+const setupEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
 export const setupCommandSchema=z.discriminatedUnion('type',[
   z.object({...setupEnvelope,type:z.literal('unit.save'),record:z.object({id:recordId,name:recordName})}),
   z.object({...setupEnvelope,type:z.literal('supplier.save'),record:z.object({id:recordId,name:recordName,phone:z.string().trim().max(40),email:z.union([z.literal(''),z.email()]),address:z.string().trim().max(300),active:z.boolean()})}),
@@ -43,7 +44,7 @@ export const setupCommandSchema=z.discriminatedUnion('type',[
 export type SetupCommand=z.infer<typeof setupCommandSchema>;
 
 export const openingSchema=z.object({
- generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),locationId:recordId,type:z.literal('opening.post'),
+ generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),locationId:recordId,type:z.literal('opening.post'),
  businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),
  lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative})).min(1).max(200),
  source:z.object({fileName:z.string().max(200),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).optional()
@@ -54,7 +55,7 @@ export type OpeningDocument=z.infer<typeof openingSchema>;
 export type PostedOpening={document:OpeningDocument;amount:string;postedAt:string};
 
 export const receiptDocumentSchema=z.object({
- generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),locationId:recordId,type:z.literal('receipt.document'),
+ generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),locationId:recordId,type:z.literal('receipt.document'),
  businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),supplierId:recordId.optional(),
  lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative,purchaseUnitId:z.uuid().optional(),receivingUnit:z.object({unitId:recordId,name:recordName,baseName:recordName,factor:quantitySchema}).optional(),enteredQuantity:quantitySchema.optional()})).min(1).max(200)
 }).superRefine((doc,ctx)=>{
@@ -64,7 +65,7 @@ export const receiptDocumentSchema=z.object({
 export type ReceiptDocument=z.infer<typeof receiptDocumentSchema>;
 export type PostedReceiptDocument={document:ReceiptDocument;amount:string;postedAt:string};
 
-const purchaseEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),orderId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
+const purchaseEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),orderId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
 export const purchaseLineSchema=z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,purchaseUnitId:z.uuid().optional(),unitName:recordName,factor:quantitySchema,enteredQuantity:quantitySchema,quantity:quantitySchema,unitCost:nonNegative});
 export const purchaseCommandSchema=z.discriminatedUnion('type',[
  z.object({...purchaseEnvelope,type:z.literal('purchase.save'),locationId:recordId,supplierId:recordId,businessDate:z.iso.date(),reference:z.string().trim().min(2).max(200),currency:z.literal('EGP'),lines:z.array(purchaseLineSchema).min(1).max(200)}),
@@ -85,7 +86,7 @@ export type SupplierReturn=Extract<PurchaseCommand,{type:'purchase.return'}>;
 export type PostedSupplierReturn={document:SupplierReturn;amount:string;inventoryAmount?:string;valuationDifference?:string;postedAt:string};
 export type ReturnSource={receiptId:string;orderId:string;supplierId:string;locationId:string;reference:string;lines:{sourceMovementId:string;itemId:string;unitId:string;unitName:string;quantity:string;available:string;returned:string;unitCost:string}[]};
 
-const transferEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),transferId:z.uuid(),expectedRevision:z.number().int().min(0),businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
+const transferEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),transferId:z.uuid(),expectedRevision:z.number().int().min(0),businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
 const transferActionLines=z.array(z.object({movementId:z.uuid(),dispatchLineId:z.uuid(),quantity:quantitySchema})).min(1).max(200);
 export const transferCommandSchema=z.discriminatedUnion('type',[
  z.object({...transferEnvelope,type:z.literal('transfer.dispatch'),sourceId:recordId,destinationId:recordId,lines:z.array(z.object({movementId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema})).min(1).max(200)}),
@@ -101,7 +102,7 @@ export type TransferDispatch=Extract<TransferCommand,{type:'transfer.dispatch'}>
 export type Transfer={transferId:string;revision:number;document:TransferDispatch;postedAt:string;amount:string;state:'inTransit'|'partial'|'completed'|'resolvedWithLoss';lines:{dispatchLineId:string;itemId:string;unitId:string;quantity:string;received:string;lost:string;remaining:string;amount:string;remainingValue:string}[]};
 export type TransferAction={document:TransferCommand;amount:string;postedAt:string};
 
-const countEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),countId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
+const countEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),countId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
 export const countCommandSchema=z.discriminatedUnion('type',[
  z.object({...countEnvelope,type:z.literal('count.save'),locationId:recordId,businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),cutoffAt:z.iso.datetime(),stockSequence:z.string().regex(/^(?:0|[1-9]\d{0,18})$/),currency:z.literal('EGP'),lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,expectedQuantity:nonNegative,countedQuantity:nonNegative,surplusUnitCost:nonNegative.optional()})).min(1).max(200)}),
  z.object({...countEnvelope,type:z.literal('count.finalize'),costPolicy:z.literal('explicit'),lines:z.array(z.object({lineId:z.uuid(),movementId:z.uuid()})).min(1).max(200)}),
@@ -130,7 +131,7 @@ export const recipeDefinitionSchema=z.object({
  if((d.outputMode==='stocked')!==!!d.outputItemId)ctx.addIssue({code:'custom',message:'الناتج المخزني يحتاج مادة مخزون؛ الناتج غير المخزني لا يرتبط بمادة'});
  if(new Set(d.lines.map(l=>l.lineId)).size!==d.lines.length||new Set(d.lines.map(l=>l.kind==='material'?`item:${l.itemId}`:`version:${l.versionId}`)).size!==d.lines.length)ctx.addIssue({code:'custom',message:'مكونات الوصفة ومعرّفات السطور لا تتكرر'});
 });
-const recipeEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),recipeId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
+const recipeEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),recipeId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
 export const recipeCommandSchema=z.discriminatedUnion('type',[
  z.object({...recipeEnvelope,type:z.literal('recipe.save'),definition:recipeDefinitionSchema}),
  z.object({...recipeEnvelope,type:z.literal('recipe.publish'),versionId:z.uuid()})
@@ -142,7 +143,7 @@ export type RecipeVersion={recipeId:string;versionId:string;versionNumber:number
 export type ReceiptPrice={locationId:string;itemId:string;unitCost:string;businessDate:string;postedAt:string;sourceOperationId:string};
 
 export const productionSchema=z.object({
- generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),type:z.literal('production.post'),
+ generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),type:z.literal('production.post'),
  versionId:z.uuid(),inputLocationId:recordId,outputLocationId:recordId,outputMovementId:z.uuid(),
  plannedOutput:quantitySchema,actualOutput:nonNegative,businessDate:z.iso.date(),reference:recordName,
  wasteReason:z.string().trim().max(200).optional(),failureReason:z.string().trim().max(200).optional(),
@@ -165,7 +166,7 @@ export const menuCommandSchema=z.object({...setupEnvelope,type:z.literal('menu.s
 export type MenuCommand=z.infer<typeof menuCommandSchema>;
 export type MenuItem=z.infer<typeof menuItemSchema>&{revision:number};
 export const salesLineSchema=z.object({lineId:z.uuid(),transactionId:z.string().trim().min(1).max(80),lineKey:z.string().trim().min(1).max(80),businessDate:z.iso.date(),menuItemId:z.uuid(),menuCode:posCode,menuName:recordName,mappingRevision:z.number().int().min(1),versionId:z.uuid(),outputPerSale:quantitySchema,quantity:quantitySchema,netAmount:nonNegative});
-export const salesImportSchema=z.object({generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.enum(['grills','bistro']),type:z.literal('sales.import'),source:posCode,locationId:recordId,currency:z.literal('EGP'),reference:recordName,completedSalesOnly:z.literal(true),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),file:z.object({name:z.string().trim().min(1).max(200),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).optional(),lines:z.array(salesLineSchema).min(1).max(200)}).superRefine((d,ctx)=>{
+export const salesImportSchema=z.object({generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),type:z.literal('sales.import'),source:posCode,locationId:recordId,currency:z.literal('EGP'),reference:recordName,completedSalesOnly:z.literal(true),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),file:z.object({name:z.string().trim().min(1).max(200),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).optional(),lines:z.array(salesLineSchema).min(1).max(200)}).superRefine((d,ctx)=>{
  if(new Set([d.operationId,...d.lines.map(l=>l.lineId)]).size!==d.lines.length+1||new Set(d.lines.map(l=>JSON.stringify([l.businessDate,l.transactionId,l.lineKey]))).size!==d.lines.length)ctx.addIssue({code:'custom',message:'معرّفات الاستيراد وتفاصيل المبيعات لا تتكرر'});
 });
 export type SalesLine=z.infer<typeof salesLineSchema>;

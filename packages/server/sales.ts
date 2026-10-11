@@ -1,11 +1,11 @@
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {BusinessError,menuCommandSchema,salesImportSchema,type Access,type CommandResult,type MenuItem,type ImportedSales,type SalesLine} from '@saas/contracts';
 import {decimal} from '@saas/domain';
 import {validateMenu,validateSale,salePayload} from '../domain/sales';
 import {recipeSnapshot} from './recipes';
 import {assertGeneration} from './valuation';
-type Tx=Pick<PGlite,'query'>;
+type Tx=Pick<Database,'query'>;
 export const salesTables=`
 CREATE TABLE IF NOT EXISTS menu_items(organization_id text NOT NULL REFERENCES organizations(id),id uuid NOT NULL,source text NOT NULL,code text NOT NULL,revision integer NOT NULL,version_id uuid NOT NULL,payload jsonb NOT NULL,PRIMARY KEY(organization_id,id),UNIQUE(organization_id,source,code),FOREIGN KEY(organization_id,version_id) REFERENCES recipe_versions(organization_id,version_id));
 CREATE INDEX IF NOT EXISTS menu_version_lookup ON menu_items(organization_id,version_id);
@@ -22,7 +22,7 @@ function authorize(access:Access,org:string){if(org!==access.organizationId||!Nu
 const hash=(input:unknown)=>createHash('sha256').update(JSON.stringify(input)).digest('hex');
 async function previous(tx:Tx,org:string,id:string,digest:string){const prior=(await tx.query<{payload_hash:string;result:CommandResult}>('SELECT payload_hash,result FROM command_receipts WHERE organization_id=$1 AND operation_id=$2',[org,id])).rows[0];if(prior&&prior.payload_hash!==digest)throw new BusinessError('PAYLOAD_CONFLICT','معرّف العملية مستخدم لبيانات مختلفة.');return prior?.result;}
 async function record(tx:Tx,access:Access,id:string,digest:string,action:string){const r:CommandResult={operationId:id,outcome:'accepted'};await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[access.organizationId,id,digest,JSON.stringify(r)]);await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[access.organizationId,access.userId,id,action]);return r;}
-export async function postMenuItem(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postMenuItem(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const p=menuCommandSchema.safeParse(input);if(!p.success)throw new BusinessError('INVALID_MENU','راجع كود البيع والإصدار والكمية.',400);const c=p.data,org=c.organizationId,digest=hash(c);authorize(access,org);
  try{return await db.transaction(async tx=>{
   await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);await assertGeneration(tx,org,c.generation);const prior=await previous(tx,org,c.operationId,digest);if(prior)return prior;
@@ -32,7 +32,7 @@ export async function postMenuItem(db:PGlite,access:Access,input:unknown):Promis
   return record(tx,access,c.operationId,digest,c.type);
  });}catch(e){if((e as {code?:string}).code==='23505')throw new BusinessError('DUPLICATE_MENU','كود البيع مستخدم لهذا المصدر.');throw e;}
 }
-export async function postSalesImport(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postSalesImport(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const p=salesImportSchema.safeParse(input);if(!p.success)throw new BusinessError('INVALID_SALES','راجع تفاصيل المبيعات المكتملة والمعرّفات والمبالغ.',400);const c=p.data,org=c.organizationId,digest=hash(c);authorize(access,org);
  return db.transaction(async tx=>{
   await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);await assertGeneration(tx,org,c.generation);const prior=await previous(tx,org,c.operationId,digest);if(prior)return prior;

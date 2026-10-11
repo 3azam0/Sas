@@ -1,9 +1,9 @@
 import {assertGeneration,planIssue,applyIssue} from './valuation';
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {setupCommandSchema,BusinessError,type Access,type CommandResult,type PurchaseUnit} from '@saas/contracts';
 
-export async function postSetupCommand(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postSetupCommand(db:Database,access:Access,input:unknown):Promise<CommandResult>{
   const parsed=setupCommandSchema.safeParse(input);
   if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من بيانات الإعداد.',400);
   const c=parsed.data,org=c.organizationId;

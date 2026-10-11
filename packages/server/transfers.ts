@@ -1,5 +1,5 @@
 import {assertGeneration,planIssue,applyIssue} from './valuation';
-import type {PGlite} from '@electric-sql/pglite';
+import type {Database} from './database';
 import {createHash,randomUUID} from 'node:crypto';
 import {BusinessError,transferCommandSchema,type Access,type Transfer,type TransferDispatch,type TransferAction,type CommandResult,type Layer} from '@saas/contracts';
 import {allocateFIFO,decimal} from '@saas/domain';
@@ -25,7 +25,7 @@ DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='stock_trans
 CREATE INDEX IF NOT EXISTS stock_transfer_lookup ON stock_entries(organization_id,transfer_id);
 `;
 
-export async function transferSnapshot(tx:Pick<PGlite,'query'>,org:string){
+export async function transferSnapshot(tx:Pick<Database,'query'>,org:string){
  const docs=await tx.query<{transferId:string;revision:number;document:TransferDispatch;amount:string;postedAt:string}>('SELECT transfer_id AS "transferId",revision,payload AS document,amount::text,posted_at::text AS "postedAt" FROM transfers WHERE organization_id=$1 ORDER BY posted_at',[org]);
  const totals=await tx.query<{transfer_id:string;dispatch_line_id:string;received:string;lost:string;remaining:string;amount:string;remainingValue:string}>('SELECT transfer_id,dispatch_line_id,sum(received)::text AS received,sum(lost)::text AS lost,sum(quantity-received-lost)::text AS remaining,sum(COALESCE(initial_value,quantity*unit_cost))::text AS amount,sum(COALESCE(remaining_value,(quantity-received-lost)*unit_cost))::text AS "remainingValue" FROM transfer_segments WHERE organization_id=$1 GROUP BY transfer_id,dispatch_line_id',[org]);
  const transfers:Transfer[]=docs.rows.map(d=>{const lines=d.document.lines.map(l=>{const t=totals.rows.find(r=>r.transfer_id===d.transferId&&r.dispatch_line_id===l.movementId)!;return {dispatchLineId:l.movementId,itemId:l.itemId,unitId:l.unitId,quantity:l.quantity,received:t.received,lost:t.lost,remaining:t.remaining,amount:t.amount,remainingValue:t.remainingValue};});const outstanding=lines.some(l=>decimal(l.remaining).gt(0)),loss=lines.some(l=>decimal(l.lost).gt(0)),received=lines.some(l=>decimal(l.received).gt(0));return {...d,lines,state:outstanding?(received||loss?'partial':'inTransit'):loss?'resolvedWithLoss':'completed'};});
@@ -33,7 +33,7 @@ export async function transferSnapshot(tx:Pick<PGlite,'query'>,org:string){
  return {transfers,transferActions:actions.rows};
 }
 
-export async function postTransfer(db:PGlite,access:Access,input:unknown):Promise<CommandResult>{
+export async function postTransfer(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  const parsed=transferCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من مستند التحويل.',400);const c=parsed.data;
  if(c.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');
