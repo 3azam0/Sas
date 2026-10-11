@@ -15,6 +15,15 @@ export const commandSchema = z.object({
 });
 export type Command = z.infer<typeof commandSchema>;
 export type DemoProfile = string;
+const profileText=z.string().trim().max(300);
+const publicLink=z.url().refine(value=>value.startsWith('https://'),'Use an HTTPS link');
+export const organizationProfileSchema=z.object({
+ nameEn:profileText.optional(),businessType:profileText.optional(),city:profileText.optional(),country:profileText.optional(),address:profileText.optional(),
+ phone:z.string().regex(/^[+0-9 ()-]{3,40}$/).optional(),additionalPhone:z.string().regex(/^[+0-9 ()-]{3,40}$/).optional(),
+ whatsapp:z.string().regex(/^\+[1-9][0-9]{6,14}$/).optional(),email:z.email().optional(),mapUrl:publicLink.optional(),facebookUrl:publicLink.optional(),
+ logoPath:z.string().regex(/^\/branding\/[a-z0-9-]+\.(webp|png)$/).optional()
+});
+export type OrganizationProfile=z.infer<typeof organizationProfileSchema>;
 export const organizationIdSchema=z.string().regex(/^[A-Za-z0-9_-]{1,80}$/);
 export type Access = { organizationId: DemoProfile; userId: string; deviceId: string; expiresAt: string };
 export type PurchaseUnit={id:string;name:string;factor:string};
@@ -25,7 +34,7 @@ export type Location = {id:string;name:string;kind:string;active?:boolean;revisi
 export type Balance = {locationId:string;itemId:string;quantity:string;value:string;average:string|null};
 export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;remainingValue?:string;sequence:number};
 export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;receiptDocumentId?:string|null;referenceAmount?:string|null;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null;productionId?:string|null;countId?:string|null;countLineId?:string|null};
-export type Snapshot = {generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];menuItems?:MenuItem[];salesImports?:ImportedSales[];productions?:PostedProduction[];recipes?:Recipe[];recipeVersions?:RecipeVersion[];receiptPrices?:ReceiptPrice[];receipts?:PostedReceiptDocument[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
+export type Snapshot = {generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;organizationProfile?:OrganizationProfile;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];suppliers?:Supplier[];menuItems?:MenuItem[];salesImports?:ImportedSales[];productions?:PostedProduction[];recipes?:Recipe[];recipeVersions?:RecipeVersion[];receiptPrices?:ReceiptPrice[];receipts?:PostedReceiptDocument[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
 export type CommandResult = {operationId:string;outcome:'accepted'|'needs_review';code?:string;message?:string;amount?:string};
 export class BusinessError extends Error { constructor(public code:string, message:string,public status=409){super(message);} }
 export const messages: Record<string,string> = {INSUFFICIENT_STOCK:'الرصيد المتاح لا يكفي. راجع العملية قبل إعادة إرسالها.',FORBIDDEN:'ليس لديك صلاحية لهذه المؤسسة أو الموقع.',PAYLOAD_CONFLICT:'معرّف العملية مستخدم لبيانات مختلفة.',INVALID_COMMAND:'تحقق من بيانات العملية.',AUTH_REQUIRED:'انتهت الجلسة. اتصل بالإنترنت وسجل الدخول مرة أخرى.'};

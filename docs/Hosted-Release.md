@@ -1,6 +1,6 @@
 # Hosted client release — agreed scope
 
-The first hosted organization is Fodo. Initial owner login: test@fodo.com. Tenant isolation remains part of the architecture; subscription billing, membership administration and separate demo environments are deferred.
+The first hosted organization is واحة أولاد سعد (Wahat Awlad Saed). Its name, enhanced logo and public contact profile are tenant data; Fodo remains the shared platform identity. Click المؤسسة الحالية to open the details dialog; the home page keeps its operational overview. Initial owner login: test@fodo.com. Tenant isolation remains part of the architecture; subscription billing, membership administration and separate demo environments are deferred.
 
 Sales imports remain stock-neutral. Reports calculate expected ingredient quantities from the accepted sale's pinned recipe version, respecting stocked preparation boundaries. Costs use the selected current stock-average or latest-receipt basis, with missing prices shown explicitly. These are estimates, not historical booked cost of goods sold. Sales never create stock issues, layers or balance changes in this release.
 

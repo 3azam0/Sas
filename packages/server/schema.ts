@@ -5,7 +5,8 @@ import {countTables} from './counts';
 import {transferTables} from './transfers';
 import {returnTables} from './supplier-returns';
 import {purchaseTables} from './purchasing';
-export const schema = `
+// Frozen bootstrap used by the initial hosted migration. Append later changes below.
+export const hostedBaselineSchema = `
 CREATE TABLE IF NOT EXISTS organizations (id text PRIMARY KEY, name text NOT NULL);
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS costing_method text NOT NULL DEFAULT 'moving_average' CHECK(costing_method IN ('fifo','moving_average'));
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS costing_revision integer NOT NULL DEFAULT 1;
@@ -68,3 +69,5 @@ ${recipeTables}
 ${productionTables}
 ${salesTables}
 `;
+export const organizationProfileMigration="ALTER TABLE organizations ADD COLUMN IF NOT EXISTS profile jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(profile)='object');\n";
+export const schema=hostedBaselineSchema+organizationProfileMigration;

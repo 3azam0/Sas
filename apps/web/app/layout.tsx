@@ -1,5 +1,6 @@
 import type {Metadata,Viewport} from 'next';
 import './globals.css';
+import './organization.css';
 import './form-polish.css';
 export const metadata:Metadata={title:'Fodo | إدارة المخزون والتكاليف',description:'إدارة المخزون والتكاليف والفروع والعمل دون اتصال',manifest:'/manifest.webmanifest'};
 export const viewport:Viewport={width:'device-width',initialScale:1,themeColor:'#d94b20'};

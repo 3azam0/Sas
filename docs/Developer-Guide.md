@@ -2,9 +2,11 @@
 
 The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate theoretical usage only in this release. Earlier delivery entries below remain historical checkpoints.
 
+The first client is واحة أولاد سعد. Its name, logo and contact details belong to its tenant profile; clicking المؤسسة الحالية opens the details dialog. The home page keeps the operational overview. See the [organization profile runbook](./runbooks/Organization-Profile.md) and [verified branding release](./releases/client-branding-2026-10-11.md). Keep the hosted bootstrap schema and applied migrations immutable; append later schema changes and save their actual migration version.
+
 # Fodo SaaS Developer Guide
 
-Version 2.23 — 11 October 2026
+Version 2.24 — 11 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
