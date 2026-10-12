@@ -44,12 +44,12 @@ export default function KitchenIssues({snapshot,location,rows,setups,commands,op
     </details>)}
    </Collection>
   </section>
-  {editor&&<KitchenIssueEditor key={editor.row?.id??'new'} snapshot={snapshot} location={editor.location} generation={editor.generation} initial={editor.row} commands={commands.filter(c=>!editor.row?.document.lines.some(l=>l.lineId===c.operationId))} openings={openings} kitchens={kitchens} close={()=>{setEditor(null);requestAnimationFrame(()=>trigger.current?.focus());}} saved={()=>{setEditor(null);setNotice('حُفظ مستند صرف المطبخ على الجهاز. يتغير الرصيد المؤكد بعد قبول المزامنة.');requestAnimationFrame(()=>trigger.current?.focus());void synchronize();}}/>}
+  {editor&&<KitchenIssueEditor key={editor.row?.id??'new'} snapshot={snapshot} location={editor.location} generation={editor.generation} initial={editor.row} commands={commands.filter(c=>!editor.row?.document.lines.some(l=>l.lineId===c.operationId))} openings={openings} close={()=>{setEditor(null);requestAnimationFrame(()=>trigger.current?.focus());}} saved={()=>{setEditor(null);setNotice('حُفظ مستند صرف المطبخ على الجهاز. يتغير الرصيد المؤكد بعد قبول المزامنة.');requestAnimationFrame(()=>trigger.current?.focus());void synchronize();}}/>}
   {printing&&<KitchenIssuePrint snapshot={snapshot} row={printing} close={()=>setPrinting(null)}/>}
  </>;
 }
 
-function KitchenIssueEditor({snapshot,location,generation,initial,commands,openings,kitchens,close,saved}:{snapshot:Snapshot;location:string;generation?:string;initial?:LocalKitchenIssue;commands:Command[];openings:OpeningDocument[];kitchens:string[];close:()=>void;saved:()=>void}){
+export function KitchenIssueEditor({snapshot,location,generation,initial,commands,openings,close,saved}:{snapshot:Snapshot;location:string;generation?:string;initial?:LocalKitchenIssue;commands:Command[];openings:OpeningDocument[];close:()=>void;saved:()=>void}){
  const dialog=useRef<HTMLDialogElement>(null),locked=useRef(false),operationId=useRef(crypto.randomUUID());
  const [kitchenId,setKitchenId]=useState(initial?.document.kitchenId??snapshot.kitchens?.find(k=>k.active&&k.name===initial?.document.kitchen)?.id??''),[businessDate,setDate]=useState(initial?.document.businessDate??today()),[reference,setReference]=useState(initial?.document.reference??''),[notes,setNotes]=useState(initial?.document.notes??''),[lines,setLines]=useState<Line[]>(initial?.document.lines.map(l=>({...l,lineId:crypto.randomUUID()}))??[fresh()]),[busy,setBusy]=useState(false),[error,setError]=useState('');
  useEffect(()=>{const modal=dialog.current;modal?.showModal();modal?.querySelector<HTMLSelectElement>('select[aria-label="المطبخ المستلم"]')?.focus({preventScroll:true});},[]);
