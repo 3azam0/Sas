@@ -2,6 +2,16 @@
 
 Use an isolated local test database for these checks. Never import fixtures, reset costing or create test movements in the client's warehouse.
 
+## Shared document layout
+
+`DocumentForm.tsx` provides compact metadata fields, line sections, optional explanations and a summary reused beside the existing Save/Cancel buttons. `DocumentEditor` wraps opening stock, purchase drafts/partial receiving, supplier returns, transfers, counts, recipes, production and sales mapping/import in native dialogs. Headers and action footers remain fixed; the body scrolls. Receiving and setup retain their existing dialogs and share the same visual pattern. The stylesheet is imported by both Next.js and the hosted frontend. Preserve busy-state disabling, existing close/cancel behavior and required-field feedback when adding forms.
+
+Plain short line lists hide collection controls; longer documents retain paging. Searchable stock-count/source lists keep their filters. Do not discard hidden rows: values and validation remain mounted across filters/pages, and keyboard navigation reveals a retained row before focusing it. Phone editing tables use `data-label` cells as cards with explicit field names, while keeping their accessible control labels and hidden rows.
+
+Receiving shows base quantity, line value and estimated balance after acceptance. Purchase drafts show the completed subtotal and an explicit incomplete label if a row is empty or invalid; blank cost is different from an explicitly entered zero. Supplier returns show source-availability warnings, transfers show available-quantity warnings, and production shows its existing ingredient shortages beside actual inputs. These warnings and totals are display-only. Preserve atomic supplier/kitchen/production rules and the separate accepted partial-deduction policy for sales. Recipe summaries include all known component costs and separately count the ingredients selected for sales deduction.
+
+Opening CSV and detailed cost explanations expand within the scrolling body. Opening an explanation or adding a row must not move Save below the viewport. Sales import keeps completed-sale confirmation unchecked until the user explicitly agrees; Ctrl/Command+Enter cannot bypass the disabled action. See [document forms release](../releases/document-forms-ux-2026-10-12.md) for the exact verified flows and remaining fixture checks.
+
 ## Find and select a material
 
 Receiving, waste, opening stock, purchasing, recipe ingredients/outputs, production versions, sales recipe mapping and kitchen issues use one visible searchable combobox. Focus/click opens the tenant's offline catalog; typing filters Arabic names and codes, ignoring diacritics, common alef variants and repeated spaces. The field displays the selected label, while an inaccessible hidden select retains the stored ID, form name and forwarded ref. It is excluded from Tab and Enter navigation. Never save a search string as an item ID.

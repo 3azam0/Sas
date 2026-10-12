@@ -14,7 +14,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.33 — 12 October 2026
+Version 2.34 — 12 October 2026
+
+Operational forms now share the accepted stock-issue layout: compact document details, clear material cards or labeled phone rows, optional explanations, immediate quantity warnings and a persistent summary beside Save/Cancel. Receiving, opening stock, purchase drafts/partial receiving, supplier returns, transfers, counts, recipes, production, menu mapping and sales import use this pattern; setup, balance editing and waste share its labels and footer. Small plain line lists hide paging clutter, while long documents and searchable count/source lists retain filters, sorting, paging and entered values. Incomplete purchase rows preserve completed subtotals and explicitly mark the estimate incomplete. Keep `DocumentForm.tsx` and `document-forms.css` shared by the local and hosted entry points. See [forms controls](./runbooks/UI-Forms.md) and [document forms release](./releases/document-forms-ux-2026-10-12.md) for verification and limits. Business validation, stock posting, tenant scope and offline persistence remain authoritative in their existing layers.
 
 The stock issue editor now uses compact document details, clearer item/quantity rows, projected available/remaining stock, proactive accessible shortage warnings, per-line average cost estimates, optional notes and a persistent total beside Save. Small documents hide paging clutter; longer documents retain pagination and keyboard page reveal. UI projections do not change authoritative issue validation or accepted consumption. See [kitchen issues](./runbooks/Kitchen-Issues.md) and [verified form UX release](./releases/stock-issue-form-ux-2026-10-12.md).
 

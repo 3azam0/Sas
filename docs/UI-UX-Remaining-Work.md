@@ -1,3 +1,9 @@
+# Shared document forms delivery — 12 October 2026
+
+The accepted stock-issue pattern is now applied across receiving, opening stock, purchase drafts/partial receiving, supplier returns, transfers, counts, recipes, production, sales mapping/import and supporting setup/balance/waste editors. Compact details, item cards, labeled phone rows, optional help and pinned summaries/actions replace the earlier inconsistent layouts. Filters and pagination retain values; an empty purchase row preserves the known subtotal and marks it incomplete. See [verified release](./releases/document-forms-ux-2026-10-12.md). Developer guide version 2.34.
+
+Desktop and phone draft checks covered the available client flows without saving operations. Transfer posting and partial purchase receiving still need an isolated browser fixture with multiple active locations and an eligible submitted purchase order; the current client data does not supply those prerequisites. Physical-device and assistive-technology checks remain separate verification work. Full server-history pagination and later business modules remain outside this UI delivery.
+
 # Stock issue form delivery update — 12 October 2026
 
 The stock issue form now has compact document details, readable item/quantity rows, available/remaining stock and average-cost previews, live shortage cues, optional retained notes and a fixed estimate/action footer. Paging and keyboard row navigation are preserved. See [verified release](./releases/stock-issue-form-ux-2026-10-12.md). Developer guide version 2.33.
