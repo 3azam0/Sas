@@ -178,6 +178,8 @@ export async function sync(scope:DemoProfile){
     const issue=row.document;if(issue.type==='kitchen.issue'){await uploadKitchenIssue(row as LocalKitchenIssue);continue;}
     const receipt=row.document;if(receipt.type!=='receipt.document')continue;
     if(blockers.some(o=>o.document.locationId===receipt.locationId&&o.document.lines.some(l=>receipt.lines.some(x=>x.itemId===l.itemId)))){await local.receipts.update(row.id,{status:'needsReview',error:'الرصيد الافتتاحي لم يقبل بعد. راجع مستنده.'});continue;}
+    const latest=(await local.snapshots.get(scope))!;
+    try{validateReceiptReferences(latest,receipt);}catch{await local.receipts.update(row.id,{status:'needsReview',error:'إعداد المادة أو وحدة الاستلام أو الموقع أو المورد لم يقبل بعد. راجع إعداد المخزون ثم أعد محاولة الاستلام.'});continue;}
     const response=await fetch('/api/v1/receipts',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.document)});
     if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الاستلام. المستندات محفوظة.');
     const result=await response.json() as CommandResult;await local.receipts.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع مستند الاستلام'});

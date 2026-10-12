@@ -67,7 +67,7 @@ export type PostedOpening={document:OpeningDocument;amount:string;postedAt:strin
 
 export const receiptDocumentSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),locationId:recordId,type:z.literal('receipt.document'),
- businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),supplierId:recordId.optional(),
+ businessDate:z.iso.date(),reason:z.string().trim().max(200).refine(value=>!value||value.length>=2,'أدخل حرفين على الأقل أو اترك المرجع فارغاً').default(''),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),supplierId:recordId.optional(),
  lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative,purchaseUnitId:z.uuid().optional(),receivingUnit:z.object({unitId:recordId,name:recordName,baseName:recordName,factor:quantitySchema}).optional(),enteredQuantity:quantitySchema.optional()})).min(1).max(200)
 }).superRefine((doc,ctx)=>{
  if(new Set(doc.lines.map(l=>l.itemId)).size!==doc.lines.length||new Set([doc.operationId,...doc.lines.map(l=>l.lineId)]).size!==doc.lines.length+1)ctx.addIssue({code:'custom',message:'المادة ومعرّفات السطور يجب ألا تتكرر'});

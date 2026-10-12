@@ -14,7 +14,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.35 — 12 October 2026
+Version 2.36 — 12 October 2026
+
+Direct receiving supports **إضافة مادة جديدة** inside its material selector. Use the shared setup editor in compact mode: name (prefilled from search), unique SKU, category and explicitly chosen inventory unit. Save into the existing setup outbox with zero stock, select the new material on the same receipt row and focus quantity; retain supplier, date, reference and all other rows. Cancelling the child returns to the selector; cancelling the receipt after creation retains the catalog material. Upload setup before the dependent receipt and put receipts with unconfirmed references into review without posting them. **مرجع الاستلام** is optional; blank, whitespace-only and omitted references normalize to an empty string, supplied references retain 2–200 characters, and existing document hashes remain compatible. Ledger/history use a readable fallback with stable receipt/line IDs. No database or recovery-format migration is needed. See [receiving release](./releases/receiving-quick-create-2026-10-12.md).
 
 Kitchen issue references are optional in the form, shared contract and server acceptance. Blank, whitespace-only and omitted input normalize to an empty string; nonempty references retain their 2–100 character limit. Keep existing document IDs/hashes compatible, retain automatic `KI-` numbers and avoid empty separators in history or ledger descriptions. The local outbox and recovery need no format migration. See [optional issue reference release](./releases/optional-issue-reference-2026-10-12.md).
 

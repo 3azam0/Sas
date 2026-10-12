@@ -52,7 +52,7 @@ export const FormSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSe
 });
 function plainText(value:ReactNode):string{return Children.toArray(value).map(child=>isValidElement<{children?:ReactNode}>(child)?plainText(child.props.children):String(child??'')).join('');}
 export function matchesSearch(value:string,query:string){const clean=(v:string)=>v.normalize('NFKC').replace(/[\u064B-\u065F\u0670ـ]/g,'').replace(/[أإآ]/g,'ا').replace(/\s+/g,' ').toLocaleLowerCase();return clean(value).includes(clean(query.trim()));}
-export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void}>(function SearchableSelect({children,onSearchEnter,...props},ref){
+export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void;onCreate?:(query:string)=>void}>(function SearchableSelect({children,onSearchEnter,onCreate,...props},ref){
  const select=useRef<HTMLSelectElement>(null),search=useRef<HTMLInputElement>(null),list=useRef<HTMLDivElement>(null);
  const {id,message,context,check}=useFeedback(select,undefined,search),inputId=props.id??id+'-input';
  const [query,setQuery]=useState<string|null>(null),[open,setOpen]=useState(false),[active,setActive]=useState(-1),[uncontrolled,setUncontrolled]=useState(String(props.defaultValue??''));
@@ -77,12 +77,13 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
  function dismiss(){setOpen(false);setQuery(null);setActive(-1);}
  function advance(nextValue=value){if(onSearchEnter)onSearchEnter(nextValue||undefined);else requestAnimationFrame(()=>{if(search.current)focusNextField(search.current);});}
  function choose(index:number,continueForm=false){
+  if(onCreate&&index===matches.length&&select.current&&!select.current.matches(':disabled')){const name=query?.trim()??'';dismiss();onCreate(name);return;}
   const option=matches[index],node=select.current;if(!option||option.disabled||!node||node.matches(':disabled'))return;
   node.value=option.value;setUncontrolled(option.value);node.dispatchEvent(new Event('change',{bubbles:true}));dismiss();
   if(continueForm)advance(option.value);
  }
  function move(step:number){
-  const enabled=matches.map((option,index)=>option.disabled?-1:index).filter(index=>index>=0);if(!enabled.length)return;
+  const enabled=matches.map((option,index)=>option.disabled?-1:index).filter(index=>index>=0);if(onCreate)enabled.push(matches.length);if(!enabled.length)return;
   const current=enabled.indexOf(active),next=current<0?(step>0?0:enabled.length-1):(current+step+enabled.length)%enabled.length;
   placePopup();setOpen(true);setActive(enabled[next]);
  }
@@ -99,9 +100,10 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
  const {value:ignoredValue,defaultValue:ignoredDefault,name:ignoredName,id:ignoredId,onChange:ignoredChange,onBlur:ignoredBlur,onFocus:ignoredFocus,onKeyDown:ignoredKey,onInvalid:ignoredInvalid,required:ignoredRequired,multiple:ignoredMultiple,size:ignoredSize,...inputProps}=props;
  const results=expanded&&portal?createPortal(<div ref={list} id={id+'-options'} className="catalog-results" dir="rtl" style={{position:'fixed',left:popup.left,top:popup.top,width:popup.width,maxHeight:popup.height,transform:popup.above?'translateY(-100%)':undefined}} role="listbox" aria-label={`خيارات ${props['aria-label']??'الصنف'}`}>
   {matches.length?matches.map((option,index)=><div role="option" id={id+'-option-'+index} data-option-index={index} key={option.value} aria-selected={option.value===value} aria-disabled={option.disabled||undefined} className={(index===active?'active ':'')+(option.disabled?'disabled':'')} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(index)}>{option.label}{option.value===value&&<span aria-hidden="true" className="catalog-check">✓</span>}</div>):<span className="catalog-no-results">لا توجد نتائج مطابقة. الاختيار الحالي محفوظ.</span>}
+  {onCreate&&<div role="option" id={id+'-option-'+matches.length} data-option-index={matches.length} aria-selected="false" className={'catalog-create '+(active===matches.length?'active':'')} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(matches.length)}><span><b aria-hidden="true">＋</b> إضافة مادة جديدة</span><kbd aria-hidden="true">F2</kbd></div>}
  </div>,portal):null;
  return <span className="catalog-select">
-  <span className="catalog-search"><input {...inputProps as InputHTMLAttributes<HTMLInputElement>} ref={search} id={inputId} type="search" role="combobox" autoComplete="off" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={expanded} aria-controls={expanded?id+'-options':undefined} aria-activedescendant={expanded&&active>=0&&matches[active]?id+'-option-'+active:undefined} aria-required={props.required||undefined} aria-invalid={invalid} aria-describedby={described} value={query??(selected?.value?selected.label:'')} placeholder={selected?.value?'ابحث بالاسم أو الكود…':selected?.label??'اختر أو ابحث بالاسم أو الكود…'}
+  <span className="catalog-search"><input {...inputProps as InputHTMLAttributes<HTMLInputElement>} ref={search} id={inputId} type="search" role="combobox" autoComplete="off" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={expanded} aria-controls={expanded?id+'-options':undefined} aria-activedescendant={expanded&&active>=0&&(matches[active]||onCreate&&active===matches.length)?id+'-option-'+active:undefined} aria-required={props.required||undefined} aria-invalid={invalid} aria-describedby={described} value={query??(selected?.value?selected.label:'')} placeholder={selected?.value?'ابحث بالاسم أو الكود…':selected?.label??'اختر أو ابحث بالاسم أو الكود…'}
    onFocus={event=>{props.onFocus?.(event as unknown as React.FocusEvent<HTMLSelectElement>);placePopup();setOpen(true);setActive(matches.findIndex(option=>option.value===value));event.currentTarget.select();}}
    onClick={()=>{if(!open){placePopup();setOpen(true);setActive(matches.findIndex(option=>option.value===value));}}}
    onBlur={event=>{if(event.relatedTarget instanceof Node&&list.current?.contains(event.relatedTarget))return;dismiss();if(select.current)props.onBlur?.({...event,target:select.current,currentTarget:select.current} as React.FocusEvent<HTMLSelectElement>);if(!(event.relatedTarget instanceof HTMLButtonElement))context?.report(id,check());}}
@@ -109,10 +111,11 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
    onKeyDown={event=>{
     props.onKeyDown?.(event as unknown as React.KeyboardEvent<HTMLSelectElement>);if(event.defaultPrevented||event.nativeEvent.isComposing)return;
     if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();event.stopPropagation();move(event.key==='ArrowDown'?1:-1);}
+    else if(event.key==='F2'&&onCreate){event.preventDefault();event.stopPropagation();if(!event.repeat)choose(matches.length);}
     else if(event.key==='Escape'&&(expanded||query!==null)){event.preventDefault();event.stopPropagation();dismiss();}
     else if(event.key==='Enter'&&!(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)){
      event.preventDefault();event.stopPropagation();if(event.repeat)return;
-     if(expanded&&(query!==null||active>=0&&matches[active]?.value!==value)){const index=active>=0?active:matches.findIndex(option=>!option.disabled);if(index>=0)choose(index,true);return;}
+     if(expanded&&(query!==null||active>=0&&matches[active]?.value!==value)){const first=matches.findIndex(option=>!option.disabled),index=active>=0?active:first>=0?first:onCreate?matches.length:-1;if(index>=0)choose(index,true);return;}
      if(value){dismiss();advance();}else{placePopup();setOpen(true);setActive(matches.findIndex(option=>!option.disabled));}
     }
    }}/><span className="catalog-chevron" aria-hidden="true">⌄</span></span>
@@ -120,7 +123,7 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
    {!options.some(option=>option.value==='')&&<option value=""/>}{children}
   </select>
   {props.required&&<small className="field-hint" id={id+'-required'}><span className="field-required">* مطلوب</span></small>}
-  <small className="field-hint catalog-result-count" id={id+'-results'} role="status" aria-live="polite">{expanded&&(matches.length?`${matches.length} نتيجة · الأسهم ثم Enter للاختيار`:'لا توجد نتائج مطابقة؛ الاختيار الحالي محفوظ.')}</small>
+  <small className="field-hint catalog-result-count" id={id+'-results'} role="status" aria-live="polite">{expanded&&<>{matches.length?`${matches.length} نتيجة · الأسهم ثم Enter للاختيار`:'لا توجد نتائج مطابقة؛ الاختيار الحالي محفوظ.'}{onCreate&&' · F2 لإضافة مادة جديدة'}</>}</small>
   {message&&<small className="field-error" id={id+'-error'}>{message}</small>}{results}
  </span>;
 });

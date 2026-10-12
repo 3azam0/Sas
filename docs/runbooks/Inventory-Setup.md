@@ -10,6 +10,8 @@ After a new build, stop the old Fodo console with Ctrl+C and start the same laun
 
 ## Working scenario
 
+You can also create a material while entering **استلام مواد**: use **إضافة مادة جديدة** in its searchable selector (or F2), complete name/code/category/inventory unit, then **حفظ واختيار**. This reuses the setup outbox and shared validation, starts at zero stock and returns to the same receipt row. The unit must be chosen explicitly. Cancelling the receipt afterward keeps the created catalog material; cancelling the creation form saves nothing.
+
 Suppliers are available directly from the main menu under **الموردون → إضافة مورد**. The supplier tab in **إعداد المخزون** accesses the same records. You can add/edit contact details, search, deactivate suppliers and review rejected changes from the direct page; offline saves use the existing setup outbox.
 
 1. Open **إعداد المخزون**. Add a missing base unit in **وحدات المخزون**.

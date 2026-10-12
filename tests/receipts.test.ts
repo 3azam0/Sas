@@ -6,7 +6,22 @@ import {receiptDocumentSchema,type ReceiptDocument,type Access} from '@saas/cont
 let db:PGlite;
 const access:Access={organizationId:'grills',userId:'owner',deviceId:randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()};
 const doc=():ReceiptDocument=>({operationId:randomUUID(),organizationId:'grills',locationId:'central',type:'receipt.document',businessDate:'2026-10-09',reason:'استلام عدة مواد',capturedAt:new Date().toISOString(),schemaVersion:1,currency:'EGP',lines:[{lineId:randomUUID(),itemId:'rice',unitId:'كجم',quantity:'2',unitCost:'20'},{lineId:randomUUID(),itemId:'beef',unitId:'كجم',quantity:'1',unitCost:'100'}]});
+it('allows empty or omitted receipt references while preserving older payloads and limits',()=>{
+ const d=doc();expect(JSON.stringify(receiptDocumentSchema.parse(d))).toBe(JSON.stringify(d));
+ for(const reason of ['',undefined,'   '])expect(receiptDocumentSchema.parse({...d,reason}).reason).toBe('');
+ for(const reason of ['x',' x ',null,'a'.repeat(201)])expect(receiptDocumentSchema.safeParse({...d,reason}).success).toBe(false);
+ expect(receiptDocumentSchema.parse({...d,reason:'a'.repeat(200)}).reason).toHaveLength(200);
+});
 beforeAll(async()=>{db=await createDatabase();await seed(db);});afterAll(async()=>db.close());
+it('posts receipts without a reference once, retaining document IDs, audit and readable stock history',async()=>{
+ const d={...doc(),reason:''};await postReceiptDocument(db,access,d);await postReceiptDocument(db,access,d);
+ const s=await getSnapshot(db,access),entries=s.entries.filter(entry=>entry.receiptDocumentId===d.operationId);
+ expect(entries).toHaveLength(2);expect(entries.every(entry=>entry.reason==='استلام مواد')).toBe(true);
+ expect(s.receipts?.find(receipt=>receipt.document.operationId===d.operationId)?.document.reason).toBe('');
+ expect((await db.query<{actor:string}>('SELECT actor FROM audit_events WHERE operation_id=$1',[d.operationId])).rows[0].actor).toBe('owner');
+ await expect(postReceiptDocument(db,access,{...d,reason:'new reference'})).rejects.toMatchObject({code:'PAYLOAD_CONFLICT'});
+ expect((await reconcileStock(db,'grills')).every(row=>row.matches)).toBe(true);
+});
 it('posts a complete receipt with pooled valuation, immutable document/line links and actor audit',async()=>{
  const d=doc(),before=await getSnapshot(db,access);expect((await postReceiptDocument(db,access,d)).amount).toBe('140.000000000000');const s=await getSnapshot(db,access);
  expect(s.receipts?.find(r=>r.document.operationId===d.operationId)?.document).toEqual(d);expect(s.entries.filter(e=>e.receiptDocumentId===d.operationId)).toHaveLength(2);

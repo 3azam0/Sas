@@ -1,12 +1,32 @@
 import 'fake-indexeddb/auto';
 import {beforeEach,afterEach,it,expect,vi} from 'vitest';
-import {local,acceptSnapshot,saveReceipt,resolveReceipt,saveCommand,saveTransfer,sync,recoveryArchive,restoreRecovery,projectedReceiptCommands} from '../apps/web/src/offline';
+import {local,acceptSnapshot,saveSetup,projectSetup,saveReceipt,resolveReceipt,saveCommand,saveTransfer,sync,recoveryArchive,restoreRecovery,projectedReceiptCommands} from '../apps/web/src/offline';
 import {projectedQuantity} from '@saas/domain';
-import type {ReceiptDocument,Snapshot} from '@saas/contracts';
+import {setupCommandSchema,type ReceiptDocument,type Snapshot} from '@saas/contracts';
 const now=()=>new Date().toISOString();const generation=crypto.randomUUID();
 const snapshot:Snapshot={generation,organizationId:'grills',organizationName:'Fixture',currency:'EGP',access:{organizationId:'grills',userId:'owner',deviceId:crypto.randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()},locations:[{id:'central',name:'Central',kind:'مطعم'},{id:'other',name:'Other',kind:'مطعم'}],items:['rice','beef'].map(id=>({id,name:id,unitId:'kg',unit:'kg',sku:id,minimum:'0',category:'Food'})),balances:[],layers:[],entries:[],acceptedOperationIds:[],fetchedAt:now()};
 const receipt=(capturedAt=now()):ReceiptDocument=>({generation,operationId:crypto.randomUUID(),organizationId:'grills',locationId:'central',type:'receipt.document',businessDate:'2026-10-09',reason:'Receipt test',capturedAt,schemaVersion:1,currency:'EGP',lines:['rice','beef'].map(itemId=>({lineId:crypto.randomUUID(),itemId,unitId:'kg',quantity:'10',unitCost:'20'}))});
 const clear=async()=>{for(const table of local.tables)await table.clear();};beforeEach(clear);afterEach(async()=>{vi.unstubAllGlobals();await clear();});
+it('creates a zero-stock material offline and restores its blank-reference receipt before syncing setup first',async()=>{
+ const base={...snapshot,units:[{id:'kg',name:'kg',revision:1}]};await acceptSnapshot(base);
+ const setup=setupCommandSchema.parse({generation,operationId:crypto.randomUUID(),organizationId:'grills',type:'item.save',expectedRevision:0,capturedAt:now(),schemaVersion:1,record:{id:'new-rice',name:'New rice',sku:'NEW-RICE',category:'Food',unitId:'kg',minimum:'0',active:true,purchaseUnits:[]}});
+ await saveSetup(setup);const projected=projectSetup(base,await local.setups.toArray());expect(projected.items.find(item=>item.id==='new-rice')).toMatchObject({unitId:'kg',unit:'kg'});expect(projected.balances).toEqual([]);expect(projected.entries).toEqual([]);
+ const d={...receipt(),reason:'',lines:[{...receipt().lines[0],itemId:'new-rice'}]};await saveReceipt(d);
+ const archive=await recoveryArchive('grills');await local.setups.clear();await local.receipts.clear();expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(2);
+ local.close();await local.open();expect((await local.receipts.get(d.operationId))?.document.reason).toBe('');
+ const posts:string[]=[],accepted:string[]=[];vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{
+  if(options?.body){const command=JSON.parse(options.body);posts.push(url);if(url==='/api/v1/receipts'){expect(accepted).toContain(setup.operationId);expect(command.reason).toBe('');}accepted.push(command.operationId);return Response.json({operationId:command.operationId,outcome:'accepted'});}
+  return Response.json({...(accepted.includes(setup.operationId)?projected:base),acceptedOperationIds:accepted});
+ }));await sync('grills');expect(posts).toEqual(['/api/v1/setup','/api/v1/receipts']);expect((await local.receipts.get(d.operationId))?.status).toBe('accepted');
+});
+it('does not submit a receipt whose newly created material was rejected during sync',async()=>{
+ const base={...snapshot,units:[{id:'kg',name:'kg',revision:1}]};await acceptSnapshot(base);
+ const setup=setupCommandSchema.parse({generation,operationId:crypto.randomUUID(),organizationId:'grills',type:'item.save',expectedRevision:0,capturedAt:now(),schemaVersion:1,record:{id:'new-rice',name:'New rice',sku:'NEW-RICE',category:'Food',unitId:'kg',minimum:'0',active:true,purchaseUnits:[]}});
+ await saveSetup(setup);const d={...receipt(),reason:'',lines:[{...receipt().lines[0],itemId:'new-rice'}]};await saveReceipt(d);
+ const posts:string[]=[];vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{
+  if(options?.body){posts.push(url);return Response.json({message:'Duplicate code'},{status:409});}return Response.json(base);
+ }));await sync('grills');expect(posts).toEqual(['/api/v1/setup']);expect((await local.setups.get(setup.operationId))?.status).toBe('needsReview');expect((await local.receipts.get(d.operationId))?.status).not.toBe('accepted');
+});
 it('keeps one whole receipt through reload with provisional quantities and unchanged confirmed balances',async()=>{
  await acceptSnapshot(snapshot);const d=receipt();await saveReceipt(d);local.close();await local.open();expect((await local.receipts.get(d.operationId))?.document).toEqual(d);expect(projectedQuantity(snapshot,projectedReceiptCommands(snapshot,await local.receipts.toArray()),'central','rice')).toBe('10.000000');expect((await local.snapshots.get('grills'))?.balances).toEqual([]);
  await expect(saveCommand({...d,...d.lines[0],operationId:d.lines[0].lineId,type:'receipt.post'})).rejects.toThrow('مستخدم');
