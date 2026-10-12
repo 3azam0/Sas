@@ -14,7 +14,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.32 — 12 October 2026
+Version 2.33 — 12 October 2026
+
+The stock issue editor now uses compact document details, clearer item/quantity rows, projected available/remaining stock, proactive accessible shortage warnings, per-line average cost estimates, optional notes and a persistent total beside Save. Small documents hide paging clutter; longer documents retain pagination and keyboard page reveal. UI projections do not change authoritative issue validation or accepted consumption. See [kitchen issues](./runbooks/Kitchen-Issues.md) and [verified form UX release](./releases/stock-issue-form-ux-2026-10-12.md).
 
 Catalog search and selection now share one visible accessible combobox across receiving, waste, opening stock, purchasing, recipes, production, sales mapping and kitchen issues. Preserve stored IDs/ref integration, required-field focus, disabled duplicates and offline tenant snapshot lookups. See [forms controls](./runbooks/UI-Forms.md) and [unified dropdown release](./releases/unified-searchable-dropdown-2026-10-12.md). This supersedes earlier two-control search/native-selector instructions.
 

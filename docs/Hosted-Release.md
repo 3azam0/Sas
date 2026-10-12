@@ -1,5 +1,7 @@
 # Hosted client release — agreed scope
 
+The **صرف مخزون** form has compact recipient/date/reference fields, item rows showing expected available and remaining stock, estimated row costs and immediate shortage warnings. The estimated total and save/cancel actions remain visible while the body scrolls. Notes expand when needed, and long documents retain paging and keyboard navigation. These are presentation changes; kitchen issues still reject shortages atomically and consume stock only on acceptance. See [stock issue form UX](./releases/stock-issue-form-ux-2026-10-12.md).
+
 Catalog search and selection use one visible searchable combobox across receiving, waste, opening stock, purchasing, recipes, production, sales mapping and kitchen issues. Focus opens the offline catalog; typing filters names/codes, arrows/Enter choose and advance, and uncommitted searches preserve the current selection. Validation focuses the visible field and duplicate restrictions remain enforced. Menus stay outside scrolling form/table bodies. See [unified dropdown release](./releases/unified-searchable-dropdown-2026-10-12.md).
 
 The workspace top bar exposes **اختصارات** with an Arabic keyboard guide, and all editors show compact hints. Shared navigation uses Enter/Shift+Enter for fields, Ctrl/Command+Enter for explicit validation/save and Alt+Insert for available row additions. Multiline input and disabled confirmations keep their native/guarded behavior. See [forms walkthrough](./runbooks/UI-Forms.md) and [keyboard release](./releases/form-keyboard-2026-10-12.md).

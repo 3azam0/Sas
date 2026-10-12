@@ -1,3 +1,7 @@
+# Stock issue form delivery update — 12 October 2026
+
+The stock issue form now has compact document details, readable item/quantity rows, available/remaining stock and average-cost previews, live shortage cues, optional retained notes and a fixed estimate/action footer. Paging and keyboard row navigation are preserved. See [verified release](./releases/stock-issue-form-ux-2026-10-12.md). Developer guide version 2.33.
+
 # Unified catalog delivery update — 12 October 2026
 
 Catalog selectors use one searchable field with focus-open results, name/code filtering, mouse and keyboard selection, preserved uncommitted search, visible validation and menus outside scrolling form bodies. This supersedes earlier search-box-plus-native-selector instructions. See [forms controls](./runbooks/UI-Forms.md) and [verified release](./releases/unified-searchable-dropdown-2026-10-12.md). Guide version 2.32.
