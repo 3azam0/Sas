@@ -10,9 +10,11 @@ All-screen UI delivery is now hosted: shared pagination, filters and ordering ac
 
 Button actions keep their click target stable when focus leaves an empty required field. Defer blur feedback when focus moves to a button; submit still validates every field, while moving between fields keeps inline feedback. This prevents the first Add ingredient click from being lost as validation changes the form height.
 
+Shared keyboard behavior is delivered across document/setup forms: Enter moves forward, Shift+Enter moves back, Ctrl/Command+Enter explicitly validates and saves, and Alt+Insert adds a row where available. Native multiline/file/checkbox controls and disabled confirmations remain respected. The **اختصارات** top-bar button opens the user guide, with short hints in editors. See [keyboard and forms runbook](./runbooks/UI-Forms.md) and [verified keyboard release](./releases/form-keyboard-2026-10-12.md). This supersedes earlier entries stating that ordinary Enter saves.
+
 # FooDo SaaS Developer Guide
 
-Version 2.30 — 12 October 2026
+Version 2.31 — 12 October 2026
 
 The accepted platform identity is **FooDo**. Shared branding appears in the workspace, welcome/sign-in screens, browser icon and installed-app manifest. Tenant branding stays in the organization profile. Keep technical service/database identifiers and saved local addresses stable. See [brand assets and generation record](./branding/FooDo.md) and the [verified branding release](./releases/foodo-branding-2026-10-12.md).
 

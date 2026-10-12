@@ -12,12 +12,14 @@ Use one actual-consumption route for the same physical materials: issuing them h
 
 ## Keyboard entry
 
+The workspace **اختصارات** button opens the full Arabic guide; the editor also displays a short hint. Shared navigation is described in [UI forms](./UI-Forms.md).
+
 - The editor opens on the kitchen field.
-- Tab and Shift+Tab use normal forward/backward navigation.
+- Tab and Shift+Tab use normal forward/backward navigation. Shift+Enter moves to the previous data field; Alt+Insert adds a material row.
 - Enter moves through kitchen, date and reference to material entry, skipping pagination controls.
 - Search by name or SKU. Typing opens matching results. Use arrow keys and Enter, or click a result, to choose it and move to quantity. Escape first closes an open results popup. The popup fits the available form space and scrolls for longer results; the native selector remains available.
 - Enter after a valid quantity focuses the next material or adds a new row. Focus reveals the row's page when necessary.
-- Ctrl+Enter (or Command+Enter) runs full validation and saves. An entirely blank trailing row is ignored; a partially completed row must be completed or removed.
+- Ctrl+Enter (or Command+Enter) runs full validation and saves only when the primary action is enabled. An entirely blank trailing row is ignored; a partially completed row must be completed or removed.
 - Errors focus the affected field without losing values. Escape closes the unsaved editor and restores focus to its trigger.
 
 ## History, printing and offline work

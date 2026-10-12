@@ -6,10 +6,10 @@ import Collection from './Collection';
 import {FormInput,WorkflowForm} from './FormControls';
 
 export default function KitchenDirectory({snapshot,rows,expired,synchronize,close}:{snapshot:Snapshot;rows:LocalSetup[];expired:boolean;synchronize:()=>Promise<void>;close:()=>void}){
- const dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement|null>(null),locked=useRef(false);
+ const dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement|null>(null),locked=useRef(false),opener=useRef<HTMLElement|null>(typeof document!=='undefined'&&document.activeElement instanceof HTMLElement?document.activeElement:null);
  const [editor,setEditor]=useState<{record?:Kitchen;remove?:boolean}|null>(null),[name,setName]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
- useEffect(()=>{dialog.current?.showModal();dialog.current?.querySelector<HTMLButtonElement>('[data-add-kitchen]')?.focus();},[]);
- useEffect(()=>{if(editor)dialog.current?.querySelector<HTMLInputElement>('input[aria-label="اسم المطبخ"]')?.focus();else trigger.current?.focus();},[editor]);
+ useEffect(()=>{dialog.current?.showModal();dialog.current?.querySelector<HTMLButtonElement>('[data-add-kitchen]')?.focus();return()=>{if(opener.current?.isConnected)opener.current.focus({preventScroll:true});};},[]);
+ useEffect(()=>{if(editor)dialog.current?.querySelector<HTMLInputElement>('input[aria-label="اسم المطبخ"]')?.focus();else{const label=trigger.current?.getAttribute('aria-label'),target=trigger.current?.isConnected?trigger.current:label?Array.from(dialog.current?.querySelectorAll<HTMLButtonElement>('button')??[]).find(button=>button.getAttribute('aria-label')===label):dialog.current?.querySelector<HTMLButtonElement>('[data-add-kitchen]');target?.focus({preventScroll:true});}},[editor]);
  const changes=rows.filter(r=>r.command.type==='kitchen.save'),kitchens=snapshot.kitchens??[];
  const blocked=(id:string)=>changes.some(r=>r.command.record.id===id&&['pending','acceptedAwaiting','needsReview'].includes(r.status));
  function open(button:HTMLButtonElement,record?:Kitchen,remove=false){trigger.current=button;setName(record?.name??'');setError('');setNotice('');setEditor({record,remove});}

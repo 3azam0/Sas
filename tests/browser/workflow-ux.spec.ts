@@ -64,7 +64,7 @@ test('count filters preserve zero and quantities and reveal the first hidden inv
  await describedError(rice,page);await expect(beef).toHaveValue('0');await rice.fill('2');
  await page.getByLabel('بحث مواد الجرد',{exact:true}).fill('DR-001');await expect(rice).toHaveValue('2');
  await page.getByLabel('بحث مواد الجرد',{exact:true}).fill('MT-001');await expect(beef).toHaveValue('0');await expect(beef).toBeVisible();await page.getByLabel('فلتر حالة العد',{exact:true}).selectOption('counted');await expect(beef).toBeVisible();await page.getByLabel('تصنيف الجرد',{exact:true}).selectOption('لحوم');await expect(beef).toBeVisible();
- const countSave=page.getByRole('button',{name:'حفظ مسودة الجرد',exact:true});await expect(countSave).toBeInViewport();const saveBox=await countSave.boundingBox(),navBox=await page.locator('.sidebar nav').boundingBox();expect(saveBox!.y+saveBox!.height).toBeLessThanOrEqual(navBox!.y+1);await expect(page.locator('.sidebar nav [aria-current=page]')).toBeInViewport();await page.screenshot({path:'../Fodo-Count-Filter-Mobile.png'});await beef.press('Enter');
+ const countSave=page.getByRole('button',{name:'حفظ مسودة الجرد',exact:true});await expect(countSave).toBeInViewport();const saveBox=await countSave.boundingBox(),navBox=await page.locator('.sidebar nav').boundingBox();expect(saveBox!.y+saveBox!.height).toBeLessThanOrEqual(navBox!.y+1);await expect(page.locator('.sidebar nav [aria-current=page]')).toBeInViewport();await page.screenshot({path:'../Fodo-Count-Filter-Mobile.png'});await beef.press('Control+Enter');
  await expect(page.locator('.count-document')).toContainText('جرد فلترة محفوظ');await page.reload();
  await page.getByLabel('الموقع',{exact:true}).selectOption(locationId);await page.getByRole('button',{name:'الجرد والتسوية',exact:true}).click();
  const document=page.locator('.count-document').filter({hasText:'جرد فلترة محفوظ'});await expect(document.locator('tbody tr')).toHaveCount(2);
@@ -72,16 +72,16 @@ test('count filters preserve zero and quantities and reveal the first hidden inv
  await context.setOffline(false);const snapshot=await(await page.request.get('/api/v1/bootstrap')).json();expect(snapshot.balances.filter((b:any)=>b.locationId===locationId)).toHaveLength(0);
 });
 
-test('purchase Enter submission focuses its invalid quantity and saves an offline draft without stock',async({page,context})=>{
+test('purchase Ctrl+Enter submission focuses its invalid quantity and saves an offline draft without stock',async({page,context})=>{
  await page.setViewportSize({width:390,height:844});
  await enter(page);const {locationId,supplierId}=await setup(page,true);await page.getByRole('button',{name:'المشتريات',exact:true}).click();
  await context.setOffline(true);await page.getByRole('button',{name:'أمر شراء جديد',exact:true}).click();
  await page.getByLabel('مورد الشراء',{exact:true}).selectOption(supplierId);await page.getByLabel('مرجع أمر الشراء',{exact:true}).fill('شراء من لوحة المفاتيح');
  await page.getByLabel('بحث مادة الشراء 1',{exact:true}).fill('DR-001');await page.getByLabel('مادة الشراء 1',{exact:true}).selectOption('rice');
  const quantity=page.getByLabel('كمية الشراء 1',{exact:true}),cost=page.getByLabel('تكلفة الشراء 1',{exact:true});
- await quantity.fill('خطأ');await cost.fill('20');await cost.press('Enter');await describedError(quantity,page);
+ await quantity.fill('خطأ');await cost.fill('20');await cost.press('Control+Enter');await describedError(quantity,page);
  await quantity.fill('2');const save=page.getByRole('button',{name:'حفظ مسودة الشراء',exact:true});await expect(save).toBeInViewport();const actionBox=await save.boundingBox(),navigationBox=await page.locator('.sidebar nav').boundingBox();expect(actionBox!.y+actionBox!.height).toBeLessThanOrEqual(navigationBox!.y+1);await page.screenshot({path:'../Fodo-Purchase-Form-Mobile.png'});
- await cost.press('Enter');await expect(page.locator('.purchase-order')).toContainText('شراء من لوحة المفاتيح');await page.reload();
+ await cost.press('Control+Enter');await expect(page.locator('.purchase-order')).toContainText('شراء من لوحة المفاتيح');await page.reload();
  await page.getByLabel('الموقع',{exact:true}).selectOption(locationId);await page.getByRole('button',{name:'المشتريات',exact:true}).click();
  await expect(page.locator('.purchase-order')).toContainText('شراء من لوحة المفاتيح');
  await context.setOffline(false);const snapshot=await(await page.request.get('/api/v1/bootstrap')).json();expect(snapshot.balances.filter((b:any)=>b.locationId===locationId)).toHaveLength(0);

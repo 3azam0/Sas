@@ -1,5 +1,5 @@
 'use client';
-import {focusControl,SearchableSelect} from './FormControls';
+import {focusControl,SearchableSelect,KeyboardForm,FormKeyboardHelp} from './FormControls';
 import Collection,{syncStatusOptions} from './Collection';
 import {operationLabels,OperationStatus,reviewFirst,DocumentLink} from './OperationStatus';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
@@ -104,8 +104,8 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
  }
  return <dialog ref={dialog} className="modal receipt-modal" aria-labelledby="receipt-title" onCancel={e=>{e.preventDefault();if(!busy)close();}}>
   <div className="modal-header"><div><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>سجّل المواد المستلمة وكمياتها في مستند واحد.</p></div><button type="button" className="icon-button" disabled={busy} onClick={close} aria-label="إغلاق">×</button></div>
-  <form ref={form} className="modal-form" noValidate onSubmit={e=>void submit(e)}>
-   <div className="modal-body"><fieldset disabled={busy} className="receipt-fields form-fields">
+  <KeyboardForm busy={busy} ref={form} className="modal-form" noValidate onSubmit={e=>void submit(e)}>
+   <div className="modal-body"><FormKeyboardHelp/><fieldset disabled={busy} className="receipt-fields form-fields">
     <section className="form-section receipt-document-section" aria-labelledby="receipt-details-title">
      <div className="form-section-heading"><h3 id="receipt-details-title">بيانات المستند</h3><small>الحقول المعلّمة بـ * مطلوبة</small></div>
      <div className="form-row">
@@ -136,7 +136,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
        <div className="receipt-line-footer"><div className="receipt-line-summary"><div className="receipt-summary-value"><small>كمية المخزون</small><strong>{quantity?number(quantity.toString()):'—'} {item?.unit}</strong></div><div className="receipt-summary-value"><small>قيمة المادة</small><strong>{quantity&&valid(l.unitCost)?number(quantity.mul(l.unitCost).toString())+' ج.م':'—'}</strong></div></div><button type="button" className="text-button" disabled={lines.length===1} aria-label={`حذف السطر ${index+1}`} onClick={()=>{setLines(lines.filter(x=>x.lineId!==l.lineId));setError('');}}>حذف</button></div>
       </fieldset>;
      })}</div>}</Collection>
-     <button type="button" className="secondary" disabled={lines.length>=200||lines.length>=items.length} onClick={()=>{setLines([...lines,fresh(items.find(i=>!lines.some(l=>l.itemId===i.id))?.id)]);setError('');}}>إضافة مادة أخرى</button>
+     <button data-keyboard-add type="button" className="secondary" disabled={lines.length>=200||lines.length>=items.length} onClick={()=>{setLines([...lines,fresh(items.find(i=>!lines.some(l=>l.itemId===i.id))?.id)]);setError('');}}>إضافة مادة أخرى</button>
     </section>
    </fieldset></div>
    <div className="modal-footer">
@@ -145,6 +145,6 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
     {error&&<p className="error form-error-summary" role="alert">{error}</p>}
     <div className="modal-actions"><button type="submit" className="primary" disabled={busy}>{busy?'جارٍ الحفظ…':'حفظ العملية'}</button><button type="button" className="secondary" disabled={busy} onClick={close}>إلغاء</button></div>
    </div>
-  </form>
+  </KeyboardForm>
  </dialog>;
 }

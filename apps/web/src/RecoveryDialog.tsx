@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
+import {KeyboardForm,FormKeyboardHelp} from './FormControls';
 import type {DemoProfile} from '@saas/contracts';
 import {previewRecovery,restoreRecovery,type RecoveryPreview} from './offline';
 export default function RecoveryDialog({scope,close,saved}:{scope:DemoProfile;close:()=>void;saved:()=>void}){
@@ -10,10 +11,10 @@ export default function RecoveryDialog({scope,close,saved}:{scope:DemoProfile;cl
  async function restore(){setBusy(true);setError('');try{await restoreRecovery(text,scope);saved();}catch(e){setError(e instanceof Error?e.message:'تعذر الاسترداد');}finally{setBusy(false);}}
  return <dialog ref={dialog} className="modal" aria-labelledby="recovery-title" aria-describedby="recovery-description" aria-busy={busy} onCancel={e=>{e.preventDefault();if(!busy)close();}}>
   <div className="modal-header"><div><h2 id="recovery-title">استعادة العمليات</h2><p id="recovery-description">اختر الملف وراجع ملخصه قبل تأكيد الاستعادة.</p></div><button className="icon-button" type="button" aria-label="إغلاق الاسترداد" disabled={busy} onClick={close}>×</button></div>
-  <div className="modal-body recovery-body"><label><span>ملف الاسترداد <span className="field-required" aria-hidden="true">*</span></span><input ref={fileInput} aria-label="ملف الاسترداد" aria-describedby={error?'recovery-file-hint recovery-file-error':'recovery-file-hint'} aria-invalid={!!error} type="file" accept=".json,application/json" disabled={busy} onChange={e=>void select(e.target.files?.[0])}/></label><small className="field-hint" id="recovery-file-hint">ملف JSON مصدّر من FooDo، حتى ١٠ ميجابايت.</small>
+  <KeyboardForm busy={busy} className="modal-form" onSubmit={e=>{e.preventDefault();if(preview&&!busy)void restore();}}><div className="modal-body recovery-body"><FormKeyboardHelp/><label><span>ملف الاسترداد <span className="field-required" aria-hidden="true">*</span></span><input ref={fileInput} aria-label="ملف الاسترداد" aria-describedby={error?'recovery-file-hint recovery-file-error':'recovery-file-hint'} aria-invalid={!!error} type="file" accept=".json,application/json" disabled={busy} onChange={e=>void select(e.target.files?.[0])}/></label><small className="field-hint" id="recovery-file-hint">ملف JSON مصدّر من FooDo، حتى ١٠ ميجابايت.</small>
    {preview&&<div className="recovery-preview"><p>عمليات جديدة: <strong>{preview.newCount}</strong></p><p>موجودة على هذا الجهاز: <strong>{preview.duplicateCount}</strong></p><p>مقبولة سابقاً على الخادم: <strong>{preview.acceptedCount}</strong></p>{preview.legacyCount>0&&<p>بعض السجلات من نسخة قديمة بدون هوية جهاز المصدر.</p>}<p>لن تتكرر العمليات الموجودة. تُراجع العمليات المستوردة عند المزامنة قبل تغيير الرصيد المؤكد.</p></div>}
    {error&&<p role="alert" id="recovery-file-error" className="field-error form-error-summary">{error}</p>}
   </div>
-  <div className="modal-footer"><div className="modal-actions"><button className="primary" disabled={!preview||busy} onClick={()=>void restore()}>{busy?'جارٍ المعالجة…':'تأكيد الاسترداد'}</button><button className="secondary" disabled={busy} onClick={close}>إلغاء</button></div></div>
- </dialog>;
+  <div className="modal-footer"><div className="modal-actions"><button className="primary" type="submit" disabled={!preview||busy}>{busy?'جارٍ المعالجة…':'تأكيد الاسترداد'}</button><button className="secondary" type="button" disabled={busy} onClick={close}>إلغاء</button></div></div>
+ </KeyboardForm></dialog>;
 }

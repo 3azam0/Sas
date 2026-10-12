@@ -1,3 +1,7 @@
+# Keyboard delivery update — 12 October 2026
+
+The **اختصارات** button now opens an Arabic keyboard guide on every workspace screen, with compact hints inside forms. Shared forms use Enter/Shift+Enter to move between fields, Ctrl/Command+Enter to explicitly validate/save and Alt+Insert for available row additions; paged rows are revealed before focus. Multiline/file inputs and disabled confirmations retain their behavior. The guide is version 2.31. See [forms controls](./runbooks/UI-Forms.md) and [verified release](./releases/form-keyboard-2026-10-12.md). This supersedes older ordinary-Enter submission instructions below; earlier checkpoints remain history.
+
 # Current delivery update — 11 October 2026
 
 All 14 main workspace screens now use shared pagination, filters and sorting on their relevant lists. Dropdown horizontal padding and responsive forms are improved. The hosted release is verified at `fb6bc4d544733047`; see [list behavior](./runbooks/UI-Lists.md) and [release evidence](./releases/all-screen-ui-2026-10-11.md). The guide is version 2.27. No client data was posted or reset during this work. The dated local checkpoint below is retained as history; its catalog counts, delivery state and proposed next phases are not the current hosted state.
