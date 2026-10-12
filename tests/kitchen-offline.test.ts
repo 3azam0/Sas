@@ -8,6 +8,12 @@ const generation=crypto.randomUUID(),now=()=>new Date().toISOString();
 const snapshot:Snapshot={generation,organizationId:'grills',organizationName:'Fixture',currency:'EGP',access:{organizationId:'grills',userId:'owner',deviceId:crypto.randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()},locations:[{id:'main',name:'Main warehouse',kind:'مخزن'}],items:[{id:'rice',name:'Rice',unitId:'kg',unit:'kg',sku:'R',minimum:'0',category:'Food'}],balances:[{locationId:'main',itemId:'rice',quantity:'10',value:'200',average:'20'}],layers:[],entries:[],acceptedOperationIds:[],fetchedAt:now()};
 const issue=(capturedAt=now()):KitchenIssueDocument=>({generation,operationId:crypto.randomUUID(),organizationId:'grills',locationId:'main',type:'kitchen.issue',kitchen:'Kitchen 1',businessDate:'2026-10-11',reference:'Lunch shift',notes:'',capturedAt,schemaVersion:1,currency:'EGP',lines:[{lineId:crypto.randomUUID(),itemId:'rice',unitId:'kg',quantity:'2'}]});
 beforeEach(async()=>{for(const t of local.tables)await t.clear();await acceptSnapshot(snapshot);});afterEach(async()=>{vi.unstubAllGlobals();for(const t of local.tables)await t.clear();});
+it('retains an optional blank reference through offline reload and recovery',async()=>{
+ const d={...issue(),reference:''};await saveKitchenIssue(d);local.close();await local.open();
+ expect((await local.kitchenIssues.get(d.operationId))!.document).toEqual(d);
+ const archive=await recoveryArchive('grills');await local.kitchenIssues.clear();await restoreRecovery(JSON.stringify(archive),'grills');
+ expect((await local.kitchenIssues.get(d.operationId))!.document.reference).toBe('');
+});
 it('captures a new offline kitchen before its issue and preserves registry links in recovery',async()=>{
  const k=setupCommandSchema.parse({generation,operationId:crypto.randomUUID(),organizationId:'grills',type:'kitchen.save',expectedRevision:0,record:{id:crypto.randomUUID(),name:'New offline kitchen',active:true},capturedAt:now(),schemaVersion:1});await saveSetup(k);
  const d={...issue(),kitchenId:k.record.id,kitchen:k.record.name};await saveKitchenIssue(d);expect(projectSetup(snapshot,await local.setups.toArray()).kitchens?.[0]).toMatchObject({id:k.record.id,active:true});

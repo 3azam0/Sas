@@ -14,7 +14,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.34 — 12 October 2026
+Version 2.35 — 12 October 2026
+
+Kitchen issue references are optional in the form, shared contract and server acceptance. Blank, whitespace-only and omitted input normalize to an empty string; nonempty references retain their 2–100 character limit. Keep existing document IDs/hashes compatible, retain automatic `KI-` numbers and avoid empty separators in history or ledger descriptions. The local outbox and recovery need no format migration. See [optional issue reference release](./releases/optional-issue-reference-2026-10-12.md).
 
 Operational forms now share the accepted stock-issue layout: compact document details, clear material cards or labeled phone rows, optional explanations, immediate quantity warnings and a persistent summary beside Save/Cancel. Receiving, opening stock, purchase drafts/partial receiving, supplier returns, transfers, counts, recipes, production, menu mapping and sales import use this pattern; setup, balance editing and waste share its labels and footer. Small plain line lists hide paging clutter, while long documents and searchable count/source lists retain filters, sorting, paging and entered values. Incomplete purchase rows preserve completed subtotals and explicitly mark the estimate incomplete. Keep `DocumentForm.tsx` and `document-forms.css` shared by the local and hosted entry points. See [forms controls](./runbooks/UI-Forms.md) and [document forms release](./releases/document-forms-ux-2026-10-12.md) for verification and limits. Business validation, stock posting, tenant scope and offline persistence remain authoritative in their existing layers.
 

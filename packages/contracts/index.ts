@@ -78,7 +78,7 @@ export type PostedReceiptDocument={document:ReceiptDocument;amount:string;posted
 
 export const kitchenIssueSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:organizationIdSchema,locationId:recordId,type:z.literal('kitchen.issue'),
- kitchenId:recordId.optional(),kitchen:recordName,businessDate:z.iso.date(),reference:recordName,notes:z.string().trim().max(300),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),
+ kitchenId:recordId.optional(),kitchen:recordName,businessDate:z.iso.date(),reference:z.string().trim().max(100).refine(value=>!value||value.length>=2,'أدخل حرفين على الأقل أو اترك المرجع فارغاً').default(''),notes:z.string().trim().max(300),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),
  lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema})).min(1).max(200)
 }).superRefine((d,ctx)=>{if(new Set(d.lines.map(l=>l.itemId)).size!==d.lines.length||new Set([d.operationId,...d.lines.map(l=>l.lineId)]).size!==d.lines.length+1)ctx.addIssue({code:'custom',message:'المواد ومعرّفات السطور لا تتكرر'});});
 export type KitchenIssueDocument=z.infer<typeof kitchenIssueSchema>;

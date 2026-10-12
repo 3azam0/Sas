@@ -44,7 +44,7 @@ export async function postKitchenIssue(db:Database,access:Access,input:unknown):
   await tx.query('INSERT INTO kitchen_issues(organization_id,operation_id,payload,amount,method,lines,actor,kitchen_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[org,d.operationId,JSON.stringify({...d,kitchen}),amount,method,JSON.stringify(lines),access.userId,d.kitchenId??null]);
   for(const {line:l,plan} of plans){
    await applyIssue(tx,org,d.locationId,l.itemId,l.lineId,l.quantity,plan);
-   await tx.query('INSERT INTO stock_entries(organization_id,operation_id,location_id,item_id,quantity,amount,type,reason,business_date,kitchen_issue_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[org,l.lineId,d.locationId,l.itemId,decimal(l.quantity).neg().toFixed(6),decimal(plan.amount).neg().toFixed(12),'kitchen.issue',kitchen+' · '+d.reference,d.businessDate,d.operationId]);
+   await tx.query('INSERT INTO stock_entries(organization_id,operation_id,location_id,item_id,quantity,amount,type,reason,business_date,kitchen_issue_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[org,l.lineId,d.locationId,l.itemId,decimal(l.quantity).neg().toFixed(6),decimal(plan.amount).neg().toFixed(12),'kitchen.issue',d.reference?kitchen+' · '+d.reference:kitchen,d.businessDate,d.operationId]);
    await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[org,l.lineId,createHash('sha256').update('kitchen:'+d.operationId+':'+l.lineId).digest('hex'),JSON.stringify({operationId:l.lineId,outcome:'accepted',amount:plan.amount})]);
   }
   await check();await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[org,access.userId,d.operationId,d.type]);

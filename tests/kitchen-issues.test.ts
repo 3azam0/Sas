@@ -7,6 +7,21 @@ let db:Awaited<ReturnType<typeof createDatabase>>;
 const access:Access={organizationId:'grills',userId:'owner',deviceId:randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()};
 const issue=(org='grills'):KitchenIssueDocument=>({operationId:randomUUID(),organizationId:org,locationId:'central',type:'kitchen.issue',kitchen:'Kitchen 1',businessDate:'2026-10-11',reference:'Lunch shift',notes:'Internal consumption',capturedAt:new Date().toISOString(),schemaVersion:1,currency:'EGP',lines:[{lineId:randomUUID(),itemId:'rice',unitId:'كجم',quantity:'2'},{lineId:randomUUID(),itemId:'beef',unitId:'كجم',quantity:'1'}]});
 beforeAll(async()=>{db=await createDatabase();await seed(db);});afterAll(async()=>db.close());
+it('accepts blank, whitespace and omitted references while retaining nonempty reference limits',()=>{
+ const d=issue(),{reference,...withoutReference}=d;
+ for(const input of [{...d,reference:''},{...d,reference:'   '},withoutReference])expect(kitchenIssueSchema.parse(input).reference).toBe('');
+ expect(kitchenIssueSchema.parse({...d,reference:'  Lunch shift  '}).reference).toBe(reference);
+ expect(kitchenIssueSchema.safeParse({...d,reference:'x'}).success).toBe(false);
+ expect(kitchenIssueSchema.safeParse({...d,reference:'x'.repeat(101)}).success).toBe(false);
+});
+it('posts an issue without a reference once, keeps its identity and avoids a trailing ledger separator',async()=>{
+ const d={...issue(),reference:'',lines:[{...issue().lines[0],quantity:'0.25'}]}, {reference,...withoutReference}=d;
+ const first=await postKitchenIssue(db,access,withoutReference),retry=await postKitchenIssue(db,access,d),s=await getSnapshot(db,access);
+ expect(retry).toEqual(first);expect(s.kitchenIssues!.find(p=>p.document.operationId===d.operationId)!.document.reference).toBe('');
+ expect(s.entries.filter(e=>e.kitchenIssueId===d.operationId)).toHaveLength(1);
+ expect(s.entries.find(e=>e.kitchenIssueId===d.operationId)!.reason).toBe('Kitchen 1');
+ expect((await reconcileStock(db,'grills')).every(r=>r.matches)).toBe(true);
+});
 it('consumes from one warehouse, pins costs and names, and creates no destination stock or sale',async()=>{
  const before=await getSnapshot(db,access),d=issue(),r=await postKitchenIssue(db,access,d),s=await getSnapshot(db,access),posted=s.kitchenIssues!.find(x=>x.document.operationId===d.operationId)!;
  expect(posted.document).toEqual(d);expect(posted.actor).toBe('owner');expect(posted.method).toBe('moving_average');expect(posted.amount).toBe(r.amount);expect(posted.lines).toHaveLength(2);
