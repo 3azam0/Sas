@@ -2,9 +2,11 @@
 
 The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate all theoretical usage; new imports deduct only ingredients selected in their pinned recipe version. Imports with shortages succeed, deduct available stock and highlight the recorded shortage. Older sales and recipes without selections remain calculation-only. Earlier delivery entries below remain historical checkpoints.
 
-# Fodo — Modular Business Management SaaS Master Plan
+# FooDo — Modular Business Management SaaS Master Plan
 
-Updated: 11 October 2026
+Updated: 12 October 2026
+
+Platform branding: the accepted **FooDo** name and logo are used across the app. Organization names and logos remain tenant-specific. See [brand identity](./branding/FooDo.md); existing technical identifiers and historical records remain compatible.
 
 Status: planning baseline. Client-specific inputs are deferred. This document specifies intended behavior; it does not claim that integrations, compliance, or software have already been implemented.
 

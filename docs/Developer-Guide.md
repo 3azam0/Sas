@@ -10,15 +10,17 @@ All-screen UI delivery is now hosted: shared pagination, filters and ordering ac
 
 Button actions keep their click target stable when focus leaves an empty required field. Defer blur feedback when focus moves to a button; submit still validates every field, while moving between fields keeps inline feedback. This prevents the first Add ingredient click from being lost as validation changes the form height.
 
-# Fodo SaaS Developer Guide
+# FooDo SaaS Developer Guide
 
-Version 2.27 — 11 October 2026
+Version 2.28 — 12 October 2026
+
+The accepted platform identity is **FooDo**. Shared branding appears in the workspace, welcome/sign-in screens, browser icon and installed-app manifest. Tenant branding stays in the organization profile. Keep technical service/database identifiers and saved local addresses stable. See [brand assets and generation record](./branding/FooDo.md) and the [verified branding release](./releases/foodo-branding-2026-10-12.md).
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 
 The user has approved temporary trial data in the existing hosted client workspace. See [temporary client data](./runbooks/Temporary-Client-Data.md) and the [verified menu trial release](./releases/client-sample-data-2026-10-11.md). The hosted workspace now has 99 menu mappings, 100 published recipes, 338 catalog items (original 328 plus 10 additions), stock and purchasing/production/sales examples. Prepare the private baseline backup and guarded cleanup before posting sample operations. Prices/recipes/yields are assumptions; original catalog/profile/access must survive cleanup. Real activity begins only after the trial is removed. The production UI retains its normal workflows and no development reset is exposed.
 
-This guide defines the development and release workflow. Fodo now has both local development and a hosted first-client workspace. Code snippets and API names below remain proposed contracts unless the implementation-status section states otherwise.
+This guide defines the development and release workflow. FooDo now has both local development and a hosted first-client workspace. Code snippets and API names below remain proposed contracts unless the implementation-status section states otherwise.
 
 ## Implementation status and revised delivery order — 10 October 2026
 
