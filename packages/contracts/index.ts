@@ -195,3 +195,5 @@ export type SalesImportDocument=z.infer<typeof salesImportSchema>;
 export type SalesStockDeduction={movementId:string;itemId:string;businessDate:string;quantity:string;amount:string};
 export type SalesStockShortage={itemId:string;businessDate:string;requiredQuantity:string;deductedQuantity:string;shortageQuantity:string};
 export type ImportedSales={document:SalesImportDocument;acceptedLineIds:string[];duplicateLineIds:string[];netAmount:string;postedAt:string;stockDeductions?:SalesStockDeduction[];stockDeductionAmount?:string;stockShortages?:SalesStockShortage[]};
+
+export * from './reports';

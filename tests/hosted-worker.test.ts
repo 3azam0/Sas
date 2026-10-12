@@ -25,3 +25,14 @@ it('expires both cookies on logout and adds security headers',async()=>{
  vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(null,{status:204})));const worker=createWorker({},'test');
  const r=await worker.fetch(new Request(origin+'/api/v1/auth/logout',{method:'POST',headers:{Origin:origin,Cookie:cookie}}),env);expect(r.headers.get('Set-Cookie')).toContain('Max-Age=0');expect(r.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");expect(r.headers.get('Cache-Control')).toBe('no-store');
 });
+
+it('requires authenticated same-origin POST for reports and forwards its exact filters and generation',async()=>{
+ const fetcher=vi.fn().mockResolvedValue(Response.json({schemaVersion:1,rows:[],total:0}));vi.stubGlobal('fetch',fetcher);
+ expect((await handle(new Request(origin+'/api/v1/reports',{method:'POST',headers:{Origin:origin},body:'{}'}),env,{},'test')).status).toBe(401);
+ expect((await handle(new Request(origin+'/api/v1/reports',{headers:{Cookie:cookie}}),env,{},'test')).status).toBe(404);
+ expect((await handle(new Request(origin+'/api/v1/reports',{method:'POST',headers:{Origin:'https://evil.example',Cookie:cookie},body:'{}'}),env,{},'test')).status).toBe(403);
+ expect(fetcher).not.toHaveBeenCalled();
+ const body=JSON.stringify({kind:'inventory',from:'2026-10-01',to:'2026-10-12',page:2});
+ const r=await handle(new Request(origin+'/api/v1/reports',{method:'POST',headers:{Origin:origin,Cookie:cookie,'X-Fodo-Generation':'generation'},body}),env,{},'test');
+ expect(r.status).toBe(200);expect(r.headers.get('Cache-Control')).toBe('no-store');expect(fetcher.mock.calls[0][0]).toContain('/functions/v1/fodo-api/reports');expect(fetcher.mock.calls[0][1]).toMatchObject({method:'POST',body,headers:{'X-Fodo-Generation':'generation',Authorization:'Bearer '+tokens.access_token}});
+});

@@ -41,3 +41,5 @@ export {postRecipe} from './recipes';
 export {postProduction} from './production';
 
 export {postMenuItem,postSalesImport} from './sales';
+
+export {getReport} from './reports';

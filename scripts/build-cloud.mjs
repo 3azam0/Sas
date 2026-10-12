@@ -1,3 +1,4 @@
+import {hostedServiceWorker} from './hosted-service-worker.mjs';
 import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
@@ -13,7 +14,7 @@ const buildId=createHash('sha256').update(js).update(css).digest('hex').slice(0,
 const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#d94b20"><meta name="description" content="إدارة المخزون والوصفات والتكاليف"><title>FooDo | إدارة المخزون والتكاليف</title><link rel="icon" type="image/png" href="/branding/foodo-icon-v1.png"><link rel="apple-touch-icon" href="/branding/foodo-icon-v1.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="${cssPath}"></head><body><div id="root"></div><script type="module" src="${jsPath}"></script></body></html>`;
 const brandingFiles=(await readdir('apps/web/public/branding')).filter(file=>/^[a-z0-9-]+\.(webp|png)$/.test(file));
 const paths=['/',jsPath,cssPath,'/icon.svg','/manifest.webmanifest',...brandingFiles.map(file=>'/branding/'+file)];
-const sw=`const CACHE='fodo-hosted-${buildId}',FILES=${JSON.stringify(paths)};self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('fodo-hosted-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==self.location.origin||u.pathname.startsWith('/api/'))return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).catch(()=>caches.match('/')));return;}if(FILES.includes(u.pathname))e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;
+const sw=hostedServiceWorker(buildId,paths);
 const data={};function asset(path,contents,type,cache='public, max-age=31536000, immutable'){data[path]={data:gzipSync(contents).toString('base64'),type,cache};}
 asset('/',html,'text/html; charset=utf-8','no-store');asset(jsPath,js,'application/javascript; charset=utf-8');asset(cssPath,css,'text/css; charset=utf-8');asset('/sw.js',sw,'application/javascript; charset=utf-8','no-cache');
 asset('/icon.svg',await readFile('apps/web/public/icon.svg'),'image/svg+xml','public, max-age=86400');asset('/manifest.webmanifest',await readFile('apps/web/public/manifest.webmanifest'),'application/manifest+json','no-cache');
