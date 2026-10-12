@@ -6,4 +6,5 @@ import '../apps/web/app/form-polish.css';
 import '../apps/web/app/cost-control.css';
 import '../apps/web/app/screen-polish.css';
 import '../apps/web/app/brand.css';
+import '../apps/web/app/kitchen-issues.css';
 createRoot(document.getElementById('root')!).render(<Workspace/>);

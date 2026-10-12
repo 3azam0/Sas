@@ -212,3 +212,5 @@ tbody tr:hover{background:#fbfcfe}
 
 .sales-mapping>.workflow-section-title{grid-column:1 / -1}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
+.catalog-search-wrap{display:block;position:relative;min-width:0}.catalog-results{display:block;position:absolute;z-index:20;inset-inline:0;top:100%;max-height:260px;overflow:auto;background:#fff;border:1px solid #dce2ea;border-radius:12px;box-shadow:0 12px 30px #172a4024;margin-top:4px;padding:6px}.catalog-results>button{display:block;width:100%;padding:11px 14px;text-align:start;border:0;border-radius:8px;background:transparent;color:#172a40;white-space:normal;line-height:1.6}.catalog-results>button:hover,.catalog-results>button.active{background:#fff1e8;color:#b73915}.catalog-results>button[aria-selected=true]{font-weight:700}.catalog-results>button:disabled{opacity:.45;cursor:not-allowed}.catalog-no-results{display:block;padding:14px;color:#64748b}
+.catalog-search input::-webkit-search-cancel-button{display:none}

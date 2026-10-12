@@ -34,6 +34,7 @@ export {postCosting,initializeDevelopmentBaseline} from './development';
 export {generationInput} from './request-generation';
 
 export {postReceiptDocument} from './receipts';
+export {postKitchenIssue} from './kitchen-issues';
 
 export {postRecipe} from './recipes';
 

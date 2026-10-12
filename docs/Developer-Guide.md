@@ -12,9 +12,11 @@ Button actions keep their click target stable when focus leaves an empty require
 
 # FooDo SaaS Developer Guide
 
-Version 2.28 — 12 October 2026
+Version 2.30 — 12 October 2026
 
 The accepted platform identity is **FooDo**. Shared branding appears in the workspace, welcome/sign-in screens, browser icon and installed-app manifest. Tenant branding stays in the organization profile. Keep technical service/database identifiers and saved local addresses stable. See [brand assets and generation record](./branding/FooDo.md) and the [verified branding release](./releases/foodo-branding-2026-10-12.md).
+
+Kitchen recipients support Add/Edit/Delete/Restore through tenant-scoped, revisioned setup records and multi-material **immediate consumption** through a separate document/ledger type. Deletion removes a recipient from new selection while preserving accepted consumption. Reuse stock valuation and reconciliation; keep sales, production and kitchen consumption distinct so the same goods are not automatically charged twice. The keyboard editor, automatic search-result dropdown, offline outbox and printable documents are documented in [Kitchen issues](./runbooks/Kitchen-Issues.md). IndexedDB is version 11 and recovery format 16. The applied additive migrations are `20261012065508_kitchen_consumption.sql` and `20261012073503_kitchen_directory.sql`; never modify the initial hosted baseline migration. Both retain the private trial backup through guarded compatible schema extensions. See the [kitchen consumption release](./releases/kitchen-consumption-2026-10-12.md).
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
 

@@ -8,6 +8,8 @@ Updated: 12 October 2026
 
 Platform branding: the accepted **FooDo** name and logo are used across the app. Organization names and logos remain tenant-specific. See [brand identity](./branding/FooDo.md); existing technical identifiers and historical records remain compatible.
 
+Agreed kitchen workflow: saved internal recipients can be added, renamed, deleted from new selection and restored. Past consumption retains its original recipient name. They receive multi-material issues from the main warehouse, with every accepted quantity treated as immediate consumption and no destination stock balance. Ordinary stock-location transfers remain available separately. Forms support efficient keyboard entry, automatic search-result dropdowns and the existing costing/offline controls. See [Kitchen issues](./runbooks/Kitchen-Issues.md).
+
 Status: planning baseline. Client-specific inputs are deferred. This document specifies intended behavior; it does not claim that integrations, compliance, or software have already been implemented.
 
 Inventory composition entry point delivered on 11 October 2026: **مكونات الصنف** opens or creates a stocked recipe linked to an inventory item, and **فتح إعداد المكونات بعد الحفظ** continues directly from item setup. Component quantities and output yield use the existing versioned recipe/production workflows. Definitions leave stock unchanged; accepted production performs consumption and creates output. An item may still be purchased ready-made. This adds no second BOM model, category hierarchy, client seed data, schema migration or billing requirement. Verification passed: 202 unit/integration tests, TypeScript, production build/offline manifest and three targeted browser scenarios.

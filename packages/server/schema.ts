@@ -70,4 +70,28 @@ ${productionTables}
 ${salesTables}
 `;
 export const organizationProfileMigration="ALTER TABLE organizations ADD COLUMN IF NOT EXISTS profile jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(profile)='object');\n";
-export const schema=hostedBaselineSchema+organizationProfileMigration;
+export const kitchenIssueMigration=`
+CREATE TABLE IF NOT EXISTS kitchen_issues(
+ organization_id text NOT NULL REFERENCES organizations(id),operation_id uuid NOT NULL,payload jsonb NOT NULL,
+ amount numeric(38,12) NOT NULL CHECK(amount>=0),method text NOT NULL CHECK(method IN ('fifo','moving_average')),
+ lines jsonb NOT NULL,actor text NOT NULL,posted_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(organization_id,operation_id)
+);
+ALTER TABLE stock_entries ADD COLUMN IF NOT EXISTS kitchen_issue_id uuid;
+DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='stock_kitchen_issue_scope' AND conrelid='stock_entries'::regclass) THEN
+ ALTER TABLE stock_entries ADD CONSTRAINT stock_kitchen_issue_scope FOREIGN KEY(organization_id,kitchen_issue_id) REFERENCES kitchen_issues(organization_id,operation_id);
+END IF; END $$;
+CREATE INDEX IF NOT EXISTS kitchen_issue_tenant_date ON kitchen_issues(organization_id,posted_at DESC);
+CREATE INDEX IF NOT EXISTS entry_kitchen_issue ON stock_entries(organization_id,kitchen_issue_id);
+`;
+export const kitchenDirectoryMigration=`
+CREATE TABLE IF NOT EXISTS kitchens(
+ organization_id text NOT NULL REFERENCES organizations(id),id text NOT NULL,name text NOT NULL,
+ active boolean NOT NULL DEFAULT true,revision integer NOT NULL CHECK(revision>0),PRIMARY KEY(organization_id,id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS kitchen_active_name ON kitchens(organization_id,lower(btrim(name))) WHERE active;
+ALTER TABLE kitchen_issues ADD COLUMN IF NOT EXISTS kitchen_id text;
+DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='kitchen_recipient_scope' AND conrelid='kitchen_issues'::regclass) THEN
+ ALTER TABLE kitchen_issues ADD CONSTRAINT kitchen_recipient_scope FOREIGN KEY(organization_id,kitchen_id) REFERENCES kitchens(organization_id,id);
+END IF; END $$;
+`;
+export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration;

@@ -5,6 +5,7 @@ import type {Database,QueryDatabase} from '../packages/server/database';
 import {getSnapshot,postCommand} from '../packages/server/services';
 import {postSetupCommand} from '../packages/server/setup';
 import {postOpening} from '../packages/server/opening';
+import {postKitchenIssue} from '../packages/server/kitchen-issues';
 import {postReceiptDocument} from '../packages/server/receipts';
 import {postPurchase} from '../packages/server/purchasing';
 import {postTransfer} from '../packages/server/transfers';
@@ -43,7 +44,7 @@ async function accessFor(request:Request):Promise<Access>{
  const device=request.headers.get('X-Fodo-Device')??'';if(!/^[a-f0-9-]{36}$/i.test(device))throw new BusinessError('INVALID_DEVICE','أعد تسجيل الدخول على هذا الجهاز.',400);
  return {organizationId:rows[0].organization_id,userId:user.id,deviceId:device,expiresAt:new Date(Date.now()+86400000).toISOString()};
 }
-const handlers:Record<string,(db:Database,access:Access,input:unknown)=>Promise<unknown>>={commands:postCommand,setup:postSetupCommand,openings:postOpening,receipts:postReceiptDocument,purchases:postPurchase,transfers:postTransfer,counts:postCount,recipes:postRecipe,production:postProduction,menu:postMenuItem,sales:postSalesImport};
+const handlers:Record<string,(db:Database,access:Access,input:unknown)=>Promise<unknown>>={commands:postCommand,setup:postSetupCommand,openings:postOpening,receipts:postReceiptDocument,'kitchen-issues':postKitchenIssue,purchases:postPurchase,transfers:postTransfer,counts:postCount,recipes:postRecipe,production:postProduction,menu:postMenuItem,sales:postSalesImport};
 Deno.serve(async request=>{
  try{
   const route=new URL(request.url).pathname.split('/').filter(Boolean).at(-1)!;
