@@ -52,7 +52,7 @@ export const FormSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSe
 });
 function plainText(value:ReactNode):string{return Children.toArray(value).map(child=>isValidElement<{children?:ReactNode}>(child)?plainText(child.props.children):String(child??'')).join('');}
 export function matchesSearch(value:string,query:string){const clean=(v:string)=>v.normalize('NFKC').replace(/[\u064B-\u065F\u0670ـ]/g,'').replace(/[أإآ]/g,'ا').replace(/\s+/g,' ').toLocaleLowerCase();return clean(value).includes(clean(query.trim()));}
-export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void;onCreate?:(query:string)=>void}>(function SearchableSelect({children,onSearchEnter,onCreate,...props},ref){
+export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void;onCreate?:(query:string)=>void;createLabel?:string}>(function SearchableSelect({children,onSearchEnter,onCreate,createLabel='إضافة مادة جديدة',...props},ref){
  const select=useRef<HTMLSelectElement>(null),search=useRef<HTMLInputElement>(null),list=useRef<HTMLDivElement>(null);
  const {id,message,context,check}=useFeedback(select,undefined,search),inputId=props.id??id+'-input';
  const [query,setQuery]=useState<string|null>(null),[open,setOpen]=useState(false),[active,setActive]=useState(-1),[uncontrolled,setUncontrolled]=useState(String(props.defaultValue??''));
@@ -100,7 +100,7 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
  const {value:ignoredValue,defaultValue:ignoredDefault,name:ignoredName,id:ignoredId,onChange:ignoredChange,onBlur:ignoredBlur,onFocus:ignoredFocus,onKeyDown:ignoredKey,onInvalid:ignoredInvalid,required:ignoredRequired,multiple:ignoredMultiple,size:ignoredSize,...inputProps}=props;
  const results=expanded&&portal?createPortal(<div ref={list} id={id+'-options'} className="catalog-results" dir="rtl" style={{position:'fixed',left:popup.left,top:popup.top,width:popup.width,maxHeight:popup.height,transform:popup.above?'translateY(-100%)':undefined}} role="listbox" aria-label={`خيارات ${props['aria-label']??'الصنف'}`}>
   {matches.length?matches.map((option,index)=><div role="option" id={id+'-option-'+index} data-option-index={index} key={option.value} aria-selected={option.value===value} aria-disabled={option.disabled||undefined} className={(index===active?'active ':'')+(option.disabled?'disabled':'')} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(index)}>{option.label}{option.value===value&&<span aria-hidden="true" className="catalog-check">✓</span>}</div>):<span className="catalog-no-results">لا توجد نتائج مطابقة. الاختيار الحالي محفوظ.</span>}
-  {onCreate&&<div role="option" id={id+'-option-'+matches.length} data-option-index={matches.length} aria-selected="false" className={'catalog-create '+(active===matches.length?'active':'')} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(matches.length)}><span><b aria-hidden="true">＋</b> إضافة مادة جديدة</span><kbd aria-hidden="true">F2</kbd></div>}
+  {onCreate&&<div role="option" id={id+'-option-'+matches.length} data-option-index={matches.length} aria-selected="false" className={'catalog-create '+(active===matches.length?'active':'')} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(matches.length)}><span><b aria-hidden="true">＋</b> {createLabel}</span><kbd aria-hidden="true">F2</kbd></div>}
  </div>,portal):null;
  return <span className="catalog-select">
   <span className="catalog-search"><input {...inputProps as InputHTMLAttributes<HTMLInputElement>} ref={search} id={inputId} type="search" role="combobox" autoComplete="off" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={expanded} aria-controls={expanded?id+'-options':undefined} aria-activedescendant={expanded&&active>=0&&(matches[active]||onCreate&&active===matches.length)?id+'-option-'+active:undefined} aria-required={props.required||undefined} aria-invalid={invalid} aria-describedby={described} value={query??(selected?.value?selected.label:'')} placeholder={selected?.value?'ابحث بالاسم أو الكود…':selected?.label??'اختر أو ابحث بالاسم أو الكود…'}
@@ -123,7 +123,7 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
    {!options.some(option=>option.value==='')&&<option value=""/>}{children}
   </select>
   {props.required&&<small className="field-hint" id={id+'-required'}><span className="field-required">* مطلوب</span></small>}
-  <small className="field-hint catalog-result-count" id={id+'-results'} role="status" aria-live="polite">{expanded&&<>{matches.length?`${matches.length} نتيجة · الأسهم ثم Enter للاختيار`:'لا توجد نتائج مطابقة؛ الاختيار الحالي محفوظ.'}{onCreate&&' · F2 لإضافة مادة جديدة'}</>}</small>
+  <small className="field-hint catalog-result-count" id={id+'-results'} role="status" aria-live="polite">{expanded&&<>{matches.length?`${matches.length} نتيجة · الأسهم ثم Enter للاختيار`:'لا توجد نتائج مطابقة؛ الاختيار الحالي محفوظ.'}{onCreate&&` · F2: ${createLabel}`}</>}</small>
   {message&&<small className="field-error" id={id+'-error'}>{message}</small>}{results}
  </span>;
 });

@@ -10,6 +10,10 @@ After a new build, stop the old Fodo console with Ctrl+C and start the same laun
 
 ## Working scenario
 
+The menu now places **إعداد المخزون** under **الإعدادات والمتابعة** and **الموردون** under **إدارة المخزون**. In Add/Edit material, **الفئة** opens all categories from the complete tenant catalog. Type to search, use arrows/Enter to select, or use **إضافة فئة جديدة** / F2. Enter a 2–100 character name and choose **إضافة واختيار**; an existing normalized name selects the existing category. It is saved only with the material. Cancelling the category form returns to the material, and cancelling the material saves nothing. These are flat categories; there is no separate empty-category manager.
+
+In **المخزون**, **تكلفة الوحدة الفعلية** means accepted inventory value divided by accepted quantity at the selected location, shown as EGP per base unit. It uses the current confirmed stock valuation, supports sorting and shows a dash when no cost is known.
+
 You can also create a material while entering **استلام مواد**: use **إضافة مادة جديدة** in its searchable selector (or F2), complete name/code/category/inventory unit, then **حفظ واختيار**. This reuses the setup outbox and shared validation, starts at zero stock and returns to the same receipt row. The unit must be chosen explicitly. Cancelling the receipt afterward keeps the created catalog material; cancelling the creation form saves nothing.
 
 Suppliers are available directly from the main menu under **الموردون → إضافة مورد**. The supplier tab in **إعداد المخزون** accesses the same records. You can add/edit contact details, search, deactivate suppliers and review rejected changes from the direct page; offline saves use the existing setup outbox.

@@ -18,6 +18,10 @@ Receiving, waste, opening stock, purchasing, recipe ingredients/outputs, product
 
 Use arrows and Enter to select and move to the next field; clicking a result selects it without jumping. Enter on an unchanged selection advances. Tab, Shift+Enter or Escape discard an uncommitted query and retain the selection; Enter with no matches stays in the field unless a creation action is available. Receiving adds **إضافة مادة جديدة** as the last option: choose it with arrows/Enter, click it or press F2. An unmatched-search Enter opens the compact creation form, prefilling its name. Save selects the material on the same receipt row and focuses quantity; cancel/Escape returns to its original selector without losing the receipt. Other selectors retain their existing behavior. Escape closes the list before cancelling the editor. Disabled duplicate items remain visible and cannot be chosen. Required/document errors are associated with and focus the visible combobox. Results render outside scrolling form/table bodies, inside a dialog's top layer when applicable, and reposition during scrolling/resizing. All lookup data is already in the tenant snapshot; no network search is introduced.
 
+## Select or add a category
+
+Material creation/editing (including the receiving child editor) uses the shared searchable selector with every tenant category. Focus shows the entire list independently of material pagination; type to filter. **إضافة فئة جديدة**, F2 or unmatched-search Enter opens a separate native dialog. New names are trimmed/normalized and validated at 2–100 characters; duplicate normalized names select the existing value. **إضافة واختيار** returns the value to the parent draft and restores its combobox focus. The category is saved with the material through the existing offline setup outbox. Escape/cancel closes only the category dialog, and cancelling the material writes nothing. Parent material/receipt submission must not be triggered by category submission.
+
 ## Validate a document
 
 Required fields have visible guidance. Quantities identify their unit and costs identify their price basis. Invalid input produces a message associated with the field and moves focus to the first error after submission. Enter moves to the next data field without saving; Shift+Enter moves back. Ctrl+Enter (Command+Enter on macOS) explicitly submits through the available main button and the existing validation. Add, remove and close buttons do not submit the form. The scroll body and action footer are separate. Saving disables the form and actions until the operation finishes. Closing an editor returns keyboard focus to its trigger when the trigger still exists.
@@ -33,6 +37,7 @@ Open **اختصارات** (the keyboard icon) in the workspace top bar for the A
 - Ctrl+Enter / Command+Enter validate and submit only when the primary action is enabled. Disabled confirmations, previews and busy forms cannot be bypassed.
 - Alt+Insert adds a material, recipe component or purchase-pack row where an Add button is available, then focuses the new row and reveals its page.
 - Arrows choose search results/native options; Space toggles checkboxes.
+- F2 opens material creation during receiving, or category creation from the category field.
 - Enter in a multiline note or CSV preserves line breaks. File inputs keep native file-picker behavior; composition input is not intercepted.
 - Escape closes search results first, then an idle dialog or inline editor. Closing returns focus to its available trigger.
 
