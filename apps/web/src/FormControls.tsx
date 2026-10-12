@@ -1,5 +1,6 @@
 'use client';
 import {Children,cloneElement,createContext,isValidElement,useCallback,useContext,useEffect,useId,useMemo,useRef,useState,forwardRef,type FormHTMLAttributes,type InputHTMLAttributes,type SelectHTMLAttributes,type ReactNode,type ReactElement} from 'react';
+import {createPortal} from 'react-dom';
 import {normalizeNumber} from '../../../packages/domain/opening-import';
 import {focusControl,focusNextField,useFormKeyboard} from './form-keyboard';
 export {focusControl} from './form-keyboard';
@@ -32,11 +33,11 @@ function inputError(node:Control,kind?:NumericKind){
  }
  return '';
 }
-function useFeedback(node:React.RefObject<Control|null>,kind?:NumericKind){
+function useFeedback(node:React.RefObject<Control|null>,kind?:NumericKind,focusNode?:React.RefObject<Control|null>){
  const context=useContext(FeedbackContext),id=useId(),kindRef=useRef(kind);kindRef.current=kind;
  const check=useCallback(()=>node.current?inputError(node.current,kindRef.current):'',[node]);
  const register=context?.register;
- useEffect(()=>register?.(id,{check,node:()=>node.current}),[register,id,check,node]);
+ useEffect(()=>register?.(id,{check,node:()=>focusNode?.current??node.current}),[register,id,check,node,focusNode]);
  const message=context?.errors[id];
  return {id,message,context,check};
 }
@@ -49,18 +50,79 @@ export const FormSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSe
  const node=useRef<HTMLSelectElement>(null),{id,message,context,check}=useFeedback(node);
  return <><select {...props} ref={value=>{node.current=value;if(typeof forwarded==='function')forwarded(value);else if(forwarded)forwarded.current=value;}} aria-invalid={message?true:props['aria-invalid']} aria-describedby={[props['aria-describedby'],message?id+'-error':undefined].filter(Boolean).join(' ')||undefined} onBlur={e=>{props.onBlur?.(e);if(!(e.relatedTarget instanceof HTMLButtonElement))context?.report(id,check());}} onChange={e=>{props.onChange?.(e);if(message||context?.submitted)context?.report(id,check());}}/>{props.required&&<small className="field-hint"><span className="field-required">* مطلوب</span></small>}{message&&<small className="field-error" id={id+'-error'}>{message}</small>}</>;
 });
-function plainText(value:ReactNode):string{return Children.toArray(value).map(child=>isValidElement<{children?:ReactNode}>(child)?plainText(child.props.children):String(child??'')).join(' ');}
-export function matchesSearch(value:string,query:string){const clean=(v:string)=>v.normalize('NFKC').replace(/[\u064B-\u065F\u0670ـ]/g,'').replace(/[أإآ]/g,'ا').toLocaleLowerCase();return clean(value).includes(clean(query.trim()));}
+function plainText(value:ReactNode):string{return Children.toArray(value).map(child=>isValidElement<{children?:ReactNode}>(child)?plainText(child.props.children):String(child??'')).join('');}
+export function matchesSearch(value:string,query:string){const clean=(v:string)=>v.normalize('NFKC').replace(/[\u064B-\u065F\u0670ـ]/g,'').replace(/[أإآ]/g,'ا').replace(/\s+/g,' ').toLocaleLowerCase();return clean(value).includes(clean(query.trim()));}
 export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void}>(function SearchableSelect({children,onSearchEnter,...props},ref){
- const [query,setQuery]=useState(''),[open,setOpen]=useState(false),[active,setActive]=useState(-1),[popup,setPopup]=useState({above:false,height:260}),id=useId(),select=useRef<HTMLSelectElement|null>(null),search=useRef<HTMLInputElement|null>(null),options=Children.toArray(children);
- const visible=options.filter(option=>!isValidElement<{value?:string;children?:ReactNode}>(option)||option.type!=='option'||String(option.props.value??'')===String(props.value??'')||matchesSearch(plainText(option.props.children),query));
- const matches=options.filter((option):option is ReactElement<{value:string;disabled?:boolean;children?:ReactNode}>=>isValidElement<{value?:string;disabled?:boolean;children?:ReactNode}>(option)&&option.type==='option'&&!!option.props.value&&matchesSearch(plainText(option.props.children),query));
- const expanded=open&&!!query.trim()&&!props.disabled;
- function placePopup(){const node=search.current;if(!node)return;const field=node.getBoundingClientRect(),body=node.closest('.workflow-body,.modal-body')?.getBoundingClientRect(),below=Math.min(window.innerHeight,body?.bottom??window.innerHeight)-field.bottom-12,above=field.top-Math.max(0,body?.top??0)-12,useAbove=below<120&&above>below;setPopup({above:useAbove,height:Math.max(80,Math.min(260,useAbove?above:below))});}
- useEffect(()=>{if(expanded&&active>=0)document.getElementById(id+'-option-'+active)?.scrollIntoView({block:'nearest'});},[active,expanded,id]);
- function choose(index:number){const option=matches[index];if(!option||option.props.disabled||!select.current)return;select.current.value=String(option.props.value);select.current.dispatchEvent(new Event('change',{bubbles:true}));setOpen(false);setActive(-1);if(onSearchEnter)onSearchEnter(String(option.props.value));else requestAnimationFrame(()=>{if(select.current)focusNextField(select.current);});}
- function move(step:number){const enabled=matches.map((o,i)=>o.props.disabled?-1:i).filter(i=>i>=0);if(!enabled.length)return;const current=enabled.indexOf(active),next=current<0?(step>0?0:enabled.length-1):(current+step+enabled.length)%enabled.length;setOpen(true);setActive(enabled[next]);}
- return <span className="catalog-select"><span className="catalog-search-wrap"><span className="catalog-search"><input ref={search} type="search" role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls={expanded?id+'-options':undefined} aria-activedescendant={expanded&&active>=0?id+'-option-'+active:undefined} disabled={props.disabled} aria-label={`بحث ${props['aria-label']??'الصنف'}`} aria-describedby={query?id+'-results':undefined} value={query} placeholder="ابحث بالاسم أو الكود…" onFocus={()=>{placePopup();setOpen(true);}} onBlur={()=>setOpen(false)} onKeyDown={e=>{if(e.nativeEvent.isComposing)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();move(e.key==='ArrowDown'?1:-1);}else if(e.key==='Escape'&&expanded){e.preventDefault();e.stopPropagation();setOpen(false);}else if(e.key==='Enter'&&!(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)){e.preventDefault();e.stopPropagation();if(e.repeat)return;if(!query.trim()){setOpen(false);const current=select.current;if(current?.value){if(onSearchEnter)onSearchEnter(current.value);else requestAnimationFrame(()=>focusNextField(current));}else current?.focus();return;}const index=active>=0?active:matches.findIndex(o=>!o.props.disabled);if(index>=0)choose(index);}}} onChange={e=>{setQuery(e.target.value);placePopup();setOpen(true);setActive(-1);}}/>{query&&<button type="button" disabled={props.disabled} className="clear-search" aria-label={`مسح بحث ${props['aria-label']??'الصنف'}`} onClick={()=>{setQuery('');setActive(-1);setOpen(false);search.current?.focus();}}>×</button>}</span>{expanded&&<span id={id+'-options'} className="catalog-results" style={{maxHeight:popup.height,top:popup.above?'auto':'100%',bottom:popup.above?'100%':undefined,marginTop:popup.above?0:4,marginBottom:popup.above?4:0}} role="listbox" aria-label={`نتائج بحث ${props['aria-label']??'الصنف'}`}>{matches.length?matches.map((option,index)=><button type="button" role="option" id={id+'-option-'+index} key={String(option.props.value)} tabIndex={-1} aria-selected={String(option.props.value)===String(props.value)} aria-disabled={option.props.disabled||undefined} disabled={option.props.disabled} className={index===active?'active':''} onMouseDown={e=>e.preventDefault()} onClick={()=>choose(index)}>{plainText(option.props.children)}</button>):<span role="status" className="catalog-no-results">لا توجد نتائج مطابقة.</span>}</span>}</span><FormSelect {...props} ref={value=>{select.current=value;if(typeof ref==='function')ref(value);else if(ref)ref.current=value;}} onChange={e=>{setOpen(false);props.onChange?.(e);}}>{visible}</FormSelect>{query&&<small className="field-hint" id={id+'-results'}>{matches.length?`${matches.length} نتائج مطابقة؛ استخدم الأسهم وEnter للاختيار.`:'لا توجد نتائج مطابقة؛ الاختيار الحالي محفوظ.'}</small>}</span>;
+ const select=useRef<HTMLSelectElement>(null),search=useRef<HTMLInputElement>(null),list=useRef<HTMLDivElement>(null);
+ const {id,message,context,check}=useFeedback(select,undefined,search),inputId=props.id??id+'-input';
+ const [query,setQuery]=useState<string|null>(null),[open,setOpen]=useState(false),[active,setActive]=useState(-1),[uncontrolled,setUncontrolled]=useState(String(props.defaultValue??''));
+ const [popup,setPopup]=useState({left:0,top:0,width:0,height:260,above:false}),[portal,setPortal]=useState<HTMLElement|null>(null);
+ type Option={value:string;label:string;disabled:boolean};
+ function collect(nodes:ReactNode,disabled=false):Option[]{return Children.toArray(nodes).flatMap(child=>{
+  if(!isValidElement<{value?:string|number;children?:ReactNode;disabled?:boolean}>(child))return [];
+  if(child.type==='option')return [{value:String(child.props.value??plainText(child.props.children)),label:plainText(child.props.children),disabled:disabled||!!child.props.disabled}];
+  return collect(child.props.children,disabled||!!child.props.disabled);
+ });}
+ const options=collect(children),value=String(props.value??uncontrolled),selected=options.find(option=>option.value===value);
+ const matches=options.filter(option=>option.value&&matchesSearch(option.label,query??''));
+ const expanded=open&&!props.disabled,invalid=message?true:props['aria-invalid'];
+ const described=[props['aria-describedby'],message?id+'-error':undefined,props.required?id+'-required':undefined,expanded?id+'-results':undefined].filter(Boolean).join(' ')||undefined;
+ function placePopup(){
+  const node=search.current;if(!node)return;const field=node.getBoundingClientRect(),viewport=window.visualViewport;
+  const top=viewport?.offsetTop??0,bottom=top+(viewport?.height??window.innerHeight),below=bottom-field.bottom-12,above=field.top-top-12,useAbove=below<160&&above>below;
+  setPopup({left:Math.max(8,Math.min(field.left,window.innerWidth-field.width-8)),top:useAbove?field.top-4:field.bottom+4,width:Math.min(field.width,window.innerWidth-16),height:Math.max(48,Math.min(260,useAbove?above:below)),above:useAbove});
+  // Keep results in the dialog's top layer and outside scrolling tables/form bodies.
+  setPortal(node.closest('dialog')??document.body);
+ }
+ function dismiss(){setOpen(false);setQuery(null);setActive(-1);}
+ function advance(nextValue=value){if(onSearchEnter)onSearchEnter(nextValue||undefined);else requestAnimationFrame(()=>{if(search.current)focusNextField(search.current);});}
+ function choose(index:number,continueForm=false){
+  const option=matches[index],node=select.current;if(!option||option.disabled||!node||node.matches(':disabled'))return;
+  node.value=option.value;setUncontrolled(option.value);node.dispatchEvent(new Event('change',{bubbles:true}));dismiss();
+  if(continueForm)advance(option.value);
+ }
+ function move(step:number){
+  const enabled=matches.map((option,index)=>option.disabled?-1:index).filter(index=>index>=0);if(!enabled.length)return;
+  const current=enabled.indexOf(active),next=current<0?(step>0?0:enabled.length-1):(current+step+enabled.length)%enabled.length;
+  placePopup();setOpen(true);setActive(enabled[next]);
+ }
+ useEffect(()=>{
+  if(!expanded)return;placePopup();const reposition=()=>placePopup();
+  window.addEventListener('resize',reposition);document.addEventListener('scroll',reposition,true);window.visualViewport?.addEventListener('resize',reposition);window.visualViewport?.addEventListener('scroll',reposition);
+  return()=>{window.removeEventListener('resize',reposition);document.removeEventListener('scroll',reposition,true);window.visualViewport?.removeEventListener('resize',reposition);window.visualViewport?.removeEventListener('scroll',reposition);};
+ },[expanded]);
+ useEffect(()=>{
+  const option=list.current?.querySelector<HTMLElement>(`[data-option-index="${active}"]`);if(!option||!list.current)return;
+  const box=option.getBoundingClientRect(),viewport=list.current.getBoundingClientRect();if(box.top<viewport.top)list.current.scrollTop-=viewport.top-box.top;else if(box.bottom>viewport.bottom)list.current.scrollTop+=box.bottom-viewport.bottom;
+ },[active,expanded]);
+ useEffect(()=>{dismiss();},[value]);
+ const {value:ignoredValue,defaultValue:ignoredDefault,name:ignoredName,id:ignoredId,onChange:ignoredChange,onBlur:ignoredBlur,onFocus:ignoredFocus,onKeyDown:ignoredKey,onInvalid:ignoredInvalid,required:ignoredRequired,multiple:ignoredMultiple,size:ignoredSize,...inputProps}=props;
+ const results=expanded&&portal?createPortal(<div ref={list} id={id+'-options'} className="catalog-results" dir="rtl" style={{position:'fixed',left:popup.left,top:popup.top,width:popup.width,maxHeight:popup.height,transform:popup.above?'translateY(-100%)':undefined}} role="listbox" aria-label={`خيارات ${props['aria-label']??'الصنف'}`}>
+  {matches.length?matches.map((option,index)=><div role="option" id={id+'-option-'+index} data-option-index={index} key={option.value} aria-selected={option.value===value} aria-disabled={option.disabled||undefined} className={(index===active?'active ':'')+(option.disabled?'disabled':'')} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(index)}>{option.label}{option.value===value&&<span aria-hidden="true" className="catalog-check">✓</span>}</div>):<span className="catalog-no-results">لا توجد نتائج مطابقة. الاختيار الحالي محفوظ.</span>}
+ </div>,portal):null;
+ return <span className="catalog-select">
+  <span className="catalog-search"><input {...inputProps as InputHTMLAttributes<HTMLInputElement>} ref={search} id={inputId} type="search" role="combobox" autoComplete="off" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={expanded} aria-controls={expanded?id+'-options':undefined} aria-activedescendant={expanded&&active>=0&&matches[active]?id+'-option-'+active:undefined} aria-required={props.required||undefined} aria-invalid={invalid} aria-describedby={described} value={query??(selected?.value?selected.label:'')} placeholder={selected?.value?'ابحث بالاسم أو الكود…':selected?.label??'اختر أو ابحث بالاسم أو الكود…'}
+   onFocus={event=>{props.onFocus?.(event as unknown as React.FocusEvent<HTMLSelectElement>);placePopup();setOpen(true);setActive(matches.findIndex(option=>option.value===value));event.currentTarget.select();}}
+   onClick={()=>{if(!open){placePopup();setOpen(true);setActive(matches.findIndex(option=>option.value===value));}}}
+   onBlur={event=>{if(event.relatedTarget instanceof Node&&list.current?.contains(event.relatedTarget))return;dismiss();if(select.current)props.onBlur?.({...event,target:select.current,currentTarget:select.current} as React.FocusEvent<HTMLSelectElement>);if(!(event.relatedTarget instanceof HTMLButtonElement))context?.report(id,check());}}
+   onChange={event=>{setQuery(event.target.value);placePopup();setOpen(true);setActive(-1);}}
+   onKeyDown={event=>{
+    props.onKeyDown?.(event as unknown as React.KeyboardEvent<HTMLSelectElement>);if(event.defaultPrevented||event.nativeEvent.isComposing)return;
+    if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();event.stopPropagation();move(event.key==='ArrowDown'?1:-1);}
+    else if(event.key==='Escape'&&(expanded||query!==null)){event.preventDefault();event.stopPropagation();dismiss();}
+    else if(event.key==='Enter'&&!(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)){
+     event.preventDefault();event.stopPropagation();if(event.repeat)return;
+     if(expanded&&(query!==null||active>=0&&matches[active]?.value!==value)){const index=active>=0?active:matches.findIndex(option=>!option.disabled);if(index>=0)choose(index,true);return;}
+     if(value){dismiss();advance();}else{placePopup();setOpen(true);setActive(matches.findIndex(option=>!option.disabled));}
+    }
+   }}/><span className="catalog-chevron" aria-hidden="true">⌄</span></span>
+  <select ref={node=>{select.current=node;if(typeof ref==='function')ref(node);else if(ref)ref.current=node;}} hidden tabIndex={-1} aria-hidden="true" name={props.name} form={props.form} disabled={props.disabled} required={props.required} value={value} onChange={event=>{setUncontrolled(event.target.value);props.onChange?.(event);if(message||context?.submitted)context?.report(id,check());}} onInvalid={event=>{event.preventDefault();context?.report(id,check());props.onInvalid?.(event);focusControl(search.current,search.current?.closest('form')??null);}}>
+   {!options.some(option=>option.value==='')&&<option value=""/>}{children}
+  </select>
+  {props.required&&<small className="field-hint" id={id+'-required'}><span className="field-required">* مطلوب</span></small>}
+  <small className="field-hint catalog-result-count" id={id+'-results'} role="status" aria-live="polite">{expanded&&(matches.length?`${matches.length} نتيجة · الأسهم ثم Enter للاختيار`:'لا توجد نتائج مطابقة؛ الاختيار الحالي محفوظ.')}</small>
+  {message&&<small className="field-error" id={id+'-error'}>{message}</small>}{results}
+ </span>;
 });
 
 function safeButtons(node:ReactNode,busy:boolean):ReactNode{

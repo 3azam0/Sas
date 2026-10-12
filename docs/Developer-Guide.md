@@ -14,7 +14,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.31 — 12 October 2026
+Version 2.32 — 12 October 2026
+
+Catalog search and selection now share one visible accessible combobox across receiving, waste, opening stock, purchasing, recipes, production, sales mapping and kitchen issues. Preserve stored IDs/ref integration, required-field focus, disabled duplicates and offline tenant snapshot lookups. See [forms controls](./runbooks/UI-Forms.md) and [unified dropdown release](./releases/unified-searchable-dropdown-2026-10-12.md). This supersedes earlier two-control search/native-selector instructions.
 
 The accepted platform identity is **FooDo**. Shared branding appears in the workspace, welcome/sign-in screens, browser icon and installed-app manifest. Tenant branding stays in the organization profile. Keep technical service/database identifiers and saved local addresses stable. See [brand assets and generation record](./branding/FooDo.md) and the [verified branding release](./releases/foodo-branding-2026-10-12.md).
 

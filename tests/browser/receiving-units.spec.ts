@@ -1,3 +1,4 @@
+import {selectCatalog} from './catalog-control';
 import {test,expect} from '@playwright/test';
 
 test('all catalog receiving units support offline conversion, required package contents and linked correction',async({page,context})=>{
@@ -13,14 +14,14 @@ test('all catalog receiving units support offline conversion, required package c
   await expect(page.getByRole('dialog')).not.toBeVisible(); // Wait for the durable save before reload.
  }
  await page.reload();await page.getByLabel('الموقع',{exact:true}).selectOption('cairo');await page.getByRole('button',{name:'استلام مواد',exact:true}).click();
- await page.getByLabel('المادة',{exact:true}).selectOption('rice');
+ await selectCatalog(page,page.getByLabel('المادة',{exact:true}),'rice');
  const options=await page.getByLabel('وحدة الاستلام',{exact:true}).locator('option').allTextContents();
  for(const name of names)expect(options).toContain(name);expect(options.some(name=>name.includes('كجم'))).toBe(true);
  await page.getByLabel('وحدة الاستلام',{exact:true}).selectOption({label:'جرام'});
  await expect(page.getByLabel('محتوى وحدة الاستلام',{exact:true})).toHaveCount(0);
  await page.getByLabel('الكمية (جرام)',{exact:true}).fill('٥٠٠');await page.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('٢٠');
  const reference=`وحدات استلام ${Date.now()}`;await page.getByLabel('مرجع الاستلام',{exact:true}).fill(reference);
- await page.getByRole('button',{name:'إضافة مادة أخرى',exact:true}).click();await page.getByLabel('مادة السطر 2',{exact:true}).selectOption('beef');
+ await page.getByRole('button',{name:'إضافة مادة أخرى',exact:true}).click();await selectCatalog(page,page.getByLabel('مادة السطر 2',{exact:true}),'beef');
  await page.getByLabel('وحدة السطر 2',{exact:true}).selectOption({label:'عدد'});
  await page.getByLabel('كمية السطر 2',{exact:true}).fill('٢');await page.getByLabel('تكلفة السطر 2',{exact:true}).fill('١٠٠');
  await expect(page.getByLabel('محتوى وحدة السطر 2',{exact:true})).toHaveValue('');

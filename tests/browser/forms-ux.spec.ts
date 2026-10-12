@@ -1,3 +1,4 @@
+import {selectCatalog} from './catalog-control';
 import {test,expect,type Locator,type Page} from '@playwright/test';
 
 async function expectNoOverflow(page:Page,dialog?:Locator){
@@ -77,7 +78,7 @@ test('enhanced receiving form validates inline and saves offline from a compact 
  const receive=page.getByRole('button',{name:'استلام مواد',exact:true});await receive.click();
  const dialog=page.getByRole('dialog');
  const reference=`نموذج استلام ${Date.now()}`;
- await page.getByLabel('المادة',{exact:true}).selectOption('rice');
+ await selectCatalog(page,page.getByLabel('المادة',{exact:true}),'rice');
  await page.getByLabel('مرجع الاستلام',{exact:true}).fill(reference);
  await page.getByLabel('الكمية (كجم)',{exact:true}).fill('0');
  await page.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('٢٠');

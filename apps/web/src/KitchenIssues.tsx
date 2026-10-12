@@ -56,7 +56,7 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,command
  const items=snapshot.items.filter(i=>i.active!==false&&i.unitId),entered=lines.filter(l=>l.itemId||l.quantity),total=estimate(snapshot,entered,location);
  const available=(id:string)=>projectedQuantity(snapshot,commands,location,id,openings);
  function update(id:string,key:'itemId'|'quantity',value:string){setError('');setLines(old=>old.map(l=>l.lineId===id?{...l,[key]:value}:l));}
- function focus(form:HTMLFormElement,id:string,kind:'item'|'quantity'|'search'){const row=form.querySelector<HTMLElement>(`[data-collection-row="${id}"]`);const target=row?.querySelector<HTMLInputElement|HTMLSelectElement>(kind==='quantity'?'input[inputmode=decimal]':kind==='search'?'input[type=search]':'select');focusControl(target,form);}
+ function focus(form:HTMLFormElement,id:string,kind:'item'|'quantity'|'search'){const row=form.querySelector<HTMLElement>(`[data-collection-row="${id}"]`);const target=row?.querySelector<HTMLInputElement>(kind==='quantity'?'input[inputmode=decimal]':'input[role=combobox]');focusControl(target,form);}
  function add(form:HTMLFormElement){if(lines.length>=200){setError('الحد الأقصى ٢٠٠ مادة في المستند.');return;}const row=fresh();setLines(old=>[...old,row]);requestAnimationFrame(()=>focus(form,row.lineId,'search'));}
  function keyboard(e:KeyboardEvent<HTMLFormElement>){
   if(e.key!=='Enter'||e.nativeEvent.isComposing||busy)return;

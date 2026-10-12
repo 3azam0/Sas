@@ -1,5 +1,6 @@
 import {test,expect,type Page,type Locator} from '@playwright/test';
 import {writeFile} from 'node:fs/promises';
+import {selectCatalog} from './catalog-control';
 
 async function enter(page:Page){
  await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();
@@ -35,14 +36,14 @@ test('328-item Arabic and SKU search works offline and keeps the selection on a 
  });
  await enter(page);await context.setOffline(true);
  await page.getByRole('button',{name:'استلام مواد',exact:true}).click();
- const dialog=page.getByRole('dialog'),select=dialog.getByLabel('المادة',{exact:true}),search=dialog.getByLabel('بحث المادة',{exact:true});
- await select.selectOption('rice');await expect(select.locator('option')).toHaveCount(328);
- const started=Date.now();await search.fill('CAT-200');await expect(select.locator('option')).toHaveCount(2);
+ const dialog=page.getByRole('dialog'),search=dialog.getByRole('combobox',{name:'المادة',exact:true}),stored=dialog.locator('.catalog-select select');
+ await selectCatalog(page,search,'rice');await expect(dialog.getByRole('combobox',{name:'المادة',exact:true})).toHaveCount(1);
+ const results=page.getByRole('listbox',{name:'خيارات المادة'});const started=Date.now();await search.fill('CAT-200');await expect(results.getByRole('option')).toHaveCount(1);
  const elapsedMs=Date.now()-started;testInfo.annotations.push({type:'catalog-search-ms',description:String(elapsedMs)});
  const measurement=testInfo.outputPath('catalog-search.json');await writeFile(measurement,JSON.stringify({items:328,query:'CAT-200',elapsedMs,includesBrowserAutomation:true}));await testInfo.attach('catalog-search',{path:measurement,contentType:'application/json'});
- await select.selectOption(targetId);await search.fill('ارز صنف البحث 200');await expect(select).toHaveValue(targetId);
- await search.fill('لا توجد هذه المادة');await expect(select.locator('option')).toHaveCount(1);await expect(select).toHaveValue(targetId);
- await dialog.getByRole('button',{name:'مسح بحث المادة',exact:true}).click();await expect(select.locator('option')).toHaveCount(328);
+ await search.press('Enter');await expect(stored).toHaveValue(targetId);await search.fill('ارز صنف البحث 200');await expect(results.getByRole('option')).toHaveCount(1);
+ await search.fill('لا توجد هذه المادة');await expect(results.getByRole('option')).toHaveCount(0);await expect(stored).toHaveValue(targetId);await search.press('Enter');await expect(search).toBeFocused();await expect(stored).toHaveValue(targetId);
+ await search.press('Tab');await expect(search).toHaveValue('أرز صنف البحث 200 · CAT-200 · كجم');await search.fill('');await expect(results.getByRole('option')).toHaveCount(328);await search.press('Escape');
  await page.setViewportSize({width:820,height:1180});await page.screenshot({path:'../Fodo-Catalog-Search-Tablet.png'});
  await page.setViewportSize({width:390,height:640});
  const footer=dialog.locator('.modal-footer'),box=await footer.boundingBox();expect(box).not.toBeNull();expect(box!.y+box!.height).toBeLessThanOrEqual(641);
@@ -77,7 +78,7 @@ test('purchase Ctrl+Enter submission focuses its invalid quantity and saves an o
  await enter(page);const {locationId,supplierId}=await setup(page,true);await page.getByRole('button',{name:'المشتريات',exact:true}).click();
  await context.setOffline(true);await page.getByRole('button',{name:'أمر شراء جديد',exact:true}).click();
  await page.getByLabel('مورد الشراء',{exact:true}).selectOption(supplierId);await page.getByLabel('مرجع أمر الشراء',{exact:true}).fill('شراء من لوحة المفاتيح');
- await page.getByLabel('بحث مادة الشراء 1',{exact:true}).fill('DR-001');await page.getByLabel('مادة الشراء 1',{exact:true}).selectOption('rice');
+ await page.getByLabel('مادة الشراء 1',{exact:true}).fill('DR-001');await page.getByLabel('مادة الشراء 1',{exact:true}).press('Enter');
  const quantity=page.getByLabel('كمية الشراء 1',{exact:true}),cost=page.getByLabel('تكلفة الشراء 1',{exact:true});
  await quantity.fill('خطأ');await cost.fill('20');await cost.press('Control+Enter');await describedError(quantity,page);
  await quantity.fill('2');const save=page.getByRole('button',{name:'حفظ مسودة الشراء',exact:true});await expect(save).toBeInViewport();const actionBox=await save.boundingBox(),navigationBox=await page.locator('.sidebar nav').boundingBox();expect(actionBox!.y+actionBox!.height).toBeLessThanOrEqual(navigationBox!.y+1);await page.screenshot({path:'../Fodo-Purchase-Form-Mobile.png'});

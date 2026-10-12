@@ -4,7 +4,9 @@ Use an isolated local test database for these checks. Never import fixtures, res
 
 ## Find and select a material
 
-Receiving, opening stock, purchasing and recipe ingredients expose a search field above the native item selector. Search by Arabic name or SKU; Arabic diacritics and common alef variants are ignored. The selected item remains available when the query changes or returns no matches. Clear the query to show the full active catalog. Typing opens a matching-results dropdown. Use arrow keys and Enter to choose a result and continue to the next field; Escape closes results first. Enter with a blank query retains the current selection. Shift+Enter returns to the previous data field. The native selector remains available on mobile, and reads the tenant's offline snapshot.
+Receiving, waste, opening stock, purchasing, recipe ingredients/outputs, production versions, sales recipe mapping and kitchen issues use one visible searchable combobox. Focus/click opens the tenant's offline catalog; typing filters Arabic names and codes, ignoring diacritics, common alef variants and repeated spaces. The field displays the selected label, while an inaccessible hidden select retains the stored ID, form name and forwarded ref. It is excluded from Tab and Enter navigation. Never save a search string as an item ID.
+
+Use arrows and Enter to select and move to the next field; clicking a result selects it without jumping. Enter on an unchanged selection advances. Tab, Shift+Enter or Escape discard an uncommitted query and retain the selection; Enter with no matches stays in the field. Escape closes the list before cancelling the editor. Disabled duplicate items remain visible and cannot be chosen. Required/document errors are associated with and focus the visible combobox. Results render outside scrolling form/table bodies, inside a dialog's top layer when applicable, and reposition during scrolling/resizing. All lookup data is already in the tenant snapshot; no network search is introduced.
 
 ## Validate a document
 

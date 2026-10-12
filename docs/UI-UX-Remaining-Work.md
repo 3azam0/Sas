@@ -1,3 +1,7 @@
+# Unified catalog delivery update — 12 October 2026
+
+Catalog selectors use one searchable field with focus-open results, name/code filtering, mouse and keyboard selection, preserved uncommitted search, visible validation and menus outside scrolling form bodies. This supersedes earlier search-box-plus-native-selector instructions. See [forms controls](./runbooks/UI-Forms.md) and [verified release](./releases/unified-searchable-dropdown-2026-10-12.md). Guide version 2.32.
+
 # Keyboard delivery update — 12 October 2026
 
 The **اختصارات** button now opens an Arabic keyboard guide on every workspace screen, with compact hints inside forms. Shared forms use Enter/Shift+Enter to move between fields, Ctrl/Command+Enter to explicitly validate/save and Alt+Insert for available row additions; paged rows are revealed before focus. Multiline/file inputs and disabled confirmations retain their behavior. The guide is version 2.31. See [forms controls](./runbooks/UI-Forms.md) and [verified release](./releases/form-keyboard-2026-10-12.md). This supersedes older ordinary-Enter submission instructions below; earlier checkpoints remain history.

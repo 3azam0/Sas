@@ -1,3 +1,4 @@
+import {selectCatalog} from './catalog-control';
 import {test,expect} from '@playwright/test';
 
 test('item composition opens an offline stocked recipe and reuses its definition without changing stock',async({page,context})=>{
@@ -25,7 +26,7 @@ test('item composition opens an offline stocked recipe and reuses its definition
  await page.getByLabel('ناتج دفعة الوصفة',{exact:true}).fill('2');
  await page.getByRole('button',{name:'إضافة مكون',exact:true}).click();
  await expect(page.getByLabel('مكون الوصفة 1',{exact:true}).locator(`option[value="${outputId}"]`)).toHaveCount(0);
- await page.getByLabel('مكون الوصفة 1',{exact:true}).selectOption('beef');
+ await selectCatalog(page,page.getByLabel('مكون الوصفة 1',{exact:true}),'beef');
  await page.getByLabel('كمية مكون الوصفة 1',{exact:true}).fill('1');
  await page.getByRole('button',{name:'حفظ مسودة الوصفة',exact:true}).click();
  await page.getByRole('button',{name:'نشر إصدار',exact:true}).click();

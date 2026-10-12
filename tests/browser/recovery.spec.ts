@@ -1,3 +1,4 @@
+import {selectCatalog} from './catalog-control';
 import {test,expect,type Page} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 
@@ -9,7 +10,7 @@ async function enter(page:Page){
 }
 async function waste(page:Page,quantity:string,reason:string){
  await page.getByRole('button',{name:'تسجيل هالك',exact:true}).click();
- await page.getByLabel('المادة',{exact:true}).selectOption('rice');
+ await selectCatalog(page,page.getByLabel('المادة',{exact:true}),'rice');
  await page.getByLabel('الكمية (كجم)',{exact:true}).fill(quantity);
  await page.getByLabel('سبب الهالك',{exact:true}).fill(reason);
  await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();
