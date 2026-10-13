@@ -16,7 +16,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.43 — 13 October 2026
+Version 2.44 — 13 October 2026
+
+Receiving document details and entry headings now use compact typography and spacing, with desktop inputs at 38px minimum height and mobile inputs at 44px/16px text. See [compact receiving release](./releases/receiving-compact-2026-10-13.md).
 
 Direct receiving now mirrors the stock issue receipt flow: one material/quantity entry, explicit receiving unit and cost, Enter-to-add, newest-first read-only lines and edit/remove. Compatible duplicates combine exactly; differing costs, units or conversion factors require an explicit edit. Save protects unfinished entries. The stock issue header and metadata are compact, retaining keyboard hints and mobile touch controls. See [receiving guide](./runbooks/Direct-Receiving.md) and [release](./releases/receiving-entry-2026-10-13.md).
 

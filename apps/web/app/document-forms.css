@@ -77,3 +77,21 @@
  .kitchen-issue-modal .kitchen-document-fields :is(input,select){font-size:16px;min-height:44px}
  .kitchen-issue-modal .kitchen-issue-form .kitchen-document-fields{gap:8px}
 }
+
+/* Compact receiving context above the receipt-style entry area. */
+.receipt-modal .receipt-document-section{margin-bottom:10px}
+.receipt-modal :is(.receipt-document-section,.receiving-composer) .form-section-heading{margin-bottom:6px;gap:8px}
+.receipt-modal :is(.receipt-document-section,.receiving-composer) .form-section-heading h3{font-size:13px;line-height:1.35;margin:0}
+.receipt-modal .receipt-document-section .form-section-heading>small{font-size:9px;line-height:1.4}
+.receipt-modal .receipt-document-section .document-fields{padding:8px 10px;gap:10px}
+.receipt-modal .receipt-document-section .document-fields>label{gap:4px;font-size:11px}
+.receipt-modal .receipt-document-section .form-label{font-size:11px;line-height:1.4}
+.receipt-modal .receipt-document-section .form-label small{font-size:9px}
+.receipt-modal .receipt-document-section :is(input,select){min-height:38px;font-size:12px;padding-block:7px}
+.receipt-modal .receiving-composer .form-section-heading p{font-size:10px;line-height:1.4;margin:3px 0 0}
+.receipt-modal .modal-body>.form-keyboard-help{font-size:9px;line-height:1.5;margin-bottom:6px}
+.receipt-modal .modal-body>.form-keyboard-help kbd{font-size:9px;padding:0 3px}
+@media(max-width:760px){
+ .receipt-modal .receipt-document-section .document-fields{padding:8px;gap:8px}
+ .receipt-modal .receipt-document-section :is(input,select){min-height:44px;font-size:16px}
+}
