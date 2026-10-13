@@ -16,7 +16,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.45 — 13 October 2026
+Version 2.46 — 13 October 2026
+
+Explicit section collapse now remains closed even when an earlier field error exists. Save validation still reveals and focuses the invalid field; do not reopen sections solely because their DOM contains an error. See [section behavior](./runbooks/Collapsible-Sections.md).
 
 Long form groups, item lists, charts and history panels now share keyboard-accessible **طي / توسيع** controls. Collapse preserves drafts, filters and pages; validation and linked navigation reveal their targets. Receiving uses a visible desktop entry/list workspace, collapsible metadata and header keyboard hints. Use the shared component for future long sections; see [collapsible sections](./runbooks/Collapsible-Sections.md) and [receiving guide](./runbooks/Direct-Receiving.md).
 

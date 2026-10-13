@@ -30,3 +30,13 @@ test('inventory section retains its filters and shrinks when collapsed',async({p
  const before=await panel.boundingBox();await panel.getByRole('button',{name:/^طي قسم/}).click();await expect(category).not.toBeVisible();const after=await panel.boundingBox();expect(after!.height).toBeLessThan(before!.height);
  await panel.getByRole('button',{name:/^توسيع قسم/}).click();await expect(category).toHaveValue(value);
 });
+
+test('kitchen document details can collapse after an error and reopen on the next save',async({page})=>{
+ await enter(page);const posts:string[]=[];page.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
+ await page.getByRole('button',{name:'صرف مخزون',exact:true}).click();const dialog=page.getByRole('dialog',{name:'صرف مواد للمطبخ',exact:true}),kitchen=dialog.getByLabel('المطبخ المستلم',{exact:true});
+ await dialog.getByRole('button',{name:'حفظ صرف المطبخ',exact:true}).click();await expect(kitchen).toHaveAttribute('aria-invalid','true');await expect(kitchen).toBeFocused();
+ await dialog.getByRole('button',{name:'طي قسم بيانات المستند',exact:true}).click();await expect(dialog.getByRole('button',{name:'توسيع قسم بيانات المستند',exact:true})).toHaveAttribute('aria-expanded','false');await expect(kitchen).not.toBeVisible();
+ await dialog.getByRole('button',{name:'حفظ صرف المطبخ',exact:true}).click();await expect(kitchen).toBeVisible();await expect(kitchen).toBeFocused();
+ await dialog.getByRole('button',{name:'طي قسم بيانات المستند',exact:true}).click();await expect(kitchen).not.toBeVisible();expect(posts).toEqual([]);
+ await dialog.getByRole('button',{name:'إلغاء',exact:true}).click();
+});

@@ -35,10 +35,6 @@ const CollapsibleSection=forwardRef<HTMLElement,Omit<HTMLAttributes<HTMLElement>
   const reveal=()=>setOpen(true);node.addEventListener('fodo:reveal-control',reveal);
   return()=>node.removeEventListener('fodo:reveal-control',reveal);
  },[]);
- useLayoutEffect(()=>{
-  if(open)return;const node=root.current;
-  if(node?.querySelector('[aria-invalid="true"],.field-error,.form-error-summary'))setOpen(true);
- });
  return <Tag {...props} ref={(node:HTMLElement|null)=>{root.current=node;if(typeof forwardedRef==='function')forwardedRef(node);else if(forwardedRef)forwardedRef.current=node;}} className={className+' collapsible-section'} data-section-open={open} onFocusCapture={event=>{if(event.target===event.currentTarget)setOpen(true);onFocusCapture?.(event);}} onInvalidCapture={event=>{props.onInvalidCapture?.(event);setOpen(true);const target=event.target as HTMLElement;requestAnimationFrame(()=>target.focus());}}>
   {renderedHeader}<div id={id} className="collapsible-body" data-collapsible-body hidden={!open}><SectionExpansion.Provider value={open}>{nodes}</SectionExpansion.Provider></div>
  </Tag>;
