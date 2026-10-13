@@ -16,7 +16,11 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.47 — 13 October 2026
+Version 2.49 — 13 October 2026
+
+The [main development plan](./Master-Plan.md#current-development-progress) starts with a delivered/remaining status table and ordered remaining work. Phase 4C3 and the in-app Arabic client guide are delivered; financial corrections and expenses are unimplemented, and real-use acceptance/restore/trial cleanup remain. Update that summary with each delivered slice rather than treating dated historical checkpoints as current status.
+
+The guide uses typed Arabic topic records in `apps/web/src/guide-content.ts`, shared rendering/search in `ClientGuide.tsx`, explicit screen/form topic mapping and shared `KeyboardShortcuts.tsx` descriptions. Use `HelpButton` with a stable topic ID in new document headers and add the corresponding task instructions in the same feature release. The provider mounts help as a separate native modal in the document body: opening/closing it must retain the underlying form, return focus and prevent its keyboard events from submitting a transaction. Content is bundled with the existing offline assets, without new tables, services, downloads or authorization changes. See [guide behavior](./runbooks/Client-Guide.md) and [release evidence](./releases/client-guide-2026-10-13.md).
 
 Phase 4C3 now delivers read-only count-based **مطابقة الاستهلاك** with pinned sales requirements, selective deductions/shortages, independent mass-balance proof, explicit incomplete reasons and closing-count cost valuation. Filters, sorting, full-history pagination/CSV and cached reports reuse the BI boundary. It adds no stock posting, reset, migration or offline schema change. Financial corrections and expenses remain next slices. See [operating guide](./runbooks/Consumption-Reconciliation.md).
 

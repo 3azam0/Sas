@@ -3,6 +3,8 @@ import {Children,cloneElement,createContext,isValidElement,useCallback,useContex
 import {createPortal} from 'react-dom';
 import {normalizeNumber} from '../../../packages/domain/opening-import';
 import {focusControl,focusNextField,useFormKeyboard} from './form-keyboard';
+import {matchesSearch} from './search';
+export {matchesSearch} from './search';
 export {focusControl} from './form-keyboard';
 
 type Control=HTMLInputElement|HTMLSelectElement;
@@ -51,7 +53,6 @@ export const FormSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSe
  return <><select {...props} ref={value=>{node.current=value;if(typeof forwarded==='function')forwarded(value);else if(forwarded)forwarded.current=value;}} aria-invalid={message?true:props['aria-invalid']} aria-describedby={[props['aria-describedby'],message?id+'-error':undefined].filter(Boolean).join(' ')||undefined} onBlur={e=>{props.onBlur?.(e);if(!(e.relatedTarget instanceof HTMLButtonElement))context?.report(id,check());}} onChange={e=>{props.onChange?.(e);if(message||context?.submitted)context?.report(id,check());}}/>{props.required&&<small className="field-hint"><span className="field-required">* مطلوب</span></small>}{message&&<small className="field-error" id={id+'-error'}>{message}</small>}</>;
 });
 function plainText(value:ReactNode):string{return Children.toArray(value).map(child=>isValidElement<{children?:ReactNode}>(child)?plainText(child.props.children):String(child??'')).join('');}
-export function matchesSearch(value:string,query:string){const clean=(v:string)=>v.normalize('NFKC').replace(/[\u064B-\u065F\u0670ـ]/g,'').replace(/[أإآ]/g,'ا').replace(/\s+/g,' ').toLocaleLowerCase();return clean(value).includes(clean(query.trim()));}
 export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void;onCreate?:(query:string)=>void;createLabel?:string;openOnFocus?:boolean}>(function SearchableSelect({children,onSearchEnter,onCreate,createLabel='إضافة مادة جديدة',openOnFocus=true,...props},ref){
  const select=useRef<HTMLSelectElement>(null),search=useRef<HTMLInputElement>(null),list=useRef<HTMLDivElement>(null);
  const {id,message,context,check}=useFeedback(select,undefined,search),inputId=props.id??id+'-input';

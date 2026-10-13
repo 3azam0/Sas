@@ -1,4 +1,5 @@
 'use client';
+import {HelpButton} from './ClientGuide';
 import CollapsibleSection from './CollapsibleSection';
 import {useEffect,useRef,useState} from 'react';
 import type {ReportFilters,ReportKind,ReportResponse,ReportQuery,Snapshot,ReportRank} from '@saas/contracts';
@@ -70,6 +71,7 @@ export default function Reports({snapshot,location,online,pendingCount,overview=
  const period=filters.from+' — '+filters.to;
  useEffect(()=>{if(!overview&&data&&!busy&&drilled.current){drilled.current=false;{details.current?.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));requestAnimationFrame(()=>details.current?.scrollIntoView({block:'start',behavior:'smooth'}));};}},[data,busy,overview]);
  return <div className={'bi-workspace '+(overview?'bi-overview':'')} aria-label={overview?'لوحة تحليلات الأعمال':'التقارير والتحليلات'}>
+ {!overview&&<div className="bi-help"><HelpButton topic={kind==='reconciliation'?'reconciliation':kind==='kitchenSupply'?'kitchenSupply':'reports'}/></div>}
  {!overview&&<div className="bi-tabs" role="tablist" aria-label="أنواع التقارير">{Object.entries(reportLabels).filter(([key])=>key!=='overview').map(([key,label])=><button key={key} type="button" role="tab" aria-selected={kind===key} onClick={()=>switchKind(key as ReportKind)}>{label}</button>)}</div>}
  <CollapsibleSection className="panel bi-filter-panel" aria-label="فلاتر التقارير"><div className="bi-filter-heading"><div><h2>{overview?'أداء أعمالك':reportLabels[kind]}</h2><p>{overview?'نظرة سريعة، مع تفاصيل لكل رقم.':'تقارير من السجلات المقبولة، ضمن الفترة والفلاتر المحددة.'}</p></div><div className="bi-actions">{overview&&<button type="button" className="secondary" onClick={()=>drill('inventory')}>كل التقارير ←</button>}<button type="button" className="secondary" disabled={busy||!online||!valid} onClick={()=>setReload(r=>r+1)}>{busy?'جارٍ التحميل…':'تحديث التقرير'}</button>{!overview&&<><button type="button" className="secondary" disabled={!data||busy||exporting} onClick={()=>void exportCsv()}>{exporting?'جارٍ التصدير…':'تصدير CSV'}</button><button type="button" className="secondary" disabled={!data||busy} onClick={()=>window.print()}>طباعة / PDF</button></>}</div></div>
  <div className="bi-presets"><button type="button" onClick={()=>preset(1)}>اليوم</button><button type="button" onClick={()=>preset(7)}>آخر ٧ أيام</button><button type="button" onClick={()=>preset('month')}>هذا الشهر</button><button type="button" onClick={()=>preset(30)}>آخر ٣٠ يوماً</button></div>

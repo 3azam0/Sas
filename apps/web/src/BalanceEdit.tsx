@@ -1,4 +1,5 @@
 'use client';
+import {HelpButton} from './ClientGuide';
 import {DocumentSummary} from './DocumentForm';
 import {useEffect,useRef,useState} from 'react';
 import {countCommandSchema,type Snapshot} from '@saas/contracts';
@@ -20,7 +21,7 @@ export default function BalanceEdit({snapshot,location,itemId,close,saved}:{snap
   if(d.type!=='count.save')throw new Error('مستند تعديل غير صالح.');await saveBalanceEdit(d);saved();
  }catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع الرصيد الجديد والسبب وتكلفة أي زيادة.');}finally{setBusy(false);}}
  return <dialog ref={dialog} className="modal balance-edit-dialog" aria-labelledby="balance-edit-title" onCancel={e=>{e.preventDefault();finish();}}>
-  <div className="modal-header"><div><h2 id="balance-edit-title">تعديل الرصيد</h2><p>{item.name} · {basis.locations.find(l=>l.id===location)?.name}</p></div><button type="button" className="icon-button" aria-label="إغلاق تعديل الرصيد" disabled={busy} onClick={finish}>×</button></div>
+  <div className="modal-header"><div><h2 id="balance-edit-title">تعديل الرصيد</h2><p>{item.name} · {basis.locations.find(l=>l.id===location)?.name}</p></div><HelpButton topic="balance"/><button type="button" className="icon-button" aria-label="إغلاق تعديل الرصيد" disabled={busy} onClick={finish}>×</button></div>
   <WorkflowForm summary={<DocumentSummary label="الرصيد الجديد" value={quantity?num(quantity)+' '+item.unit:'—'} detail="يُسجّل الفرق والسبب بعد قبول المزامنة"/>} busy={busy} error={error} onEdit={()=>setError('')} documentCheck={()=>difference===null?{message:'أدخل كمية صحيحة غير سالبة.',field:'الرصيد الجديد'}:decimal(difference).isZero()?{message:'الرصيد الجديد يساوي الرصيد الحالي.',field:'الرصيد الجديد'}:undefined} onSubmit={()=>void submit()}>
    <fieldset disabled={busy} className="receipt-fields">
     <div className="balance-edit-summary"><span>الرصيد الحالي <strong>{num(expected)} {item.unit}</strong></span><span>فرق التسوية <strong dir="ltr">{difference===null?'—':(decimal(difference).gt(0)?'+':'')+num(difference)}</strong> {item.unit}</span></div>

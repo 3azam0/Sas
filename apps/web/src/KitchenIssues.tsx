@@ -1,4 +1,5 @@
 'use client';
+import {HelpButton} from './ClientGuide';
 import CollapsibleSection from './CollapsibleSection';
 import {useEffect,useRef,useState,type KeyboardEvent} from 'react';
 import {kitchenIssueSchema,quantitySchema,type KitchenIssueDocument,type Snapshot,type Command,type OpeningDocument,type PostedKitchenIssue} from '@saas/contracts';
@@ -121,7 +122,7 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,command
   await saveKitchenIssue(doc,initial?.id);saved();
  }catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع بيانات المستند والكميات.');locked.current=false;}finally{setBusy(false);}}
  return <dialog ref={dialog} className="modal kitchen-issue-modal" aria-labelledby="kitchen-issue-title" onCancel={e=>{e.preventDefault();if(!busy)close();}}>
-  <div className="modal-header"><div><span className="eyebrow">صرف داخلي من <strong>{sourceName}</strong></span><h2 id="kitchen-issue-title">{initial?'تصحيح صرف مطبخ':'صرف مواد للمطبخ'}</h2><p>اختر المطبخ وأضف المواد. تُنقل بعد الحفظ وقبول المزامنة.</p></div><button type="button" className="icon-button" disabled={busy} aria-label="إغلاق صرف المطبخ" onClick={close}>×</button></div>
+  <div className="modal-header"><div><span className="eyebrow">صرف داخلي من <strong>{sourceName}</strong></span><h2 id="kitchen-issue-title">{initial?'تصحيح صرف مطبخ':'صرف مواد للمطبخ'}</h2><p>اختر المطبخ وأضف المواد. تُنقل بعد الحفظ وقبول المزامنة.</p></div><HelpButton topic="kitchenSupply"/><button type="button" className="icon-button" disabled={busy} aria-label="إغلاق صرف المطبخ" onClick={close}>×</button></div>
   <WorkflowForm className="kitchen-issue-form" busy={busy} error={error} onEdit={()=>setError('')} documentCheck={check} onKeyDown={keyboard} onSubmit={()=>void submit()}>
    <CollapsibleSection className="kitchen-metadata-section" title="بيانات المستند"><section className="kitchen-document-fields" aria-label="بيانات مستند الصرف">
     <label className="kitchen-recipient-field"><span>المطبخ المستلم <span className="field-required" aria-hidden="true">*</span></span><SearchableSelect aria-label="المطبخ المستلم" aria-describedby="kitchen-recipient-hint" required value={kitchenId} onChange={e=>setKitchenId(e.target.value)}><option value="">اختر أو ابحث عن المطبخ</option>{(snapshot.kitchens??[]).filter(k=>(k.active&&k.locationId!==location)||k.id===kitchenId).map(k=><option key={k.id} value={k.id} disabled={!k.active||k.locationId===location}>{k.name}{!k.active?' (محذوف)':''}</option>)}</SearchableSelect><small className="field-hint" id="kitchen-recipient-hint">تُضاف المواد إلى مخزون هذا المطبخ.</small></label>

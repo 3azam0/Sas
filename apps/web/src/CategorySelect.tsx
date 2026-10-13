@@ -1,4 +1,5 @@
 'use client';
+import {HelpButton} from './ClientGuide';
 import {useEffect,useId,useRef,useState,type SelectHTMLAttributes} from 'react';
 import {createPortal} from 'react-dom';
 import {FormInput,SearchableSelect,WorkflowForm} from './FormControls';
@@ -24,7 +25,7 @@ function CategoryDialog({initial,categories,close,choose}:{initial:string;catego
  useEffect(()=>{dialog.current?.showModal();},[]);
  const cleaned=cleanCategory(name),existing=categories.find(category=>cleanCategory(category).toLocaleLowerCase()===cleaned.toLocaleLowerCase());
  return <dialog ref={dialog} className="modal category-modal structured-modal" aria-labelledby={title} onCancel={event=>{event.preventDefault();event.stopPropagation();close();}}>
-  <div className="modal-header"><div><h2 id={title}>إضافة فئة جديدة</h2><p>أضف تصنيفاً للمادة أو اختر فئة موجودة بالاسم نفسه.</p></div><button className="icon-button" type="button" aria-label="إغلاق إضافة الفئة" onClick={close}>×</button></div>
+  <div className="modal-header"><div><h2 id={title}>إضافة فئة جديدة</h2><p>أضف تصنيفاً للمادة أو اختر فئة موجودة بالاسم نفسه.</p></div><HelpButton topic="setup"/><button className="icon-button" type="button" aria-label="إغلاق إضافة الفئة" onClick={close}>×</button></div>
   <WorkflowForm summary={<DocumentSummary label="الفئة" value={cleaned||'فئة جديدة'} detail="تُحفظ الفئة مع المادة عند حفظها"/>} onSubmit={event=>{event.stopPropagation();choose(existing??cleaned);}}>
    <label><span className="form-label">اسم الفئة <span className="field-required" aria-hidden="true">*</span></span><FormInput aria-label="اسم الفئة الجديدة" autoFocus required minLength={2} maxLength={100} placeholder="مثال: أسماك ومأكولات بحرية" value={name} onChange={event=>setName(event.target.value)}/></label>
    {existing&&<p className="notice" role="status">هذه الفئة موجودة؛ سيتم اختيارها دون تكرار.</p>}

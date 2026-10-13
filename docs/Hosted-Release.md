@@ -1,5 +1,7 @@
 # Hosted client release — agreed scope
 
+Delivered **دليل الاستخدام**: 21 Arabic task topics, normalized text search, related topics, shared keyboard instructions and contextual **مساعدة** on screens/document headers. Help opens above the current form, preserves draft fields/lines and restores focus on close. There are no guide downloads. Hosted build **d61643ced1ead0a0**, Cloudflare version **65**; Supabase API remains **14**. See [guide behavior](./runbooks/Client-Guide.md) and [release evidence](./releases/client-guide-2026-10-13.md).
+
 Phase 4C3 **مطابقة الاستهلاك** is delivered in Reports: count-based actual/theoretical comparisons, separate transfers/waste/preparation, immutable shortages, incomplete reasons and common closing-count cost valuation. Hosted build **a118debb99abcb76**, Cloudflare version **63**, Supabase API **14**. See [operating guide](./runbooks/Consumption-Reconciliation.md) and [release evidence](./releases/consumption-reconciliation-2026-10-13.md). No client records, stock policies, schema or offline format were changed.
 
 Explicit collapse remains closed after earlier validation errors; Save still reveals the required field. Hosted build ef05dedd408d8a75, Cloudflare version 60. See [collapse validation fix](./releases/manual-collapse-validation-2026-10-13.md).

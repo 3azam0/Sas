@@ -1,4 +1,5 @@
 'use client';
+import {HelpButton} from './ClientGuide';
 import CollapsibleSection from './CollapsibleSection';
 import {DocumentFields,DocumentSummary} from './DocumentForm';
 import {focusControl,SearchableSelect,KeyboardForm,FormKeyboardHelp} from './FormControls';
@@ -150,7 +151,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
  function returnToEntry(key:'itemId'|'enteredQuantity'){setNewMaterial(null);focusEntry(key);}
  const choice=selected(entry),quantity=base(entry),item=choice.item;
  return <><dialog ref={dialog} className="modal receipt-modal" aria-labelledby="receipt-title" onCancel={e=>{e.preventDefault();if(!busy&&!newMaterial)close();}}>
-  <div className="modal-header"><div><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>أضف المواد إلى القائمة، ثم احفظ مستند الاستلام.</p><FormKeyboardHelp/></div><button type="button" className="icon-button" disabled={busy||!!newMaterial} onClick={close} aria-label="إغلاق">×</button></div>
+  <div className="modal-header"><div><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>أضف المواد إلى القائمة، ثم احفظ مستند الاستلام.</p><FormKeyboardHelp/></div><HelpButton topic="receiving"/><button type="button" className="icon-button" disabled={busy||!!newMaterial} onClick={close} aria-label="إغلاق">×</button></div>
   <KeyboardForm busy={busy||!!newMaterial} ref={form} className="modal-form" noValidate onKeyDown={keyboard} onSubmit={e=>void submit(e)}>
    <div className="modal-body"><fieldset disabled={busy||!!newMaterial} className="receipt-fields form-fields">
     <section className="form-section receipt-document-section" aria-labelledby="receipt-details-title">

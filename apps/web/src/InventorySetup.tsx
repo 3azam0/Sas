@@ -1,4 +1,5 @@
 'use client';
+import {HelpButton} from './ClientGuide';
 import CollapsibleSection from './CollapsibleSection';
 import {DocumentSummary} from './DocumentForm';
 import CategorySelect from './CategorySelect';
@@ -85,7 +86,7 @@ export function SetupEditor({section,initial,snapshot,close,saved,composeAvailab
   }catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'تعذّر حفظ الإعدادات. راجع البيانات وحاول مرة أخرى.');}finally{setSaving(false);}
  }
  return <dialog ref={dialog} className="modal setup-modal structured-modal" aria-labelledby="setup-editor-title" aria-describedby="setup-editor-description" onCancel={e=>{e.preventDefault();if(!saving)close();}}>
-  <div className="modal-header"><div><h2 id="setup-editor-title">{quickCreate?'إضافة مادة جديدة':`${initial?'تعديل':'إضافة'} ${singular}`}</h2><p id="setup-editor-description">{quickCreate?'أضف المادة واخترها في سطر الاستلام الحالي. بيانات المستند محفوظة.':introductions[section]}</p></div><button className="icon-button" type="button" aria-label="إغلاق الإعدادات" disabled={saving} onClick={close}>×</button></div>
+  <div className="modal-header"><div><h2 id="setup-editor-title">{quickCreate?'إضافة مادة جديدة':`${initial?'تعديل':'إضافة'} ${singular}`}</h2><p id="setup-editor-description">{quickCreate?'أضف المادة واخترها في سطر الاستلام الحالي. بيانات المستند محفوظة.':introductions[section]}</p></div><HelpButton topic="setup"/><button className="icon-button" type="button" aria-label="إغلاق الإعدادات" disabled={saving} onClick={close}>×</button></div>
   <KeyboardForm busy={saving} className="modal-form setup-editor-form" noValidate aria-busy={saving} onSubmit={e=>void submit(e)}>
    <div className="modal-body"><FormKeyboardHelp/><p className="form-note">الحقول بعلامة <span className="field-required" aria-hidden="true">*</span> مطلوبة.</p><fieldset className="form-fields" disabled={saving}>
     <CollapsibleSection className="form-section" aria-labelledby="setup-basic-title"><h3 id="setup-basic-title">البيانات الأساسية</h3>

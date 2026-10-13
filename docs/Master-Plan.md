@@ -1,8 +1,70 @@
-# Current scope amendment
+# FooDo — Modular Business Management SaaS Master Plan
+
+Updated: 13 October 2026. This is the main development roadmap and progress reference.
+
+## Current development progress
+
+Read this summary for **what is done and what remains**. The dated checkpoints below describe earlier releases; their old statements about pending hosting, sales deductions or reports do not override this summary. See the [developer guide](./Developer-Guide.md) for implementation rules and [hosted release](./Hosted-Release.md) for operational behavior.
+
+**Current milestone: Phase 4C3 is delivered.** The first-client trial is hosted at [FooDo](https://fodo.am-agent2026.workers.dev/). This is a working trial release, not completion of the full SaaS roadmap or approval to start real operations.
+
+| Area | Status | Completed / practical limit |
+| --- | --- | --- |
+| Web foundation and local environment | Delivered | Arabic RTL application, FooDo branding, local launcher and shared domain/API contracts. Native mobile/desktop applications remain later work. |
+| Hosted access and tenant isolation | Delivered for first-client trial | Cloudflare frontend, Supabase Auth/API, tenant-scoped storage and authorization. Membership administration and self-service onboarding remain deferred. |
+| Client organization | Delivered | Organization name, logo/contact profile and details opened from **المؤسسة الحالية**. Temporary trial data remains until an explicitly authorized cleanup. |
+| Inventory setup | Delivered | Materials, independent categories, units, purchase-unit conversions, suppliers and stock locations; quick material/category creation during receiving. |
+| Opening stock and receiving | Delivered | Multi-material opening documents/imports, multi-item receiving, optional supplier/reference, newest-first entry list and unit-cost conversion. |
+| Purchasing and supplier returns | Delivered | Purchase documents, partial receiving, cancellation of unreceived quantities and source-linked supplier returns. |
+| Inventory valuation | Delivered | Moving weighted average as the default, FIFO option, exact allocated value and ledger/balance checks. Development reset tools are excluded from the hosted client interface. |
+| Waste and balance adjustments | Delivered | Recorded waste and direct balance editing with reasons and server checks. Balance edits do not replace physical counts for consumption reconciliation. |
+| Transfers and physical counts | Delivered | Dispatch/partial receipt/transit loss, reviewed partial counts, explicit zero counts and stale-location protection. |
+| Kitchen stock and POS routing | Delivered | Kitchens hold stock under the main warehouse; each POS routes to one kitchen; a meal may be prepared independently in several kitchens. Kitchen supply transfers stock/value. |
+| Recipes and composition — 4A | Delivered | Versioned recipes/BOMs, nested definitions, item composition entry point, batch/portion estimates and food-cost percentages. Definitions alone do not move stock. |
+| Production and yield — 4B | Delivered | Actual inputs, usable stocked outputs, exact cost allocation, normal yield loss, abnormal waste and failed batches. |
+| Menu mapping and sales import — 4C1 | Delivered | Pinned recipes/output ratios, completed-sale CSV preview and duplicate-safe accepted imports. Refunds/voids are not yet supported. |
+| Theoretical usage and selected deductions — 4C2 | Delivered | All recipe ingredients count toward theoretical usage; only selected ingredients deduct from the selling kitchen. Shortages are highlighted while otherwise valid imports succeed. |
+| BI reports and charts | Delivered | Overview and dedicated reports, Recharts, filters/sorting/server pagination, full-range aggregates, CSV and cached report queries; kitchen supply report included. |
+| Actual versus theoretical consumption — 4C3 | Delivered | Physical-count-based reconciliation, independent movement checks, variance charts, shortages, incomplete reasons and closing-count cost valuation. Valid opening/closing counts are needed to establish actual consumption. |
+| Forms and list usability | Delivered baseline | Searchable dropdowns, keyboard navigation/help, pagination/filtering/sorting, compact receipt entry, visible added lines, mobile layouts and collapsible sections. Further fixes depend on trial feedback. |
+| Offline capture and recovery | Delivered operational foundation | Durable tenant-bound queues, dependency ordering, retries/review, bounded offline access and recovery formats. Production restore rehearsal remains a launch task. |
+| Sales financial corrections | Not implemented | Explicit accepted-sale refund/void handling, financial reversal and controlled stock disposition are the next functional cost-control slice. |
+| Restaurant expenses and profitability | Not implemented | Expense capture/categories and reliable period profitability remain; recipe contribution estimates are not net profit. |
+| Client usage guide | Delivered | **دليل الاستخدام** with 21 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
+| Real-use launch readiness | Remaining | Trial acceptance, verified restore, controlled temporary-data removal, real opening balances and operating procedures before real use. |
+| GitHub publication of latest work | Pending verification/publication | Latest milestone has a local commit and hosted deployment. The recorded Windows credential-helper issue still prevents claiming the latest work is pushed or merged. |
+
+### Remaining work in delivery order
+
+1. **Sales financial corrections:** define and implement linked refunds/voids against accepted sale lines, duplicate-safe amounts/quantities, explicit stock disposition, audit and report effects. A financial reversal must not automatically recreate physically consumed ingredients. Keep original sales immutable and verify kitchen scope, shortages and retries.
+2. **Basic restaurant expenses and profitability:** dated categorized expenses, validation and audit, inclusion in period reports, and a clearly defined distinction between revenue, inventory consumption, recipe estimates and expenses. Prevent double-counting waste/production costs. Include electricity, phone credit and knife sharpening as expense examples rather than inventory materials.
+3. **First-client acceptance:** review actual operating workflows and guide clarity, fix reported issues, confirm receiving units/recipe quantities and selective deduction choices, test real POS file formats, and agree physical count boundaries. Use isolated data for write/destructive tests.
+4. **Launch and recovery checks:** rehearse backup/restore in an isolated target, verify offline/reconnect/conflict behavior on the client's devices, document support/recovery, confirm access and external-POS fiscal responsibility, and complete GitHub publication/CI review. Hosted deployment alone does not confirm these checks.
+5. **Move from trial to real use:** only after explicit authorization, remove the marked temporary trial transactions/data according to the cleanup runbook, preserve the approved client catalog/settings as agreed, settle pending queues, establish real opening balances and confirm readiness. Do not clear client data merely to complete this checklist.
+
+These are roadmap items, not authorization to deploy new transactions or delete data. The client guide is implemented; keep it current with each feature release. The next functional slice after reconciliation remains financial corrections.
+
+### Deferred until needed
+
+- Membership/user administration, invitations, additional-client onboarding and granular permission management.
+- Subscription billing and enforced entitlements: base subscription for one branch, additional branches as paid capacity; kitchens/stock locations must not accidentally count as paid branches.
+- Dedicated client-demo environments. Continue with local development and the hosted first-client trial; a separate demo is not needed now.
+- Native POS/checkout, cashier shifts, tables, KDS, delivery and broader restaurant operations.
+- Native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
+
+### Latest verification and release evidence
+
+Client-guide release: hosted build **d61643ced1ead0a0**, Cloudflare version **65**, Supabase API remains **14**. Eleven targeted tests, type checking, production/offline builds and desktop/mobile hosted checks passed. Unsaved receiving reference/item entries survive help opening/closing; help shortcuts cannot submit the receipt. No client transaction was posted. See [guide release evidence](./releases/client-guide-2026-10-13.md).
+
+Previous Phase 4C3 release: hosted build **a118debb99abcb76**, Cloudflare version **63**, Supabase API version **14**, local commit **7072d62**. The full 329-test suite passed; subsequent targeted checks included one additional regression (330 distinct tests covered across runs). Final type checking, production/offline builds and desktop/mobile hosted checks passed. No client records were posted or reset by those checks. See [4C3 release evidence](./releases/consumption-reconciliation-2026-10-13.md).
+
+Keep this progress table and remaining-work list current whenever a slice ships. Mark a slice delivered only with its actual verification and deployment scope; use the dated sections below as supporting history.
+
+## Current scope amendment
 
 The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate all theoretical usage; new imports deduct only ingredients selected in their pinned recipe version. Imports with shortages succeed, deduct available stock and highlight the recorded shortage. Older sales and recipes without selections remain calculation-only. Earlier delivery entries below remain historical checkpoints.
 
-# FooDo — Modular Business Management SaaS Master Plan
+## Product architecture and historical delivery checkpoints
 
 Updated: 13 October 2026
 

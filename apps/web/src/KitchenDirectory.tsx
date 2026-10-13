@@ -1,4 +1,5 @@
 'use client';
+import {HelpButton} from './ClientGuide';
 import CollapsibleSection from './CollapsibleSection';
 import {useEffect,useRef,useState} from 'react';
 import {type Kitchen,type Snapshot,setupCommandSchema} from '@saas/contracts';
@@ -25,7 +26,7 @@ export default function KitchenDirectory({snapshot,rows,expired,synchronize,clos
  async function restore(record:Kitchen){trigger.current=null;setName(record.name);setParent(record.parentLocationId??snapshot.locations.find(l=>l.active!==false&&!l.kitchenId)?.id??'');setEditor({record});}
  async function resolve(id:string,action:'retry'|'cancel'){try{setError('');await resolveSetup(snapshot.organizationId,id,action);if(action==='retry')void synchronize();}catch(e){setError(e instanceof Error?e.message:'تعذرت معالجة التعديل.');}}
  return <dialog ref={dialog} className="modal kitchen-issue-modal kitchen-directory-modal" aria-labelledby="kitchen-directory-title" onCancel={e=>{e.preventDefault();if(busy)return;if(editor)setEditor(null);else close();}}>
-  <div className="modal-header"><div><h2 id="kitchen-directory-title">إدارة المطابخ</h2><p>كل مطبخ له مخزون مستقل ونقاط بيع. انقل رصيده وعطّل نقاطه قبل حذفه.</p></div><button type="button" className="icon-button" aria-label="إغلاق إدارة المطابخ" disabled={busy} onClick={close}>×</button></div>
+  <div className="modal-header"><div><h2 id="kitchen-directory-title">إدارة المطابخ</h2><p>كل مطبخ له مخزون مستقل ونقاط بيع. انقل رصيده وعطّل نقاطه قبل حذفه.</p></div><HelpButton topic="kitchens"/><button type="button" className="icon-button" aria-label="إغلاق إدارة المطابخ" disabled={busy} onClick={close}>×</button></div>
   <div className="kitchen-directory-body">
    {notice&&<p role="status" className="notice">{notice}</p>}{error&&<p role="alert" className="error">{error}</p>}
    {editor?<WorkflowForm busy={busy} aria-label={editor.remove?'حذف المطبخ':editor.record?'تعديل المطبخ':'إضافة مطبخ'} documentCheck={()=>!editor.remove&&kitchens.some(k=>k.active&&k.id!==editor.record?.id&&k.name.trim().toLocaleLowerCase()===name.trim().toLocaleLowerCase())?{message:'اسم المطبخ مستخدم بالفعل. اختر اسمًا مختلفًا.',field:'اسم المطبخ'}:undefined} onSubmit={e=>{e.preventDefault();void save(!editor.remove);}}>
