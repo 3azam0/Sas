@@ -41,7 +41,7 @@ Open **اختصارات** (the keyboard icon) in the workspace top bar for the A
 - Enter in a multiline note or CSV preserves line breaks. File inputs keep native file-picker behavior; composition input is not intercepted.
 - Escape closes search results first, then an idle dialog or inline editor. Closing returns focus to its available trigger.
 
-Data-row navigation skips collection pagination controls and excluded rows, and reveals retained rows when crossing pages inside the current filters. The kitchen issue editor additionally moves to the next material or adds a row after a valid quantity. See [Kitchen issues](./Kitchen-Issues.md). These controls do not change draft persistence or server acceptance rules.
+Data-row navigation skips collection pagination controls and excluded rows, and reveals retained rows when crossing pages inside the current filters. The kitchen issue editor uses one item/quantity entry row: Enter after quantity adds or updates a newest-first receipt line, then returns to item search. Repeated items combine quantities; unfinished entries and edits block document save. See [Kitchen issues](./Kitchen-Issues.md). These controls do not change draft persistence or server acceptance rules.
 
 ## Count part of the stock
 

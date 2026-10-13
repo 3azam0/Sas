@@ -8,6 +8,15 @@ Delivered 13 October 2026. **المطابخ** manages stock kitchens, POS and su
 4. Select the source warehouse in **الموقع**, then **صرف مخزون** or **إنشاء مستند صرف**. In **المطبخ المستلم**, search for and choose a different destination kitchen, then add materials/quantities. The kitchen picker opens when the form appears; arrows and Enter select a result and move to the date. The reference remains optional. Save and synchronize before importing dependent sales.
 5. Choose the POS in **استيراد المبيعات**. Its kitchen and source appear automatically; import the usual CSV, review selected deductions and confirm completed sales.
 
+## Entering a supply document
+Use the single **المادة** dropdown and the adjacent **الكمية** input. Clicking a result or pressing Enter selects it and moves to quantity; Enter after a valid quantity adds it to the receipt list and returns to item search. **إضافة للقائمة** and Alt+Insert do the same. Adding a line does not save or post stock.
+
+The newest addition appears first. Repeated materials combine quantities exactly into their existing line and move to the top; validation considers the combined quantity against available stock. Each line shows name/code/category, quantity/unit, available/remaining stock, estimated unit cost and value. **تعديل** loads the quantity back into the entry row with the material fixed. **حفظ التعديل** replaces its quantity; **إلغاء التعديل** leaves the line unchanged. Removing the edited line cancels that edit. Add or clear an unfinished entry before editing another line.
+
+Lists above ten materials expose search, sorting and pagination. Filters affect the view, not the document or footer totals. Adding, editing or removing restores the default view and first page so changed lines remain findable. Short receipts show their lines directly. The item and quantity stay side by side on phones; the Add button spans the row below.
+
+**حفظ صرف المطبخ** requires at least one complete line, an empty entry row and no unfinished edit. The maximum is 200 distinct materials; combining or editing an existing material remains possible at that limit. Shortages cannot be added, and all listed quantities are checked again on Save and on server acceptance. The reference remains optional.
+
 ## Stock behavior
 An accepted supply document decreases the warehouse and increases the kitchen atomically, conserving quantity and value. Supply shortages reject the complete transfer; repair its quantities and retry/correct it. Kitchen-to-kitchen movement and returns to the warehouse use **التحويلات**, including dispatch/receive and transit tracking.
 
