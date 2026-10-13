@@ -10,6 +10,7 @@ import {saveKitchenIssue,resolveKitchenIssue,type LocalKitchenIssue,type LocalSe
 import KitchenDirectory from './KitchenDirectory';
 import POSDirectory from './POSDirectory';
 import KitchenStock from './KitchenStock';
+import {useUI} from './store';
 import {issueStockPreview} from './kitchen-issue-preview';
 import {commitIssueEntry,type IssueEntry,type IssueLine} from './kitchen-issue-entry';
 
@@ -21,6 +22,7 @@ type IssueRow=LocalKitchenIssue&{posted?:PostedKitchenIssue};
 function estimate(s:Snapshot,lines:Line[],location:string){let total=decimal('0');for(const l of lines){const b=s.balances.find(b=>b.locationId===location&&b.itemId===l.itemId);if(!b||!decimal(b.quantity).gt(0)||!quantitySchema.safeParse(normalizeNumber(l.quantity)).success)return null;total=total.add(decimal(b.value).div(b.quantity).mul(normalizeNumber(l.quantity)));}return lines.length?total.toString():null;}
 
 export default function KitchenIssues({snapshot,location,rows,setups,commands,openings,expired,synchronize}:{snapshot:Snapshot;location:string;rows:LocalKitchenIssue[];setups:LocalSetup[];commands:Command[];openings:OpeningDocument[];expired:boolean;synchronize:()=>Promise<void>}){
+ const openSupplyReport=()=>{const ui=useUI.getState();ui.ensureReportScope(snapshot.organizationId+':'+snapshot.generation);ui.setReportFilters({...useUI.getState().reportFilters,kind:'kitchenSupply',category:'',itemId:'',supplierId:'',kitchenId:'',posId:'',search:'',sort:'date_desc',page:1});ui.setView('reports');};
  const [editor,setEditor]=useState<{row?:LocalKitchenIssue;location:string;generation?:string}|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[printing,setPrinting]=useState<IssueRow|null>(null),[directory,setDirectory]=useState(false),[posDirectory,setPOSDirectory]=useState(false);
  const trigger=useRef<HTMLButtonElement|null>(null);
  const docs=new Map<string,IssueRow>(rows.map(r=>[r.id,r]));
@@ -39,7 +41,7 @@ export default function KitchenIssues({snapshot,location,rows,setups,commands,op
   {error&&<p role="alert" className="error">{error}</p>}
   <KitchenStock snapshot={snapshot} commands={commands} openings={openings}/>
   <div className="kitchen-metrics"><section className="panel"><small>المستندات المقبولة في البيانات الحالية</small><strong>{number(accepted.length)}</strong></section><section className="panel"><small>قيمة مستندات الصرف والتحويل المقبولة</small><strong>{number(amount)} <small>ج.م</small></strong></section></div>
-  <section className="panel"><div className="panel-heading"><div><h2>سجل صرف المطابخ</h2><p>ابحث باسم المطبخ أو المرجع أو المادة؛ المستند المقبول يحتفظ بتكلفته عند الصرف.</p></div></div>
+  <section className="panel"><div className="panel-heading"><div><h2>سجل صرف المطابخ</h2><p>ابحث باسم المطبخ أو المرجع أو المادة؛ المستند المقبول يحتفظ بتكلفته عند الصرف.</p></div><button type="button" className="secondary" onClick={openSupplyReport}>تقرير صرف المطابخ والرسوم ←</button></div>
    <Collection rows={visible} title="صرف المطابخ" resetKey={location} searchText={r=>[r.document.kitchen,r.document.reference,r.document.notes,r.id,r.document.lines.map(l=>snapshot.items.find(i=>i.id===l.itemId)?.name).join(' ')].join(' ')} sortText={r=>r.document.kitchen} dateValue={r=>r.document.businessDate} filters={[{key:'kitchen',label:'المطبخ',value:r=>r.document.kitchen,options:kitchens.map(name=>({value:name,label:name}))},{key:'status',label:'حالة المزامنة',value:r=>r.status,options:syncStatusOptions}]} sorts={amountSorts('cost','قيمة المستند',cost)} rowIds={r=>[r.id]} emptyText="لم تسجّل مستندات صرف مطابخ لهذا المخزن بعد.">
     {page=>page.map(r=><details className="opening-document" key={r.id} id={'operation-'+r.id} tabIndex={-1}><summary><strong>{r.document.type==='kitchen.transfer'?'تحويل إلى ':'استهلاك سابق — '}{r.document.kitchen}{r.document.reference&&' · '+r.document.reference}</strong> · {r.document.businessDate} · {number(r.document.lines.length)} مادة <OperationStatus status={r.status}/></summary><div className="kitchen-document-meta"><span>رقم المستند: <bdi className="kitchen-number">{documentNumber(r.id)}</bdi></span><span>{r.posted?'قيمة المستند الفعلية':'قيمة تقديرية'}: <strong>{cost(r)===null?'غير متاحة':number(cost(r)!)} ج.م</strong></span>{r.posted&&<span>طريقة التكلفة: {r.posted.method==='fifo'?'FIFO':'المتوسط المرجح المتحرك'}</span>}</div>
      {r.document.notes&&<p>{r.document.notes}</p>}

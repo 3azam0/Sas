@@ -1,5 +1,7 @@
 # BI dashboard and reports
 
+**سجل صرف المطابخ** provides complete accepted supply documents with daily/ranked charts and allocated unit costs, separately from consumption. See [kitchen supply report](./Kitchen-Supply-Report.md).
+
 Open **نظرة عامة** for current inventory value and period kitchen consumption, waste and net sales, with daily trends and category/kitchen rankings. Open **التقارير والتحليلات** for inventory, kitchens, purchasing/returns, waste/count adjustments, sales/recipe estimates and production. The current warehouse selector applies by default; **كل مواقع المؤسسة** expands the report to the tenant's locations.
 
 Use Today, Last 7 days, This month, Last 30 days or a custom inclusive business-date range, up to 366 days. Period metrics compare with the preceding equal-length period. Inventory balances remain current at report generation; selecting an old date does not reconstruct historical stock. Catalog names/categories/unit display names are current metadata. Accepted transaction amounts remain their posted costs.

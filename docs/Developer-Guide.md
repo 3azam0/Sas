@@ -16,9 +16,11 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.41 — 13 October 2026
+Version 2.42 — 13 October 2026
 
 The stock issue editor now has one searchable material and adjacent quantity entry, Enter-to-add, a newest-first receipt list, exact duplicate merging, quantity edits/removal and unfinished-entry protection. Short receipts show lines directly; lists above ten materials retain search/sorting/pagination. Stock posting, server validation and outbox formats are unchanged. See [operating guide](./runbooks/Kitchen-Issues.md) and [verified release](./releases/stock-issue-entry-2026-10-13.md). This replaces its earlier per-line entry/navigation instructions.
+
+**سجل صرف المطابخ** is a separate BI report reached from the kitchen history shortcut or report tabs. Full-period server queries count only kitchen transfer outgoing lines plus legacy direct issues, never transfer incoming allocations or sale deductions. Distinct document/material counts and daily/ranked charts cover all filtered pages. Destination kitchen location selection includes supply received from its source; kitchen-to-kitchen supply is ranked by its recipient. Values retain posted costs, quantities keep individual units, and the report is read-only. See [kitchen supply reporting](./runbooks/Kitchen-Supply-Report.md).
 
 Recharts `3.10.1` and matching `react-is 19.3.0` power the BI summary in **نظرة عامة** and the dedicated **التقارير والتحليلات** view. Reporting uses the new tenant-authenticated `POST /api/v1/reports`, complete date-range aggregates and server pagination, rather than the truncated operational snapshot. Keep current balance valuation, period posted costs, recipe estimates, selected sales deductions, supplier-reference values and shortages distinct. Reports cache up to 24 responses per tenant/generation/exact query in the existing preferences store; pending outboxes never enter accepted totals. CSV exports include all filtered rows up to 10,000 and reject checkpoint changes; printing covers the current detail page. Chart clicks and keyboard alternatives open filtered details. Empty periods, missing prices, units and equal previous periods remain explicit. See [BI runbook](./runbooks/BI-Reports.md) and [verified BI release](./releases/bi-reports-2026-10-12.md). No schema or Dexie/recovery version change is needed.
 

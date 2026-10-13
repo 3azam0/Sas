@@ -8,6 +8,9 @@ Delivered 13 October 2026. **المطابخ** manages stock kitchens, POS and su
 4. Select the source warehouse in **الموقع**, then **صرف مخزون** or **إنشاء مستند صرف**. In **المطبخ المستلم**, search for and choose a different destination kitchen, then add materials/quantities. The kitchen picker opens when the form appears; arrows and Enter select a result and move to the date. The reference remains optional. Save and synchronize before importing dependent sales.
 5. Choose the POS in **استيراد المبيعات**. Its kitchen and source appear automatically; import the usual CSV, review selected deductions and confirm completed sales.
 
+## Reporting accepted supplies
+Open **تقرير صرف المطابخ والرسوم** next to the history heading for complete date-range reporting, charts, posted unit costs and CSV/PDF export. See [kitchen supply reporting](./Kitchen-Supply-Report.md). The operational history remains the recent snapshot plus local documents.
+
 ## Entering a supply document
 Use the single **المادة** dropdown and the adjacent **الكمية** input. Clicking a result or pressing Enter selects it and moves to quantity; Enter after a valid quantity adds it to the receipt list and returns to item search. **إضافة للقائمة** and Alt+Insert do the same. Adding a line does not save or post stock.
 

@@ -21,6 +21,9 @@ it.each(['fifo','moving_average'] as const)('transfers value and routes shared m
   const total=(s:Awaited<ReturnType<typeof getSnapshot>>)=>s.balances.reduce((n,b)=>n.add(b.value),decimal('0'));
   const before=await getSnapshot(db,access),d=transfer('k1','3');await postKitchenIssue(db,access,d);await postKitchenIssue(db,access,d);await postKitchenIssue(db,access,transfer('k2','1'));
   let s=await getSnapshot(db,access);expect(total(s).eq(total(before))).toBe(true);expect(s.balances.find(b=>b.locationId==='k1'&&b.itemId==='rice')?.quantity).toBe('3.000000');expect(s.reconciliation?.every(r=>r.matches)).toBe(true);
+  const supply=await getReport(db,access,reportQuerySchema.parse({organizationId:org,kind:'kitchenSupply',from:date,to:date}));
+  expect(supply.total).toBe(2);expect(supply.current.kitchenSupplyDocuments).toBe(2);expect(Number(supply.current.kitchenTransferOut)).toBe(method==='fifo'?100:112);expect(supply.rows.every(r=>r.type==='kitchen.transfer.out')).toBe(true);
+  expect(Number(supply.rows.find(r=>r.documentId===d.operationId)?.unitCost)).toBeCloseTo(method==='fifo'?70/3:28,6);
   const stable=JSON.stringify(s.balances);await expect(postKitchenIssue(db,access,transfer('k1','99'))).rejects.toBeDefined();expect(JSON.stringify((await getSnapshot(db,access)).balances)).toBe(stable);
   await expect(setup('kitchen.save',{id:'k1',name:'Kitchen k1',locationId:'k1',parentLocationId:'main',active:false},1)).rejects.toMatchObject({code:'KITCHEN_HAS_STOCK'});
   await expect(setup('location.save',{id:'k1',name:'Bypass',kind:'مخزن',active:false},1)).rejects.toMatchObject({code:'MANAGED_LOCATION'});
