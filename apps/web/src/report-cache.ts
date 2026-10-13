@@ -4,6 +4,8 @@ import {local} from './offline';
 const prefix=(scope:string)=>'report:v2:'+scope+':';
 export function reportKey(query:ReportQuery){return prefix(query.organizationId)+JSON.stringify(reportQuerySchema.parse(query));}
 function matches(data:ReportResponse,query:ReportQuery){return data?.schemaVersion===1&&data.organizationId===query.organizationId&&data.generation===query.generation&&reportKey(data.query)===reportKey(query);}
+/** A changed tab/filter must never render the previous response using the new table's row schema. */
+export function visibleReport(data:ReportResponse|undefined,query:ReportQuery){return data&&matches(data,query)?data:undefined;}
 export async function cachedReport(query:ReportQuery){const saved=await local.preferences.get(reportKey(query));if(!saved)return undefined;try{const data=JSON.parse(saved.value) as ReportResponse;return matches(data,query)?data:undefined;}catch{return undefined;}}
 export async function cacheReport(data:ReportResponse,query:ReportQuery){
  if(!matches(data,query))throw new Error('التقرير لا يطابق المؤسسة أو الفلاتر المطلوبة.');

@@ -5,6 +5,7 @@ import {egyptDate,previousReportRange} from '../domain/reporting';
 import {recipeSnapshot} from './recipes';
 import {assertGeneration} from './valuation';
 import type {Database} from './database';
+import {consumptionReconciliation} from './consumption-reconciliation';
 
 const paramsCte=`args AS (SELECT $1::text,$2::date,$3::date,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text)`;
 const joins=`FROM stock_entries e JOIN items i ON i.organization_id=e.organization_id AND i.id=e.item_id JOIN locations l ON l.organization_id=e.organization_id AND l.id=e.location_id
@@ -51,6 +52,11 @@ export async function getReport(db:Database,access:Access,input:unknown):Promise
   await assertGeneration(tx,org,q.generation);
   for(const [table,value] of [['locations',q.locationId],['items',q.itemId],['suppliers',q.supplierId],['kitchens',q.kitchenId],['points_of_sale',q.posId]])if(value&&value!=='__none__'&&!(table==='kitchens'&&(await tx.query("SELECT 1 FROM kitchen_issues WHERE organization_id=$1 AND payload->>'kitchen'=$2 LIMIT 1",[org,value])).rows.length)&&!(await tx.query(`SELECT 1 FROM ${table==='items'&&q.kind==='sales'?'menu_items':table} WHERE organization_id=$1 AND id::text=$2`,[org,value])).rows.length)throw new BusinessError('FORBIDDEN','أحد الفلاتر خارج نطاق المؤسسة.',403);
   const checkpoint=(await tx.query<{value:string}>(`SELECT (SELECT COALESCE(max(sequence),0)::text FROM stock_entries WHERE organization_id=$1)||':'||(SELECT COALESCE(max(id),0)::text FROM audit_events WHERE organization_id=$1) AS value`,[org])).rows[0].value;
+  if(q.kind==='reconciliation'){
+   const result=await consumptionReconciliation(tx,q);
+   const empty:PeriodMetrics={received:'0',reversed:'0',returned:'0',returnReference:'0',netReceived:'0',kitchen:'0',waste:'0',countIncrease:'0',countDecrease:'0',sales:'0',salesDeduction:'0',productionInput:'0',productionWaste:'0',estimatedSalesCost:null,estimatedMargin:null,foodCostPercent:null};
+   return {schemaVersion:1,organizationId:org,generation:organization.generation,checkpoint,generatedAt:new Date().toISOString(),query:q,previousRange,current:empty,previous:empty,stock:{value:'0',items:0,low:0},charts:{daily:[],inventory:[],kitchens:[],suppliers:[],waste:[],sales:[],production:[]},reconciliation:result.summary,rows:result.rows,total:result.total,page:result.page};
+  }
   const stockRow=(await tx.query<{value:string;items:string;low:string}>(`WITH ${paramsCte},${inventoryCte} SELECT COALESCE(sum(amount),0)::text AS value,count(DISTINCT item_id)::text AS items,count(*) FILTER(WHERE active AND quantity<minimum)::text AS low FROM inv`,params)).rows[0];
   // Price estimates are separate from ledger allocations, and always use today's stock average.
   let versions:RecipeVersion[]=[],items:Item[]=[],balances:Balance[]=[];

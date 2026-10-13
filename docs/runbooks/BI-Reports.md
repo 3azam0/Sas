@@ -1,5 +1,7 @@
 # BI dashboard and reports
 
+**مطابقة الاستهلاك** compares pinned-sales requirements with independently verified physical-count consumption per material/location, with signed variance charts and explicit incomplete reasons. Unlike the current inventory report, it reconstructs its comparative cost at the closing count. See [period reconciliation](./Consumption-Reconciliation.md).
+
 **سجل صرف المطابخ** provides complete accepted supply documents with daily/ranked charts and allocated unit costs, separately from consumption. See [kitchen supply report](./Kitchen-Supply-Report.md).
 
 Open **نظرة عامة** for current inventory value and period kitchen consumption, waste and net sales, with daily trends and category/kitchen rankings. Open **التقارير والتحليلات** for inventory, kitchens, purchasing/returns, waste/count adjustments, sales/recipe estimates and production. The current warehouse selector applies by default; **كل مواقع المؤسسة** expands the report to the tenant's locations.

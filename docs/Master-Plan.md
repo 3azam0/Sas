@@ -4,13 +4,13 @@ The hosted client release and sales policy in [Hosted release](./Hosted-Release.
 
 # FooDo — Modular Business Management SaaS Master Plan
 
-Updated: 12 October 2026
+Updated: 13 October 2026
 
 Platform branding: the accepted **FooDo** name and logo are used across the app. Organization names and logos remain tenant-specific. See [brand identity](./branding/FooDo.md); existing technical identifiers and historical records remain compatible.
 
-Agreed kitchen workflow: saved internal recipients can be added, renamed, deleted from new selection and restored. Past consumption retains its original recipient name. They receive multi-material issues from the main warehouse, with every accepted quantity treated as immediate consumption and no destination stock balance. Ordinary stock-location transfers remain available separately. Forms support efficient keyboard entry, automatic search-result dropdowns and the existing costing/offline controls. See [Kitchen issues](./runbooks/Kitchen-Issues.md).
+Current kitchen workflow: each kitchen holds stock under its main warehouse, shares the material catalog and costing policy, and has its own POS routing. One meal may be available in multiple kitchens; each prepares the complete meal independently. New kitchen supply conserves stock/value as a transfer. New sales deduct only the selected ingredients from the selling kitchen, accept shortages without negative stock and retain immutable required/deducted/missing quantities. Historical immediate-consumption issues remain separately labelled. See [Kitchen inventory/POS scope](./Kitchen-Inventory-POS-Plan.md).
 
-Status: planning baseline. Client-specific inputs are deferred. This document specifies intended behavior; it does not claim that integrations, compliance, or software have already been implemented.
+Status: current scope with dated historical delivery checkpoints. Current hosted release records govern implemented behavior; regional integrations and future modules remain planned.
 
 Inventory composition entry point delivered on 11 October 2026: **مكونات الصنف** opens or creates a stocked recipe linked to an inventory item, and **فتح إعداد المكونات بعد الحفظ** continues directly from item setup. Component quantities and output yield use the existing versioned recipe/production workflows. Definitions leave stock unchanged; accepted production performs consumption and creates output. An item may still be purchased ready-made. This adds no second BOM model, category hierarchy, client seed data, schema migration or billing requirement. Verification passed: 202 unit/integration tests, TypeScript, production build/offline manifest and three targeted browser scenarios.
 
@@ -24,9 +24,9 @@ The first release serves restaurants through inventory, purchasing, production, 
 
 The first client application is an offline-first web application. Mobile and desktop applications follow, sharing backend contracts, synchronization behavior, and business rules.
 
-Current delivery scope: one hosted first-client organization with real authentication, tenant-isolated cloud storage, the approved catalog and calculation-only sales reporting. Membership UI, invitations, subscriptions and separate demos remain deferred. The client can try the operational workspace at the Cloudflare URL; local development keeps its own database.
+Current delivery scope: one hosted first-client organization with real authentication, tenant-isolated cloud storage, the approved catalog, selective kitchen sales deduction and BI reporting. Membership UI, invitations, subscriptions and separate demos remain deferred. The client can try the operational workspace at the Cloudflare URL; local development keeps its own database.
 
-Phase 2A opening stock, 2B purchase documents/partial receiving and 2C source-linked supplier returns are delivered locally. Phase 3A transfers and 3B counts/reconciliation are also delivered locally. Moving-average costing with FIFO selection is delivered before recipes. Phase 4A versioned recipes/sub-recipes and transparent estimates are delivered; see the [Phase 4 plan](./Phase-4-Plan.md) and [Recipes walkthrough](./runbooks/Recipes.md). Phase 4B production/yield is delivered locally; see [Production walkthrough](./runbooks/Production.md). Phase 4C1 menu mapping and completed-sales imports are delivered locally; see [Sales import](./runbooks/Sales-Import.md). Phase 4C2 theoretical sales quantities/cost estimates and first-client hosting are delivered. Sales do not deduct inventory. Actual-versus-theoretical period reports and financial corrections follow later. Complete each slice with offline persistence, server validation, recovery and acceptance checks. See the [Phase 2 implementation plan](./Phase-2-Plan.md). Stock-consuming production builds on the delivered stock movements, count integrity and stock-neutral recipe definitions; sales-based consumption reporting follows next. No further client planning inputs are needed to start the development slices with labeled examples.
+Phase 2A opening stock, 2B purchase documents/partial receiving and 2C source-linked supplier returns are delivered locally. Phase 3A transfers and 3B counts/reconciliation are also delivered locally. Moving-average costing with FIFO selection is delivered before recipes. Phase 4A versioned recipes/sub-recipes and transparent estimates are delivered; see the [Phase 4 plan](./Phase-4-Plan.md) and [Recipes walkthrough](./runbooks/Recipes.md). Phase 4B production/yield is delivered locally; see [Production walkthrough](./runbooks/Production.md). Phase 4C1 menu mapping and completed-sales imports are delivered locally; see [Sales import](./runbooks/Sales-Import.md). Phase 4C2 theoretical sales quantities/cost estimates and first-client hosting are delivered. New sales deduct selected recipe ingredients from their routed kitchen and highlight shortages. Phase 4C3 adds physical-count-based actual-versus-theoretical period reconciliation. Financial corrections follow as a separate slice. Complete each slice with offline persistence, server validation, recovery and acceptance checks. See the [Phase 2 implementation plan](./Phase-2-Plan.md). Stock-consuming production builds on the delivered stock movements, count integrity and stock-neutral recipe definitions; period consumption reconciliation now uses physical-count evidence. No further client planning inputs are needed to start the development slices with labeled examples.
 
 Foodics is a reference for restaurant workflows and usability. This specification defines the platform's own transaction, costing, and extensibility rules.
 
@@ -320,13 +320,13 @@ Retain historical transaction allocations. Offline cost views explicitly disting
 
 Counts capture partial physical observations offline against a consistent accepted location snapshot. Blank materials are uncounted; zero is physically absent. Online finalization requires the exact saved location movement sequence and expected quantities, with known local stock work resolved first. Any intervening accepted location movement rejects the count, even if quantity returns to the same number. Recount physically at a fresh baseline with new linked IDs; never silently overwrite current balances. Negative adjustments use the selected costing policy; positive adjustments require an explicit per-base-unit cost. Ledger, balances and remaining layers reconcile independently before/after atomic posting. Transit is excluded. Business date does not backdate costs. Late uploads after finalization remain subsequent movements; device acknowledgments, closed periods and historical correction policies remain future work. See [Stock counts walkthrough](./runbooks/Stock-Counts.md).
 
-Imported sales generate theoretical consumption without a second physical issue in V1. Compare production actuals against standards separately from sales residual depletion.
+Imported sales generate theoretical consumption for all ingredients and issue only selected materials once from the selling kitchen. The reconciliation report never posts a second issue. Compare production conversion separately from sales consumption.
 
 ```text
 Residual depletion =
 Opening physical quantity + Receipts + Transfers in + Production outputs
 − Supplier returns − Transfers out − Production inputs
-− Recorded waste and other known issues − Closing physical quantity
+− Recorded waste − Closing physical quantity
 ```
 
 Compare at the same stocked-item boundary. Label incomplete counts, sales mappings, and synchronization as provisional. Do not count adjustment results as a second consumption measure. Report cost valuation basis and last physical verification.
@@ -416,7 +416,7 @@ Monitor sync lag, pending/rejected operations, ledger discrepancies, stale repor
 
 ## 28. Delivery roadmap
 
-Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested local reliability fixes are delivered. The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. Hosted environment separation, client-demo lifecycle and production tenant/access controls remain pending. Editable inventory setup, opening stock with bounded CSV preview and purchase documents/partial receiving and supplier returns are delivered locally. Transfers/partial receiving/transit loss are delivered locally. Partial stock counts and independent reconciliation are delivered locally. The next milestone is versioned recipes/BOMs, followed by production/yield and restaurant cost control. See Developer Guide version 2.12 for implementation order and environment/Git workflow.
+Current status, 13 October 2026: setup, opening stock, purchasing/returns, transfers, counts, moving-average/FIFO costing, recipes, production, selective sales imports, hosted authenticated tenant access, kitchen stock/POS routing, BI and kitchen supply reports are delivered. Receiving/issue forms, searchable selectors, keyboard entry and collapsible sections are delivered. Phase 4C3 consumption reconciliation is delivered; next are sales financial corrections, basic expenses and live-use acceptance. Membership/billing, native POS and dedicated demos remain deferred. Current release details supersede historical local checkpoints above. GitHub publication remains pending the recorded credential-helper issue.
 
 
 | Stage | Outcome |
@@ -427,9 +427,9 @@ Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested loc
 | 3A — delivered locally | Multi-branch transfers, partial receiving, transit loss and offline recovery |
 | 3B — delivered locally | Partial physical counts, strict baseline, reviewed selected-policy/explicit-cost adjustments, reconciliation and offline recount |
 | 3C — delivered locally | Moving-average/FIFO policy, exact valuation and development generation reset |
-| 4 | Recipes/BOMs, central/local production, yield and costing |
-| 5 | Sales imports, consumption reconciliation, expenses and reports |
-| 6 | Production configuration, minimum real authenticated access, migrations, backups and live-use acceptance |
+| 4 — delivered | Recipes/BOMs, production, yield and costing |
+| 5 — partly delivered | Sales imports, selective kitchen deductions and BI delivered; Phase 4C3 reconciliation delivered; financial corrections and expenses remain |
+| 6 — partly delivered | Hosted Auth and tenant isolation delivered; verified restore, removal of temporary trial data and live-use acceptance remain |
 | 7 | Egypt restaurant pilot and supported market adapters |
 | 8 | Membership administration, additional-client onboarding, billing, mobile operations and optional hosted demo/staging |
 | 9 | Desktop/native POS and verified country fiscal workflows |
