@@ -16,7 +16,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.42 — 13 October 2026
+Version 2.43 — 13 October 2026
+
+Direct receiving now mirrors the stock issue receipt flow: one material/quantity entry, explicit receiving unit and cost, Enter-to-add, newest-first read-only lines and edit/remove. Compatible duplicates combine exactly; differing costs, units or conversion factors require an explicit edit. Save protects unfinished entries. The stock issue header and metadata are compact, retaining keyboard hints and mobile touch controls. See [receiving guide](./runbooks/Direct-Receiving.md) and [release](./releases/receiving-entry-2026-10-13.md).
 
 The stock issue editor now has one searchable material and adjacent quantity entry, Enter-to-add, a newest-first receipt list, exact duplicate merging, quantity edits/removal and unfinished-entry protection. Short receipts show lines directly; lists above ten materials retain search/sorting/pagination. Stock posting, server validation and outbox formats are unchanged. See [operating guide](./runbooks/Kitchen-Issues.md) and [verified release](./releases/stock-issue-entry-2026-10-13.md). This replaces its earlier per-line entry/navigation instructions.
 

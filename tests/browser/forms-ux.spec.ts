@@ -85,10 +85,10 @@ test('enhanced receiving form validates inline and saves offline from a compact 
  await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();
  await expectErrorDescribed(page.getByLabel('الكمية (كجم)',{exact:true}),page);
  await page.getByLabel('الكمية (كجم)',{exact:true}).fill('٢');
- await page.getByRole('button',{name:'إضافة مادة أخرى',exact:true}).click();
+ await page.getByRole('button',{name:'إضافة إلى القائمة',exact:true}).click();
  await expectPinnedDialogActions(page,dialog);
  await page.getByRole('button',{name:'حذف السطر 2',exact:true}).click();
- await expect(dialog.locator('.operation-summary strong')).toHaveText('٤٠ ج.م');
+ await expect(dialog.locator('.document-summary strong')).toHaveText('٤٠ ج.م');
  await page.screenshot({path:'../Fodo-Receiving-Form-Mobile.png'});
  await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();await expect(dialog).not.toBeVisible();
  await page.reload();await page.getByRole('button',{name:'مركز المزامنة',exact:false}).first().click();

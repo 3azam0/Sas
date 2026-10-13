@@ -1,15 +1,16 @@
 'use client';
-import {DocumentFields,DocumentLines,DocumentSummary} from './DocumentForm';
+import {DocumentFields,DocumentSummary} from './DocumentForm';
 import {focusControl,SearchableSelect,KeyboardForm,FormKeyboardHelp} from './FormControls';
 import Collection,{syncStatusOptions} from './Collection';
 import {operationLabels,OperationStatus,reviewFirst,DocumentLink} from './OperationStatus';
-import {useEffect,useRef,useState,type FormEvent} from 'react';
+import {useEffect,useRef,useState,type FormEvent,type KeyboardEvent,type FocusEvent} from 'react';
 import {receiptDocumentSchema,type ReceiptDocument,type Snapshot} from '@saas/contracts';
 import {decimal} from '@saas/domain';
 import {receivingUnitFactor} from '../../../packages/domain/receiving';
 import {normalizeNumber} from '../../../packages/domain/opening-import';
 import {saveReceipt,resolveReceipt,type LocalReceipt} from './offline';
 import {SetupEditor} from './InventorySetup';
+import {commitReceivingEntry,type ReceivingLine} from './receiving-entry';
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const number=(v:string|number)=>new Intl.NumberFormat('ar-EG',{maximumFractionDigits:6}).format(Number(v));
 const valid=(v:string)=>/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/.test(v);
@@ -21,33 +22,36 @@ export function ReceiptHistory({snapshot,location,rows,expired,synchronize,edit}
  const visible=[...docs.values()].filter(r=>!location||r.document.locationId===location).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
  return <section className="panel"><div className="panel-heading"><div><h2>مستندات الاستلام المباشر</h2><p>استلام عدة مواد في مستند واحد، مع المورد أو بدونه.</p></div><span className="pill">{visible.length} مستند</span></div>{error&&<p role="alert" className="error">{error}</p>}<Collection rows={(reviewFirst(visible))??[]} title="مستندات الاستلام المباشر" resetKey={location??"all"} searchText={r=>[r.document.reason,snapshot.suppliers?.find(s=>s.id===r.document.supplierId)?.name,r.document.lines.map(l=>snapshot.items.find(i=>i.id===l.itemId)?.name).join(" ")].join(" ")} dateValue={r=>r.document.businessDate} filters={[{key:"status",label:"حالة المزامنة",value:r=>r.status,options:syncStatusOptions},{key:"supplier",label:"المورد",value:r=>r.document.supplierId??"none",options:[{value:"none",label:"بدون مورد"},...(snapshot.suppliers??[]).map(s=>({value:s.id,label:s.name}))]}]} rowIds={r=>[r.id]}>{pageRows=>pageRows.map(row=><details className="opening-document" key={row.id} id={`operation-${row.id}`} tabIndex={-1}><summary><strong>{row.document.reason||'استلام مواد'}</strong> · {row.document.businessDate} · {row.document.lines.length} مادة · {number(row.document.lines.reduce((s,l)=>s.add(decimal(l.quantity).mul(l.unitCost)),decimal('0')).toString())} ج.م <span className={'pill '+(row.status==='accepted'?'good':'warning')}><OperationStatus status={row.status}/></span></summary><p>الموقع: {snapshot.locations.find(l=>l.id===row.document.locationId)?.name??row.document.locationId}</p><p>المورد: {snapshot.suppliers?.find(s=>s.id===row.document.supplierId)?.name??'بدون مورد محدد'}</p><small dir="ltr">{row.id}</small><Collection rows={row.document.lines} title={"مواد الاستلام — "+(row.document.reason||row.id)} searchText={l=>snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}>{pageRows=>(<div className="table-scroll"><table><thead><tr><th>المادة</th><th>كمية المخزون</th><th>تكلفة الوحدة</th><th>القيمة</th></tr></thead><tbody>{pageRows.map(l=><tr key={l.lineId}><td>{snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}</td><td>{number(l.quantity)} {l.receivingUnit?.baseName??snapshot.units?.find(u=>u.id===l.unitId)?.name??l.unitId}{l.enteredQuantity&&<small className="setup-subline">{number(l.enteredQuantity)} {l.receivingUnit?.name??snapshot.items.find(i=>i.id===l.itemId)?.purchaseUnits?.find(p=>p.id===l.purchaseUnitId)?.name}{l.receivingUnit&&<> · ١ {l.receivingUnit.name} = {number(l.receivingUnit.factor)} {l.receivingUnit.baseName}</>}</small>}</td><td>{number(l.unitCost)}</td><td>{number(decimal(l.quantity).mul(l.unitCost).toString())}</td></tr>)}</tbody></table></div>)}</Collection>{row.error&&<p className="error" role="alert">{row.error}</p>}{row.replacesId&&<p>تصحيح للمستند: <span dir="ltr"><DocumentLink id={row.replacesId} view="activity" location={row.document.locationId} label={row.replacesId}/></span></p>}{row.replacementId&&<p>المستند البديل: <span dir="ltr"><DocumentLink id={row.replacementId} view="activity" location={row.document.locationId} label={row.replacementId}/></span></p>}{row.status==='needsReview'&&<div className="review-actions"><button className="secondary" disabled={expired} onClick={()=>void resolve(row,'retry')}>إعادة محاولة الاستلام</button><button className="secondary" disabled={expired} onClick={()=>edit(row)}>تصحيح الاستلام</button><button className="text-button" onClick={()=>void resolve(row,'cancel')}>إلغاء الاستلام المرفوض</button></div>}</details>)}</Collection></section>;
 }
-type EditorLine={lineId:string;itemId:string;selection:string;factor:string;enteredQuantity:string;unitCost:string};
+
+type EditorLine=ReceivingLine;
 export default function ReceiptDialog({snapshot,location,itemId,initial,close,saved,materialSaved}:{snapshot:Snapshot;location:string;itemId?:string;initial?:LocalReceipt;close:()=>void;saved:()=>void;materialSaved?:()=>void}){
- const dialog=useRef<HTMLDialogElement>(null);
- const form=useRef<HTMLFormElement>(null);
+ const dialog=useRef<HTMLDialogElement>(null),form=useRef<HTMLFormElement>(null),locked=useRef(false);
  const [createdItems,setCreatedItems]=useState<Snapshot['items']>([]);
  const catalog=[...snapshot.items,...createdItems.filter(item=>!snapshot.items.some(current=>current.id===item.id))];
- const items=catalog.filter(i=>i.active!==false);
- const [newMaterial,setNewMaterial]=useState<{lineId:string;name:string}|null>(null);
- const fresh=(id=items[0]?.id??''):EditorLine=>({lineId:crypto.randomUUID(),itemId:id,selection:'',factor:'',enteredQuantity:'',unitCost:''});
+ const items=catalog.filter(i=>i.active!==false&&i.unitId);
+ const [newMaterial,setNewMaterial]=useState<{name:string}|null>(null);
+ const fresh=(id=''):EditorLine=>({lineId:crypto.randomUUID(),itemId:id,selection:'',factor:'',enteredQuantity:'',unitCost:''});
  const [lines,setLines]=useState<EditorLine[]>(()=>initial?initial.document.lines.map(l=>({
   lineId:crypto.randomUUID(),itemId:l.itemId,
   selection:l.purchaseUnitId??(l.receivingUnit&&l.receivingUnit.unitId!==l.unitId?'unit:'+l.receivingUnit.unitId:''),
   factor:l.receivingUnit?.factor??'',enteredQuantity:l.enteredQuantity??l.quantity,unitCost:l.unitCost
- })):[fresh(itemId)]);
+ })):[]);
+ const [entry,setEntry]=useState<EditorLine>(()=>fresh(itemId)),[editingId,setEditingId]=useState<string|null>(null);
+ const [entrySubmitted,setEntrySubmitted]=useState(false),[entryVersion,setEntryVersion]=useState(0),[listVersion,setListVersion]=useState(0),[notice,setNotice]=useState(''),[lastChanged,setLastChanged]=useState('');
  const [businessDate,setDate]=useState(initial?.document.businessDate??today());
- const [reason,setReason]=useState(initial?.document.reason??'');
- const [supplierId,setSupplier]=useState(initial?.document.supplierId??'');
+ const [reason,setReason]=useState(initial?.document.reason??''),[supplierId,setSupplier]=useState(initial?.document.supplierId??'');
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
- const [touched,setTouched]=useState<Record<string,boolean>>({});
- const [submitted,setSubmitted]=useState(false);
+ const [touched,setTouched]=useState<Record<string,boolean>>({}),[submitted,setSubmitted]=useState(false);
  useEffect(()=>{dialog.current?.showModal();},[]);
- const fieldKey=(line:EditorLine,key:keyof EditorLine)=>`line:${line.lineId}:${key}`;
- const errorId=(key:string)=>`receipt-error-${key.replaceAll(':','-')}`;
+ const fieldKey=(line:EditorLine,key:keyof EditorLine)=>'line:'+line.lineId+':'+key;
+ const errorId=(key:string)=>'receipt-error-'+key.replaceAll(':','-');
+ function focusEntry(key:keyof EditorLine='itemId'){
+  requestAnimationFrame(()=>focusControl(form.current?.querySelector<HTMLInputElement|HTMLSelectElement>('[data-field="'+fieldKey(entry,key)+'"]:not([hidden])'),form.current));
+ }
  function touch(key:string){setTouched(previous=>({...previous,[key]:true}));}
- function change(id:string,key:keyof EditorLine,value:string){
-  setError('');
-  setLines(rows=>rows.map(l=>l.lineId===id?{...l,[key]:value,...(key==='itemId'?{selection:'',factor:''}:key==='selection'?{factor:''}:{})}:l));
+ function change(key:keyof EditorLine,value:string){
+  setError('');setNotice('');
+  setEntry(l=>({...l,[key]:value,...(key==='itemId'?{selection:'',factor:''}:key==='selection'?{factor:''}:{})}));
  }
  function selected(l:EditorLine){
   const item=catalog.find(i=>i.id===l.itemId);
@@ -62,58 +66,89 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
   const quantity=decimal(l.enteredQuantity).mul(factor);
   return quantity.decimalPlaces()<=6&&quantity.lte('999999999.999999')?quantity:null;
  }
+ function lineErrors(line:EditorLine){
+  const choice=selected(line),errors:Record<string,string>={};
+  if(!items.some(item=>item.id===line.itemId))errors[fieldKey(line,'itemId')]='اختر مادة نشطة لها وحدة مخزون محددة.';
+  if(line.selection&&!choice.unit&&!choice.pack)errors[fieldKey(line,'selection')]='اختر وحدة استلام متاحة للصنف.';
+  if(choice.manual&&(!valid(line.factor)||decimal(line.factor).lte(0)))errors[fieldKey(line,'factor')]='أدخل محتوى وحدة الاستلام بوحدة المخزون، أكبر من صفر.';
+  if(!line.enteredQuantity)errors[fieldKey(line,'enteredQuantity')]='أدخل الكمية المستلمة.';
+  else if(!valid(line.enteredQuantity)||decimal(line.enteredQuantity).lte(0))errors[fieldKey(line,'enteredQuantity')]='أدخل كمية أكبر من صفر، حتى ٦ منازل عشرية.';
+  else if(valid(choice.factor)&&decimal(choice.factor).gt(0)&&!base(line))errors[fieldKey(line,'enteredQuantity')]='الكمية المحوّلة تتجاوز الحد المسموح أو ٦ منازل عشرية. قلّل الكمية أو راجع معامل التحويل.';
+  if(!valid(line.unitCost))errors[fieldKey(line,'unitCost')]=line.unitCost?'أدخل تكلفة صحيحة حتى ٦ منازل عشرية؛ يمكن أن تكون صفراً.':'أدخل تكلفة وحدة المخزون؛ اكتب ٠ إذا كانت دون تكلفة.';
+  return errors;
+ }
  const total=lines.reduce((sum,line)=>{const quantity=base(line);return quantity&&valid(line.unitCost)?sum.add(quantity.mul(line.unitCost)):sum;},decimal('0'));
  const fieldErrors:Record<string,string>={};
  if(!businessDate||!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)||!Number.isFinite(Date.parse(businessDate)))fieldErrors.businessDate='اختر تاريخ الاستلام.';
  else if(businessDate>today())fieldErrors.businessDate='اختر اليوم أو تاريخاً سابقاً.';
  if(reason.trim()&&reason.trim().length<2)fieldErrors.reason='أدخل حرفين على الأقل أو اترك المرجع فارغاً.';
  else if(reason.trim().length>200)fieldErrors.reason='اختصر المرجع إلى ٢٠٠ حرف أو أقل.';
- lines.forEach((line,index)=>{
-  const choice=selected(line);
-  if(!choice.item?.unitId)fieldErrors[fieldKey(line,'itemId')]='اختر مادة لها وحدة مخزون محددة.';
-  else if(lines.slice(0,index).some(previous=>previous.itemId===line.itemId))fieldErrors[fieldKey(line,'itemId')]='المادة مضافة بالفعل؛ عدّل كميتها في سطرها.';
-  if(line.selection&&!choice.unit&&!choice.pack)fieldErrors[fieldKey(line,'selection')]='اختر وحدة استلام متاحة للصنف.';
-  if(choice.manual&&(!valid(line.factor)||decimal(line.factor).lte(0)))fieldErrors[fieldKey(line,'factor')]=`أدخل محتوى ١ ${choice.name} بوحدة ${choice.item?.unit}، أكبر من صفر.`;
-  if(!line.enteredQuantity)fieldErrors[fieldKey(line,'enteredQuantity')]='أدخل الكمية المستلمة.';
-  else if(!valid(line.enteredQuantity)||decimal(line.enteredQuantity).lte(0))fieldErrors[fieldKey(line,'enteredQuantity')]='أدخل كمية أكبر من صفر، حتى ٦ منازل عشرية.';
-  else if(valid(choice.factor)&&decimal(choice.factor).gt(0)&&!base(line))fieldErrors[fieldKey(line,'enteredQuantity')]='الكمية المحوّلة تتجاوز الحد المسموح أو ٦ منازل عشرية. قلّل الكمية أو راجع معامل التحويل.';
-  if(!valid(line.unitCost))fieldErrors[fieldKey(line,'unitCost')]=line.unitCost?'أدخل تكلفة صحيحة حتى ٦ منازل عشرية؛ يمكن أن تكون صفراً.':'أدخل تكلفة وحدة المخزون؛ اكتب ٠ إذا كانت دون تكلفة.';
- });
- const shownError=(key:string)=>(submitted||touched[key])?fieldErrors[key]:undefined;
- function fieldProps(key:string){return {'data-field':key,'aria-invalid':!!shownError(key),'aria-describedby':shownError(key)?errorId(key):undefined,onBlur:()=>touch(key)};}
+ const entryErrors=lineErrors(entry);
+ const shownError=(key:string)=>key.startsWith('line:')?(entrySubmitted||touched[key]?entryErrors[key]:undefined):(submitted||touched[key]?fieldErrors[key]:undefined);
+ function fieldProps(key:string){return {'data-field':key,'aria-invalid':!!shownError(key),'aria-describedby':shownError(key)?errorId(key):undefined,onBlur:(event:FocusEvent<HTMLInputElement|HTMLSelectElement>)=>{if(!(event.relatedTarget instanceof HTMLButtonElement))touch(key);}};}
  function fieldError(key:string){const message=shownError(key);return message?<small id={errorId(key)} className="field-error">{message}</small>:null;}
+ const dirty=!!(editingId||entry.itemId||entry.enteredQuantity||entry.unitCost||entry.selection||entry.factor);
+ function clearEntry(){
+  setEntry(fresh());setEditingId(null);setEntrySubmitted(false);setTouched({});setEntryVersion(v=>v+1);setError('');
+  requestAnimationFrame(()=>focusControl(form.current?.querySelector<HTMLInputElement>('input[aria-label="المادة"]'),form.current));
+ }
+ function addEntry(){
+  if(busy||newMaterial)return;
+  setEntrySubmitted(true);setError('');setNotice('');
+  const invalidField=Object.keys(entryErrors)[0];
+  if(invalidField){setError(entryErrors[invalidField]);requestAnimationFrame(()=>focusControl(form.current?.querySelector<HTMLInputElement|HTMLSelectElement>('[data-field="'+invalidField+'"]:not([hidden])'),form.current));return;}
+  const result=commitReceivingEntry(lines,entry,l=>selected(l).factor,editingId);
+  if(!result.ok){
+   const messages={item:'اختر مادة من القائمة.',quantity:'الكمية الإجمالية تتجاوز الحد المسموح؛ راجع الكمية ومعامل التحويل.',factor:'أدخل معامل تحويل صحيحاً.',cost:'أدخل تكلفة وحدة المخزون.',incompatible:'المادة موجودة بوحدة استلام أو تكلفة مختلفة؛ عدّل سطرها بدلاً من إضافتها مرة أخرى.',capacity:'الحد الأقصى ٢٠٠ مادة مختلفة. عدّل مادة موجودة أو اجمع كميتها.', 'missing-edit':'المادة الجاري تعديلها لم تعد في القائمة؛ ألغِ التعديل واخترها مجدداً.'};
+   setError(messages[result.reason]);focusEntry(result.reason==='item'?'itemId':result.reason==='cost'?'unitCost':'enteredQuantity');return;
+  }
+  setLines(result.lines);setLastChanged(result.line.lineId);setListVersion(v=>v+1);
+  clearEntry();setNotice((result.action==='merged'?'جُمعت الكمية مع المادة الموجودة':result.action==='updated'?'عُدلت المادة':'أُضيفت المادة')+' — '+selected(result.line).item?.name);
+ }
+ function editLine(line:EditorLine){
+  if(editingId===line.lineId){focusEntry('enteredQuantity');return;}
+  if(dirty){setError('أضف الإدخال الحالي أو امسحه قبل تعديل مادة أخرى.');focusEntry('enteredQuantity');return;}
+  setEntry({...line});setEditingId(line.lineId);setEntrySubmitted(false);setTouched({});setEntryVersion(v=>v+1);setError('');setNotice('');
+  requestAnimationFrame(()=>focusControl(form.current?.querySelector<HTMLInputElement>('input[aria-label^="الكمية ("]'),form.current));
+ }
+ function removeLine(line:EditorLine){
+  setLines(rows=>rows.filter(l=>l.lineId!==line.lineId));setListVersion(v=>v+1);setError('');setNotice('حُذفت المادة من المستند.');
+  if(editingId===line.lineId)clearEntry();
+ }
+ function keyboard(e:KeyboardEvent<HTMLFormElement>){
+  if(e.key!=='Enter'||e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||e.nativeEvent.isComposing||!(e.target instanceof HTMLInputElement))return;
+  const key=e.target.dataset.field;
+  if(key===fieldKey(entry,'unitCost')){e.preventDefault();if(!e.repeat)addEntry();}
+  else if(key===fieldKey(entry,'enteredQuantity')){e.preventDefault();if(!e.repeat)focusEntry('unitCost');}
+ }
  async function submit(e:FormEvent){
-  e.preventDefault();if(busy||newMaterial)return;
+  e.preventDefault();if(locked.current||busy||newMaterial)return;
   setSubmitted(true);setError('');
   const invalidField=Object.keys(fieldErrors)[0];
-  if(invalidField){
-   const lineIndex=lines.findIndex(line=>invalidField.startsWith(`line:${line.lineId}:`));
-   setError(`${lineIndex<0?'راجع بيانات المستند':`راجع السطر ${lineIndex+1}`}: ${fieldErrors[invalidField]}`);
-   requestAnimationFrame(()=>focusControl(form.current?.querySelector<HTMLInputElement|HTMLSelectElement>(`[data-field="${invalidField}"]`),form.current));
-   return;
-  }
-  setBusy(true);
+  if(invalidField){setError(fieldErrors[invalidField]);requestAnimationFrame(()=>focusControl(form.current?.querySelector<HTMLInputElement>('[data-field="'+invalidField+'"]'),form.current));return;}
+  if(dirty){setError(editingId?'احفظ تعديل المادة أو ألغِه قبل حفظ المستند.':'أضف المادة الحالية إلى القائمة أو امسح الإدخال قبل حفظ المستند.');focusEntry(entry.itemId?'enteredQuantity':'itemId');return;}
+  if(!lines.length){setError('أضف مادة واحدة على الأقل إلى القائمة.');focusEntry();return;}
+  const invalidLine=lines.find(l=>Object.keys(lineErrors(l)).length>0);
+  if(invalidLine){editLine(invalidLine);setEntrySubmitted(true);setError('راجع بيانات المادة: '+selected(invalidLine).item?.name);return;}
+  locked.current=true;setBusy(true);
   try{
    const receiptLines=lines.map((l,index)=>{
     const choice=selected(l),quantity=base(l);
-    if(!quantity)throw new Error(`راجع كمية السطر ${index+1} ومعامل التحويل: كمية موجبة حتى ٦ منازل عشرية في وحدة المخزون.`);
-    return {lineId:l.lineId,itemId:l.itemId,unitId:choice.item?.unitId,quantity:quantity.toString(),unitCost:l.unitCost,
-     purchaseUnitId:choice.pack?.id,
+    if(!quantity)throw new Error('راجع كمية السطر '+(index+1)+' ومعامل التحويل.');
+    return {lineId:l.lineId,itemId:l.itemId,unitId:choice.item?.unitId,quantity:quantity.toString(),unitCost:l.unitCost,purchaseUnitId:choice.pack?.id,
      receivingUnit:choice.unit?{unitId:choice.unit.id,name:choice.unit.name,baseName:choice.item?.unit,factor:choice.factor}:undefined,
      enteredQuantity:l.selection?l.enteredQuantity:undefined};
    });
    const document:ReceiptDocument=receiptDocumentSchema.parse({operationId:crypto.randomUUID(),organizationId:snapshot.organizationId,generation:snapshot.generation,locationId:location,type:'receipt.document',businessDate,reason,supplierId:supplierId||undefined,capturedAt:new Date().toISOString(),schemaVersion:1,currency:'EGP',lines:receiptLines});
    await saveReceipt(document,initial?.id);saved();
-  }catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع كل السطور: مواد مختلفة، كمية موجبة وتكلفة صحيحة حتى ٦ منازل عشرية.');}
+  }catch(e){locked.current=false;setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع المواد والكميات وتكلفة وحدة المخزون.');}
   finally{setBusy(false);}
  }
- function returnToLine(lineId:string,key:'itemId'|'enteredQuantity'){
-  setNewMaterial(null);
-  requestAnimationFrame(()=>focusControl(form.current?.querySelector<HTMLInputElement>(`input[data-field="line:${lineId}:${key}"]`),form.current));
- }
+ function returnToEntry(key:'itemId'|'enteredQuantity'){setNewMaterial(null);focusEntry(key);}
+ const choice=selected(entry),quantity=base(entry),item=choice.item;
  return <><dialog ref={dialog} className="modal receipt-modal" aria-labelledby="receipt-title" onCancel={e=>{e.preventDefault();if(!busy&&!newMaterial)close();}}>
-  <div className="modal-header"><div><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>سجّل المواد المستلمة وكمياتها في مستند واحد.</p></div><button type="button" className="icon-button" disabled={busy} onClick={close} aria-label="إغلاق">×</button></div>
-  <KeyboardForm busy={busy||!!newMaterial} ref={form} className="modal-form" noValidate onSubmit={e=>void submit(e)}>
+  <div className="modal-header"><div><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>أضف المواد إلى القائمة، ثم احفظ مستند الاستلام.</p></div><button type="button" className="icon-button" disabled={busy||!!newMaterial} onClick={close} aria-label="إغلاق">×</button></div>
+  <KeyboardForm busy={busy||!!newMaterial} ref={form} className="modal-form" noValidate onKeyDown={keyboard} onSubmit={e=>void submit(e)}>
    <div className="modal-body"><FormKeyboardHelp/><fieldset disabled={busy||!!newMaterial} className="receipt-fields form-fields">
     <section className="form-section receipt-document-section" aria-labelledby="receipt-details-title">
      <div className="form-section-heading"><h3 id="receipt-details-title">بيانات المستند</h3><small>الحقول المعلّمة بـ * مطلوبة</small></div>
@@ -123,40 +158,45 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
       <label><span className="form-label">مرجع الاستلام <small>اختياري</small></span><input aria-label="مرجع الاستلام" minLength={2} maxLength={200} placeholder="فاتورة ١٢٣ أو توريد اليوم" value={reason} {...fieldProps('reason')} onChange={e=>{setReason(e.target.value);setError('');}}/>{fieldError('reason')}</label>
      </DocumentFields>
     </section>
-    <section className="form-section receipt-items-section" aria-labelledby="receipt-items-title">
-     <div className="form-section-heading"><div><h3 id="receipt-items-title">المواد المستلمة</h3><p className="field-hint">اختر وحدة الاستلام؛ تُحوّل الكمية إلى وحدة المخزون لكل مادة.</p></div><span className="pill">{lines.length} مادة</span></div>
-     <DocumentLines count={lines.length}><Collection rows={lines} title="المواد المستلمة" keepMounted rowIds={l=>[l.lineId]}>{(pageRows,isShown)=><div className="receipt-lines">{pageRows.map((l,index)=>{
-      const choice=selected(l),{item,unit,pack,name,factor,manual}=choice,quantity=base(l);
-      return <fieldset className="receipt-line" aria-label={`المادة ${index+1}`} key={l.lineId} data-collection-row={l.lineId} hidden={!isShown(l)}><legend>{number(index+1)}</legend>
-       <div className="form-row">
-        <label><span className="form-label">المادة <span className="field-required" aria-hidden="true">*</span></span><SearchableSelect aria-label={index===0?'المادة':`مادة السطر ${index+1}`} required value={l.itemId} {...fieldProps(fieldKey(l,'itemId'))} onCreate={name=>setNewMaterial({lineId:l.lineId,name})} onChange={e=>change(l.lineId,'itemId',e.target.value)}>{items.map(i=><option key={i.id} value={i.id} disabled={lines.some(x=>x.lineId!==l.lineId&&x.itemId===i.id)}>{i.name} · {i.sku} · {i.unit}</option>)}</SearchableSelect>{fieldError(fieldKey(l,'itemId'))}</label>
-        <label><span className="form-label">وحدة الاستلام</span><select aria-label={index===0?'وحدة الاستلام':`وحدة السطر ${index+1}`} value={l.selection} {...fieldProps(fieldKey(l,'selection'))} onChange={e=>change(l.lineId,'selection',e.target.value)}>
-         <option value="">{item?.unit} · وحدة المخزون</option>
-         <optgroup label="وحدات المخزون">{snapshot.units?.filter(u=>u.id!==item?.unitId).map(u=><option key={u.id} value={'unit:'+u.id}>{u.name}</option>)}</optgroup>
-         {!!item?.purchaseUnits?.length&&<optgroup label="عبوات شراء الصنف">{item.purchaseUnits.map(p=><option key={p.id} value={p.id}>{p.name} · {p.factor} {item.unit}</option>)}</optgroup>}
-        </select>{fieldError(fieldKey(l,'selection'))}</label>
-       </div>
-       {manual?<label className="receipt-conversion-field"><span className="form-label">محتوى وحدة الاستلام ({item?.unit}) <span className="field-required" aria-hidden="true">*</span></span><small className="field-hint">١ {name} = كم {item?.unit}؟ أدخل محتوى العبوة لهذا الاستلام.</small><input aria-label={index===0?'محتوى وحدة الاستلام':`محتوى وحدة السطر ${index+1}`} required inputMode="decimal" dir="ltr" value={l.factor} placeholder="مثال: ٥" {...fieldProps(fieldKey(l,'factor'))} onChange={e=>change(l.lineId,'factor',normalizeNumber(e.target.value))}/>{fieldError(fieldKey(l,'factor'))}</label>
-        :(unit||pack)&&<p className="receipt-conversion-note field-hint">تحويل تلقائي: ١ {name} = {number(factor)} {item?.unit}</p>}
-       <div className="form-row">
-        <label><span className="form-label">الكمية ({name}) <span className="field-required" aria-hidden="true">*</span></span><input aria-label={index===0?`الكمية (${name})`:`كمية السطر ${index+1}`} required inputMode="decimal" dir="ltr" placeholder="0.00" value={l.enteredQuantity} {...fieldProps(fieldKey(l,'enteredQuantity'))} onChange={e=>change(l.lineId,'enteredQuantity',normalizeNumber(e.target.value))}/>{fieldError(fieldKey(l,'enteredQuantity'))}</label>
-        <label><span className="form-label">تكلفة الوحدة (ج.م) <span className="field-required" aria-hidden="true">*</span></span><input aria-label={index===0?'تكلفة الوحدة (ج.م)':`تكلفة السطر ${index+1}`} required inputMode="decimal" dir="ltr" placeholder="0.00" value={l.unitCost} {...fieldProps(fieldKey(l,'unitCost'))} onChange={e=>change(l.lineId,'unitCost',normalizeNumber(e.target.value))}/><small className="field-hint">ج.م / {item?.unit} · تكلفة وحدة المخزون</small>{fieldError(fieldKey(l,'unitCost'))}</label>
-       </div>
-       <div className="receipt-line-footer"><div className="receipt-line-summary"><div className="receipt-summary-value"><small>إضافة للمخزون</small><strong>{quantity?number(quantity.toString()):'—'} {item?.unit}</strong></div><div className="receipt-summary-value"><small>قيمة المادة</small><strong>{quantity&&valid(l.unitCost)?number(quantity.mul(l.unitCost).toString())+' ج.م':'—'}</strong></div><div className="receipt-summary-value"><small>الرصيد بعد القبول، تقديري</small><strong>{quantity?number(decimal(snapshot.balances.find(b=>b.locationId===location&&b.itemId===l.itemId)?.quantity??'0').add(quantity).toString()):'—'} {item?.unit}</strong></div></div><button type="button" className="text-button" disabled={lines.length===1} aria-label={`حذف السطر ${index+1}`} onClick={()=>{setLines(lines.filter(x=>x.lineId!==l.lineId));setError('');}}>حذف</button></div>
-      </fieldset>;
-     })}</div>}</Collection></DocumentLines>
-     <button data-keyboard-add type="button" className="secondary document-add" disabled={lines.length>=200} onClick={()=>{setLines([...lines,fresh(items.find(i=>!lines.some(l=>l.itemId===i.id))?.id??'')]);setError('');}}>إضافة مادة أخرى</button>
+    <section key={entryVersion} className={'receiving-composer'+(editingId?' receiving-composer-editing':'')} aria-labelledby="receiving-entry-title">
+     <div className="form-section-heading"><div><h3 id="receiving-entry-title">{editingId?'تعديل المادة':'إضافة مادة'}</h3><p className="field-hint">اختر المادة ← الكمية ← تكلفة وحدة المخزون ← Enter للإضافة.</p></div>{editingId&&<span className="pill warning">تعديل</span>}</div>
+     <div className="receiving-composer-main">
+      <label><span className="form-label">المادة <span className="field-required" aria-hidden="true">*</span></span><SearchableSelect aria-label="المادة" value={entry.itemId} disabled={!!editingId} {...fieldProps(fieldKey(entry,'itemId'))} onCreate={name=>setNewMaterial({name})} onSearchEnter={()=>focusEntry('enteredQuantity')} onChange={e=>{change('itemId',e.target.value);focusEntry('enteredQuantity');}}>{items.map(i=><option key={i.id} value={i.id}>{i.name} · {i.sku} · {i.unit}</option>)}</SearchableSelect>{fieldError(fieldKey(entry,'itemId'))}</label>
+      <label><span className="form-label">الكمية <span className="field-required" aria-hidden="true">*</span></span><input aria-label={'الكمية ('+(choice.name??'وحدة الاستلام')+')'} inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.enteredQuantity} {...fieldProps(fieldKey(entry,'enteredQuantity'))} onChange={e=>change('enteredQuantity',normalizeNumber(e.target.value))}/>{choice.name&&<small className="field-hint">{choice.name}</small>}{fieldError(fieldKey(entry,'enteredQuantity'))}</label>
+     </div>
+     <div className="receiving-composer-details">
+      <label><span className="form-label">وحدة الاستلام</span><select aria-label="وحدة الاستلام" disabled={!item} value={entry.selection} {...fieldProps(fieldKey(entry,'selection'))} onChange={e=>change('selection',e.target.value)}>
+       <option value="">{item?.unit??'اختر المادة أولاً'} · وحدة المخزون</option>
+       <optgroup label="وحدات المخزون">{snapshot.units?.filter(u=>u.id!==item?.unitId).map(u=><option key={u.id} value={'unit:'+u.id}>{u.name}</option>)}</optgroup>
+       {!!item?.purchaseUnits?.length&&<optgroup label="عبوات شراء الصنف">{item.purchaseUnits.map(p=><option key={p.id} value={p.id}>{p.name} · {p.factor} {item.unit}</option>)}</optgroup>}
+      </select>{fieldError(fieldKey(entry,'selection'))}</label>
+      {choice.manual&&<label><span className="form-label">محتوى وحدة الاستلام ({item?.unit}) *</span><input aria-label="محتوى وحدة الاستلام" inputMode="decimal" dir="ltr" placeholder="مثال: ٥" value={entry.factor} {...fieldProps(fieldKey(entry,'factor'))} onChange={e=>change('factor',normalizeNumber(e.target.value))}/><small className="field-hint">١ {choice.name} = كم {item?.unit}؟</small>{fieldError(fieldKey(entry,'factor'))}</label>}
+      <label><span className="form-label">تكلفة الوحدة (ج.م) <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تكلفة الوحدة (ج.م)" inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.unitCost} {...fieldProps(fieldKey(entry,'unitCost'))} onChange={e=>change('unitCost',normalizeNumber(e.target.value))}/><small className="field-hint">ج.م / {item?.unit??'وحدة المخزون'} · تكلفة وحدة المخزون</small>{fieldError(fieldKey(entry,'unitCost'))}</label>
+      <button data-keyboard-add type="button" className="primary receiving-entry-add" onClick={addEntry}>{editingId?'حفظ تعديل المادة':'إضافة إلى القائمة'} <kbd aria-hidden="true">↵</kbd></button>
+     </div>
+     {(choice.unit||choice.pack)&&!choice.manual&&<p className="field-hint receiving-conversion">تحويل تلقائي: ١ {choice.name} = {number(choice.factor)} {item?.unit}</p>}
+     <div className="receiving-entry-preview">{item&&<><span>إضافة للمخزون: <strong>{quantity?number(quantity.toString()):'—'} {item.unit}</strong></span><span>قيمة المادة: <strong>{quantity&&valid(entry.unitCost)?number(quantity.mul(entry.unitCost).toString())+' ج.م':'—'}</strong></span></>}{dirty&&<button type="button" className="text-button" onClick={clearEntry}>{editingId?'إلغاء تعديل المادة':'مسح الإدخال'}</button>}</div>
+    </section>
+    <p role="status" aria-live="polite" className="kitchen-entry-notice">{notice}</p>
+    <section className={'form-section receipt-items-section kitchen-receipt-section'+(lines.length<=10?' kitchen-compact-receipt':'')} aria-labelledby="receipt-items-title">
+     <div className="form-section-heading"><h3 id="receipt-items-title">المواد المستلمة <span className="pill">{number(lines.length)} مادة</span></h3><small className="kitchen-receipt-order">آخر مادة مضافة أولاً</small></div>
+     <Collection rows={lines} title="المواد المستلمة" pageSize={10} resetKey={String(listVersion)} searchText={l=>{const i=selected(l).item;return [i?.name,i?.sku,i?.category].join(' ');}} sortText={l=>selected(l).item?.name??''} rowIds={l=>[l.lineId]} emptyText="أضف المواد من الحقول بالأعلى؛ ستظهر هنا قبل حفظ المستند.">{pageRows=><ol className="kitchen-receipt-list">{pageRows.map(l=>{
+      const c=selected(l),q=base(l),amount=q&&valid(l.unitCost)?q.mul(l.unitCost):null;
+      return <li key={l.lineId}><article className={'kitchen-receipt-line'+(lastChanged===l.lineId?' kitchen-receipt-latest':'')} aria-label={'مادة الاستلام: '+c.item?.name}>
+       <div className="kitchen-receipt-item"><strong>{c.item?.name??l.itemId}</strong><small>{c.item?.sku} · {c.item?.category}</small><span>الرصيد بعد القبول، تقديري: {q?number(decimal(snapshot.balances.find(b=>b.locationId===location&&b.itemId===l.itemId)?.quantity??'0').add(q).toString()):'—'} {c.item?.unit}</span></div>
+       <dl className="kitchen-receipt-details"><div><dt>الكمية المستلمة</dt><dd className="kitchen-receipt-quantity">{number(l.enteredQuantity)} <small>{c.name}</small></dd>{l.selection&&<small className="field-hint">{q?number(q.toString()):'—'} {c.item?.unit} للمخزون · ١ {c.name} = {number(c.factor)} {c.item?.unit}</small>}</div><div><dt>تكلفة وحدة المخزون</dt><dd>{number(l.unitCost)} ج.م / {c.item?.unit}</dd></div><div><dt>قيمة المادة</dt><dd>{amount?number(amount.toString()):'—'} ج.م</dd></div></dl>
+       <div className="kitchen-receipt-actions"><button type="button" className="text-button" aria-label={'تعديل '+c.item?.name} onClick={()=>editLine(l)}>تعديل</button><button type="button" className="text-button kitchen-receipt-remove" aria-label={'حذف '+c.item?.name} onClick={()=>removeLine(l)}>حذف</button></div>
+      </article></li>;
+     })}</ol>}</Collection>
     </section>
    </fieldset></div>
    <div className="modal-footer">
     {error&&<p className="error form-error-summary" role="alert">{error}</p>}
-    <div className="document-actions"><DocumentSummary label="إجمالي الاستلام المتوقع" value={number(total.toString())+' ج.م'} detail={number(lines.length)+' مادة · يُحدّث الرصيد بعد قبول جميع السطور بالمزامنة'}/><div className="document-buttons"><div className="modal-actions"><button type="submit" className="primary" disabled={busy}>{busy?'جارٍ الحفظ…':'حفظ العملية'}</button><button type="button" className="secondary" disabled={busy} onClick={close}>إلغاء</button></div></div></div>
+    <div className="document-actions"><DocumentSummary label="إجمالي الاستلام المتوقع" value={number(total.toString())+' ج.م'} detail={number(lines.length)+' مادة · يُحدّث الرصيد بعد قبول المستند بالمزامنة'}/><div className="document-buttons"><div className="modal-actions"><button type="submit" className="primary" disabled={busy||!!newMaterial}>{busy?'جارٍ الحفظ…':'حفظ العملية'}</button><button type="button" className="secondary" disabled={busy||!!newMaterial} onClick={close}>إلغاء</button></div></div></div>
    </div>
   </KeyboardForm>
- </dialog>{newMaterial&&<SetupEditor section="items" snapshot={snapshot} composeAvailable={false} saved={()=>{}} close={()=>returnToLine(newMaterial.lineId,'itemId')} quickCreate={{name:newMaterial.name,created:record=>{
+ </dialog>{newMaterial&&<SetupEditor section="items" snapshot={snapshot} composeAvailable={false} saved={()=>{}} close={()=>returnToEntry('itemId')} quickCreate={{name:newMaterial.name,created:record=>{
   setCreatedItems(previous=>[...previous,{...record,unit:snapshot.units?.find(unit=>unit.id===record.unitId)?.name??''}]);
-  change(newMaterial.lineId,'itemId',record.id);
-  returnToLine(newMaterial.lineId,'enteredQuantity');
-  materialSaved?.();
+  change('itemId',record.id);returnToEntry('enteredQuantity');materialSaved?.();
  }}}/>}</>;
 }

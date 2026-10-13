@@ -34,3 +34,46 @@
 
 .document-editor{padding:0;width:min(1040px,calc(100vw - 32px));height:min(820px,calc(100dvh - 32px))!important;max-height:calc(100dvh - 32px);overflow:hidden}.document-editor>.modal-header{padding:16px 24px;flex-shrink:0}.document-editor>.modal-header h2{font-size:22px}.document-editor>.workflow-form{padding:0 22px 16px;max-height:none;flex:1;min-height:0}.document-editor .workflow-body{padding:12px 3px 16px}.document-editor .workflow-footer{padding:12px 3px 0}.document-editor .form-fields>label,.document-editor .receipt-fields>label{margin-bottom:12px}.document-editor .recipe-add-actions{margin-block:14px}.document-editor .recipe-add-actions>.secondary{flex:1;border-style:dashed;font-size:12px}.entry-limit-warning{display:block;font-size:11px;line-height:1.7;color:#a73122;margin-top:7px;white-space:normal}.entry-row-warning{background:#fff8f5!important}.entry-row-warning td:first-child{color:#a73122}.document-line-grid:has(>label:nth-child(3):last-of-type) .line-item{grid-column:span 1}.document-editor .production-metrics strong{font-size:20px}.document-editor .form-warning{font-size:11px}.document-editor .count-confirm{font-size:12px;line-height:1.8}.document-editor .document-filters{margin-block:12px;padding:10px}.document-editor .document-filters label{font-size:11px}.document-editor .document-filter-summary{font-size:11px}.document-editor .workflow-body>fieldset>.disabled-reason{margin-inline:0;font-size:11px}.document-editor .sales-mapping{grid-template-columns:repeat(2,minmax(0,1fr))}.document-editor .sales-mapping label{min-width:0}
 @media(max-width:760px){.document-editor{width:calc(100vw - 24px);height:calc(100dvh - 24px)!important;max-height:calc(100dvh - 24px);padding:0}.document-editor>.modal-header{padding:14px 16px}.document-editor>.modal-header h2{font-size:20px}.document-editor>.workflow-form{padding:0 14px 14px}.document-editor .workflow-body{padding-top:10px}.document-editor .document-fields{gap:10px;margin-bottom:16px}.document-editor .document-summary>small{font-size:9px}.document-editor .document-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px}.document-editor .document-filters label{min-width:0}.document-editor .document-filters label:first-child{grid-column:1/-1}.document-line-grid:has(>label:nth-child(3):last-of-type) .line-item{grid-column:1/-1}.document-editor .production-metrics{grid-template-columns:1fr 1fr;gap:10px}.document-editor .production-metrics strong{font-size:17px}.document-editor .production-metrics>div{padding:12px}.document-editor .sales-mapping{gap:10px}.document-editor .sales-mapping select{max-width:100%;font-size:13px}}
+.receiving-composer{padding:12px;border:1px solid #e3e8ef;border-radius:12px;background:#f8fafc;margin-bottom:14px}
+.receiving-composer-editing{background:#fff7ee;border-color:#eac8a8}
+.receiving-composer-main{display:grid;grid-template-columns:minmax(0,2fr) minmax(120px,1fr);gap:14px;margin-bottom:12px}
+.receiving-composer-details{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.receiving-composer-details>label{flex:1 1 180px}
+.receipt-modal .receiving-composer label{display:flex;flex-direction:column;min-width:0;margin:0;gap:6px;font-size:12px}
+.receiving-composer :is(input,select){width:100%;min-width:0;min-height:44px;margin:0;font-size:13px}
+.receiving-composer .catalog-search input{padding-inline-end:38px}
+.receiving-entry-add{margin-top:24px!important;min-height:44px;white-space:nowrap}
+.receiving-entry-add kbd{margin-inline-start:6px;opacity:.75}
+.receiving-entry-preview{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:11px;color:#64748b;line-height:1.7;margin-top:10px}
+.receiving-entry-preview strong{color:#344054}
+.receiving-entry-preview .text-button{margin-inline-start:auto;padding:4px 0;font-size:11px}
+.receiving-conversion{margin:8px 0 0;font-size:11px;color:#31724c}
+@media(max-width:760px){
+ .receiving-composer-main{grid-template-columns:minmax(0,1.6fr) minmax(90px,1fr);gap:10px}
+ .receipt-modal .receiving-composer label{font-size:11px}
+ .receiving-composer :is(input,select){font-size:16px}
+ .receiving-composer-details>label{flex-basis:120px}
+ .receiving-entry-add{width:100%;margin-top:0!important;font-size:12px}
+ .receiving-entry-preview{font-size:10px;gap:6px 12px}
+}
+
+/* Keep stock issue context compact while retaining legible keyboard and touch controls. */
+.kitchen-issue-modal .modal-header{padding:10px 18px;gap:12px}
+.kitchen-issue-modal .modal-header h2{font-size:18px;line-height:1.35;margin:0}
+.kitchen-issue-modal .modal-header p{font-size:10px;line-height:1.5;margin-top:3px}
+.kitchen-issue-modal .eyebrow{font-size:10px;line-height:1.4;margin-bottom:2px}
+.kitchen-issue-modal .modal-header .icon-button{width:36px;height:36px;min-height:36px;font-size:20px}
+.kitchen-issue-modal .kitchen-issue-form .workflow-body{padding-top:7px}
+.kitchen-issue-modal .kitchen-issue-form .form-keyboard-help{font-size:9px;line-height:1.5;margin-bottom:6px}
+.kitchen-issue-modal .kitchen-issue-form .form-keyboard-help kbd{font-size:9px;padding:0 3px}
+.kitchen-issue-modal .kitchen-issue-form .kitchen-document-fields{padding:8px 10px;gap:10px;margin-bottom:10px}
+.kitchen-issue-modal .kitchen-document-fields label{font-size:11px;gap:4px}
+.kitchen-issue-modal .kitchen-document-fields .field-hint{font-size:9px;line-height:1.4}
+.kitchen-issue-modal .kitchen-document-fields :is(input,select){min-height:38px;font-size:12px;padding-block:7px}
+.kitchen-issue-modal .kitchen-document-fields .catalog-result-count:empty{display:none}
+@media(max-width:760px){
+ .kitchen-issue-modal .modal-header{padding:9px 14px}
+ .kitchen-issue-modal .modal-header h2{font-size:17px}
+ .kitchen-issue-modal .kitchen-document-fields :is(input,select){font-size:16px;min-height:44px}
+ .kitchen-issue-modal .kitchen-issue-form .kitchen-document-fields{gap:8px}
+}

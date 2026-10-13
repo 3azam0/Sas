@@ -1,15 +1,23 @@
 import {test,expect,type Page} from '@playwright/test';
 async function enter(page:Page){await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByText('التطبيق جاهز للفتح دون اتصال',{exact:false})).toBeVisible({timeout:30000});}
-test('receiving keyboard navigation preserves selection, advances rows and validates without an implicit stock post',async({page})=>{
+test('receiving keyboard adds to the list, merges exactly and protects unfinished entries',async({page})=>{
  await enter(page);const posts:string[]=[];page.on('request',request=>{if(request.method()==='POST')posts.push(request.url());});
  await page.getByRole('button',{name:'استلام مواد',exact:true}).click();const dialog=page.getByRole('dialog',{name:'استلام مواد',exact:true});
  await expect(dialog.getByLabel('المورد',{exact:true})).toBeFocused();await dialog.getByLabel('المورد',{exact:true}).press('Enter');await expect(dialog.getByLabel('تاريخ الاستلام',{exact:true})).toBeFocused();
- await dialog.getByLabel('تاريخ الاستلام',{exact:true}).press('Enter');await dialog.getByLabel('مرجع الاستلام',{exact:true}).press('Enter');await expect(dialog.getByLabel('المادة',{exact:true})).toBeFocused();await dialog.getByLabel('المادة',{exact:true}).press('Shift+Enter');await expect(dialog.getByLabel('مرجع الاستلام',{exact:true})).toBeFocused();await dialog.getByLabel('مرجع الاستلام',{exact:true}).press('Enter');
- const selected=await dialog.getByLabel('المادة',{exact:true}).inputValue();await dialog.getByLabel('المادة',{exact:true}).press('Enter');expect(await dialog.getByLabel('المادة',{exact:true}).inputValue()).toBe(selected);await expect(dialog.getByLabel('وحدة الاستلام',{exact:true})).toBeFocused();
- await dialog.getByLabel('وحدة الاستلام',{exact:true}).press('Enter');const quantity=dialog.getByRole('textbox',{name:/^الكمية/});await quantity.fill('2');await quantity.press('Enter');const cost=dialog.getByLabel('تكلفة الوحدة (ج.م)',{exact:true});await expect(cost).toBeFocused();await cost.fill('20');await cost.press('Enter');await expect(dialog.getByRole('button',{name:'حفظ العملية',exact:true})).toBeFocused();expect(posts).toEqual([]);
- await cost.press('Alt+Insert');await expect(dialog.getByRole('group',{name:'المادة 2',exact:true})).toBeVisible();await expect(dialog.getByLabel('مادة السطر 2',{exact:true})).toBeFocused();
- await cost.press('Control+Enter');await expect(dialog.getByLabel('مرجع الاستلام',{exact:true})).toBeFocused();expect(posts).toEqual([]);await dialog.getByRole('button',{name:'إلغاء',exact:true}).click();
+ await dialog.getByLabel('تاريخ الاستلام',{exact:true}).press('Enter');await dialog.getByLabel('مرجع الاستلام',{exact:true}).press('Enter');await expect(dialog.getByLabel('المادة',{exact:true})).toBeFocused();
+ await dialog.getByLabel('المادة',{exact:true}).press('Shift+Enter');await expect(dialog.getByLabel('مرجع الاستلام',{exact:true})).toBeFocused();
+ const material=dialog.getByLabel('المادة',{exact:true});await material.fill('أرز');await material.press('Enter');
+ const quantity=dialog.getByRole('textbox',{name:/^الكمية/}),cost=dialog.getByLabel('تكلفة الوحدة (ج.م)',{exact:true});
+ await expect(quantity).toBeFocused();await quantity.fill('0.1');await quantity.press('Enter');await expect(cost).toBeFocused();await cost.fill('20');await cost.press('Enter');
+ await expect(material).toBeFocused();await expect(dialog.locator('.kitchen-receipt-list>li')).toHaveCount(1);expect(posts).toEqual([]);
+ await material.press('Escape');await dialog.getByRole('button',{name:'تعديل أرز مصري',exact:true}).click();await expect(dialog.getByRole('button',{name:'حفظ تعديل المادة',exact:true})).toBeVisible();await dialog.getByRole('button',{name:'إلغاء تعديل المادة',exact:true}).click();
+ await material.fill('أرز');await material.press('Enter');await quantity.fill('0.2');await cost.fill('20');await cost.press('Alt+Insert');
+ await expect(dialog.locator('.kitchen-receipt-list>li')).toHaveCount(1);await expect(dialog.locator('.document-summary strong')).toHaveText('٦ ج.م');
+ await material.fill('أرز');await material.press('Enter');await quantity.fill('1');await quantity.press('Control+Enter');
+ await expect(dialog.getByRole('alert')).toContainText('أضف المادة الحالية');expect(posts).toEqual([]);
+ await dialog.getByRole('button',{name:'إلغاء',exact:true}).click();
 });
+
 test('setup supports Enter and Shift+Enter and restores the trigger after Escape',async({page})=>{
  await enter(page);await page.getByRole('button',{name:'الموردون',exact:true}).click();const trigger=page.getByRole('button',{name:'إضافة مورد',exact:true});await trigger.click();const name=page.getByLabel('اسم السجل',{exact:true});await expect(name).toBeFocused();await name.fill('مورد للتجربة');await name.press('Enter');const phone=page.getByLabel('هاتف المورد',{exact:true});await expect(phone).toBeFocused();await phone.press('Shift+Enter');await expect(name).toBeFocused();await name.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);await expect(trigger).toBeFocused();
 });
