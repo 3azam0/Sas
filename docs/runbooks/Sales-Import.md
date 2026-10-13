@@ -1,3 +1,5 @@
+Current routing amendment (13 October 2026): choose an active POS linked to a stock kitchen before new sales. Assign the meal to that kitchen first. CSV source/location follow the selected POS; identical ticket identifiers from different terminals remain independent. Only its kitchen supplies checked ingredients; shortages remain accepted and recorded. Accepted imports capture POS/kitchen names and retain their original consumption after later assignment changes. See [kitchen setup](./Kitchen-Issues.md).
+
 # Menu mapping and completed sales — Phase 4C1
 
 Open **المبيعات**. Completed sales retain their recipe mappings and pinned versions. New sales issue only selected materials up to availability, with shortages highlighted. Refunds/voids and finalized full recipe food cost remain deferred.

@@ -13,7 +13,7 @@ const transactionalTables=['sales_details','sales_imports','transfer_allocations
 export async function resetDevelopmentOrganization(tx:Tx,org:string,method:CostingMethod,clearCatalog=false){
  for(const table of transactionalTables)await tx.query(`DELETE FROM ${table} WHERE organization_id=$1`,[org]);
  if(!clearCatalog)for(const version of (await tx.query<{id:string;payload:unknown}>('SELECT version_id AS id,payload FROM recipe_versions WHERE organization_id=$1',[org])).rows)await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[org,version.id,createHash('sha256').update('recipe-version:'+JSON.stringify(version.payload)).digest('hex'),JSON.stringify({operationId:version.id,outcome:'accepted'})]);
- if(clearCatalog)for(const table of ['menu_items','recipe_dependencies','recipe_versions','recipe_revisions','recipes','items','suppliers','units','kitchens','locations'])await tx.query(`DELETE FROM ${table} WHERE organization_id=$1`,[org]);
+ if(clearCatalog)for(const table of ['menu_items','recipe_dependencies','recipe_versions','recipe_revisions','recipes','items','suppliers','units','points_of_sale','kitchens','locations'])await tx.query(`DELETE FROM ${table} WHERE organization_id=$1`,[org]);
  await tx.query('UPDATE organizations SET costing_method=$2,costing_revision=costing_revision+1,generation=gen_random_uuid(),development_baseline=true,development_empty_baseline=true WHERE id=$1',[org,method]);
 }
 export async function initializeDevelopmentBaseline(db:Database){

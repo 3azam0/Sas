@@ -1,6 +1,6 @@
 # Current scope amendment
 
-Next agreed increment, **not yet implemented**: kitchens hold inventory within the branch; menu items may be available in multiple kitchens; each POS is linked to one kitchen and each kitchen prepares complete meals independently. Sales consume checked ingredients only from the selling POS's kitchen, retaining accepted-import shortage behavior. Cashier shifts and ingredient-level multi-kitchen preparation are deferred. See [kitchen inventory and POS plan](./Kitchen-Inventory-POS-Plan.md). The current hosted immediate-consumption issue behavior remains active until this increment is implemented and verified.
+Delivered 13 October 2026: kitchens hold inventory within the existing branch/location scope; meals may be available in several kitchens; each POS belongs to one kitchen and prepares the complete meal independently. New sales require explicit POS context and consume checked ingredients only from its kitchen, accepting shortages without fallback. Kitchen supply is a stock transfer. Cashier shifts and split preparation remain deferred. See [delivered scope](./Kitchen-Inventory-POS-Plan.md), [setup and operating guide](./runbooks/Kitchen-Issues.md) and [verified release](./releases/kitchen-inventory-pos-2026-10-13.md). This supersedes historical immediate-consumption kitchen instructions below.
 
 The hosted client release and sales policy in [Hosted release](./Hosted-Release.md) supersede earlier roadmap text about sales stock deduction, demo provisioning and membership/billing administration. Sales calculate all theoretical usage; new imports deduct only ingredients selected in their pinned recipe version. Imports with shortages succeed, deduct available stock and highlight the recorded shortage. Older sales and recipes without selections remain calculation-only. Earlier delivery entries below remain historical checkpoints.
 
@@ -16,7 +16,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.39 — 12 October 2026
+Version 2.40 — 13 October 2026
 
 Recharts `3.10.1` and matching `react-is 19.3.0` power the BI summary in **نظرة عامة** and the dedicated **التقارير والتحليلات** view. Reporting uses the new tenant-authenticated `POST /api/v1/reports`, complete date-range aggregates and server pagination, rather than the truncated operational snapshot. Keep current balance valuation, period posted costs, recipe estimates, selected sales deductions, supplier-reference values and shortages distinct. Reports cache up to 24 responses per tenant/generation/exact query in the existing preferences store; pending outboxes never enter accepted totals. CSV exports include all filtered rows up to 10,000 and reject checkpoint changes; printing covers the current detail page. Chart clicks and keyboard alternatives open filtered details. Empty periods, missing prices, units and equal previous periods remain explicit. See [BI runbook](./runbooks/BI-Reports.md) and [verified BI release](./releases/bi-reports-2026-10-12.md). No schema or Dexie/recovery version change is needed.
 

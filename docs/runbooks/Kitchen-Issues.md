@@ -1,35 +1,31 @@
-# Kitchen consumption documents
+# Kitchens, stock and POS
+Delivered 13 October 2026. **المطابخ** manages stock kitchens, POS and supply documents.
 
-Open **صرف المطابخ → إدارة المطابخ** to add kitchens such as مطبخ ١ and مطبخ ٢. Edit names, delete a kitchen from future selection, or restore it. Deletion is reversible archival: past documents and their accepted recipient names/costs remain intact. Active names must be unique within the organization. Concurrent edits use revision checks; rejected changes can be retried or cancelled in the manager and sync center.
+## First setup
+1. Open **المطابخ → إدارة المطابخ**. Add a kitchen or edit the existing one and select its main warehouse. Each kitchen has an independent stock location, initially empty. The warehouse association uses the existing organization/location scope; it does not create a paid branch.
+2. Open **إدارة نقاط البيع**. Add a POS name, choose its kitchen and enter the source used by menu codes. The current client's trial menu source is **FODO**. Several terminals may use that source; their sale identities stay separate. Source is fixed after creation; a kitchen assignment can be edited for future sales.
+3. In **المبيعات → أصناف البيع**, edit each meal and add all kitchens allowed to prepare the whole meal. Search, arrows and Enter select kitchens; selected chips can be removed. Active meals need at least one kitchen.
+4. Select the source warehouse in **الموقع**, then **صرف مخزون** or **إنشاء مستند صرف**. Choose a different destination kitchen and add materials/quantities. The reference remains optional. Save and synchronize before importing dependent sales.
+5. Choose the POS in **استيراد المبيعات**. Its kitchen and source appear automatically; import the usual CSV, review selected deductions and confirm completed sales.
 
-Open **صرف مخزون**, beside **استلام مواد** in the workspace header, to open the same issue form directly for the selected source warehouse. The shortcut requires an active saved kitchen, an active warehouse and an active material with a base unit; it respects session expiry. Cancelling returns focus to the shortcut and leaves the current workspace screen unchanged. You can also open **إنشاء مستند صرف** from the kitchen screen and select an active saved kitchen. A kitchen recipient does not need a stock location, separate branch or customer account. Creating/editing kitchens works offline under the existing grant; their setup commands synchronize before issues. An archived recipient rejects new issues at acceptance. Exact redelivery of an already accepted issue still returns its original result. Previously captured documents without a kitchen ID remain compatible; new forms require a saved recipient.
+## Stock behavior
+An accepted supply document decreases the warehouse and increases the kitchen atomically, conserving quantity and value. Supply shortages reject the complete transfer; repair its quantities and retry/correct it. Kitchen-to-kitchen movement and returns to the warehouse use **التحويلات**, including dispatch/receive and transit tracking.
 
-Select the source warehouse, recipient and business date. **مرجع الصرف** is optional: leave it blank or enter 2–100 characters. The automatic `KI-` document number remains the stable identity for history, printing and retries. Blank/omitted references normalize to an empty string; existing nonempty references remain intact. Add 1–200 distinct active materials in their base inventory units, with positive quantities. Notes are optional. The preview shows available projected quantities and an estimate based on the current warehouse average. Actual accepted value follows the organization's FIFO or moving-average policy and remains pinned in the document, together with item names, units, actor and movement IDs.
+Sales consume only ingredients checked in the pinned published recipe, from their POS kitchen. All ingredients still count toward estimated recipe cost. Sales with shortages succeed, issue only available stock and preserve required/deducted/missing quantities. No warehouse or other kitchen automatically covers a shortage, and later receiving does not backfill it. Duplicate sales never issue again.
 
-The editor keeps document details compact and identifies the source warehouse in its header. Each item row shows its base unit, expected available quantity, remaining quantity after this draft line and an average-cost estimate. An excessive quantity immediately highlights its row and field, describes the shortfall and flags the document total. Remaining quantity stays unavailable for invalid/shortage input; this preview never permits negative stock. Average-cost estimates can differ from final FIFO valuation. The total/save/cancel area stays visible while editing long documents. Expand **إضافة ملاحظات** when needed; collapsing notes retains their text in the draft. Pagination controls appear above ten rows, and larger documents retain values on hidden pages. Removing the final row leaves a fresh empty selector and restores focus there.
+The same menu item can be assigned to several kitchens; the selling POS selects one kitchen, not several. Each kitchen makes the complete meal. Cashier shifts and split-meal preparation are deferred.
 
-On server acceptance, every issued quantity immediately becomes that kitchen's consumption and reduces source stock. No destination stock, sales revenue, payment or customer receivable is created. A shortage rejects the whole issue before any line is consumed; this differs from the previously agreed sales-import shortage policy. The form highlights an excessive quantity and retains entered values. A stale stock change may still require review at synchronization.
+## Inventory and reports
+**مخزون المطابخ** shows confirmed/projected quantities, actual cost and value, with search, category/balance filters, sorting and pagination. Its buttons open that kitchen's normal inventory, sales and transfers. Receiving, counts, balance edits and waste use the existing location controls.
 
-Use one actual-consumption route for the same physical materials: issuing them here and also selecting them for a subsequent sale from the same source warehouse would consume twice. This feature does not silently change existing recipe selections or earlier sales. The form explains this choice.
+Kitchen consumption reports include selected sales issues from kitchen locations and historical immediate-consumption documents; supply transfers do not enter consumption totals. Separate cards show incoming/outgoing supply value. Sales reports offer a POS filter; accepted shortage rows and actual deduction totals follow that POS and period. Individual meal filters do not allocate posted ingredient cost to a meal.
 
-## Keyboard entry
+## Editing and archival
+Rename or archive a kitchen through **إدارة المطابخ**. First return/transfer all remaining stock, finish transit documents and deactivate its POS terminals. Its stock location identity stays fixed and cannot be edited independently in inventory setup. History stays readable. Archiving a POS preserves accepted sales and captured routing. POS reassignment never moves earlier stock deductions.
 
-The workspace **اختصارات** button opens the full Arabic guide; the editor also displays a short hint. Shared navigation is described in [UI forms](./UI-Forms.md).
+## Offline and compatibility
+Setup synchronizes location → kitchen → POS before dependent menu/sales documents. Supply/receiving/production/transfer prerequisites settle before dependent stock use; rejected prerequisites keep dependent work available for review. Recovery format **17** includes routing and kitchen transfers. Older compatible archives remain readable; an older format cannot silently strip the new context. Dexie remains version 11.
 
-- The editor opens on the kitchen field.
-- Tab and Shift+Tab use normal forward/backward navigation. Shift+Enter moves to the previous data field; Alt+Insert adds a material row.
-- Enter moves through kitchen, date and reference to material entry, skipping pagination controls.
-- Search and selection share one visible combobox. Focus opens the catalog and typing filters names/codes. Arrows and Enter choose and move to quantity; clicking chooses while retaining focus in the selector. Enter on the unchanged selection advances. Escape closes results first. The popup fits the viewport and scrolls independently of the form body. The stored ID remains separate from uncommitted search text.
-- Enter after a valid quantity focuses the next material or adds a new row. Focus reveals the row's page when necessary.
-- Ctrl+Enter (or Command+Enter) runs full validation and saves only when the primary action is enabled. An entirely blank trailing row is ignored; a partially completed row must be completed or removed.
-- Errors focus the affected field without losing values. Escape closes the unsaved editor and restores focus to its trigger.
+The additive migration gave existing kitchens empty stock locations. No old stock or accepted sale was moved or reposted. Pending legacy immediate-consumption documents to a stock kitchen require a new transfer document. Accepted legacy documents retain their original meaning and exact retries.
 
-## History, printing and offline work
-
-History includes search, kitchen/status/date filters, sorting, pagination and actual accepted cost. The snapshot currently includes the latest 100 server issue documents; totals are explicitly scoped to downloaded data. Print the internal issue document using the restaurant identity and signatures, or save PDF through browser printing. Before acceptance, the copy clearly states that quantities and cost are provisional. Document identity uses `KI-` plus the complete UUID; it stays stable across offline capture and retries.
-
-Capture survives offline reload under the existing grant. Confirmed balances change only after acceptance; pending issues appear in projected stock and the common synchronization center. Previous unresolved receiving, production, transfers, sales or kitchen issues block dependent consumption. Exact redelivery never consumes twice. Failed issues support unchanged retry, linked correction with new IDs, or local cancellation; accepted history stays immutable.
-
-IndexedDB version 11 adds the kitchen outbox without replacing existing stores. Recovery format 16 carries kitchen setup and linked issues; format 15 still supports previous name-only issues. Older formats remain readable but cannot claim later document types. Tenant, generation, reference and identity checks remain enforced. Restoring an archive does not trust exported acceptance flags.
-
-The additive hosted migrations enable forced tenant RLS on the private issue and kitchen directory tables and preserve the existing guarded trial backup. Trial cleanup includes issues and kitchen configuration in dependency order; it runs only under the existing explicit cleanup authorization, not during this release.
+Forms retain Enter/Shift+Enter navigation, Ctrl/Command+Enter validation/save, Alt+Insert where row addition exists, visible error focus and searchable dropdowns. See [keyboard guide](./UI-Forms.md) and [release verification](../releases/kitchen-inventory-pos-2026-10-13.md).

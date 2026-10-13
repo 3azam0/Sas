@@ -1,8 +1,8 @@
 import type {Database} from './database';
 import {createHash} from 'node:crypto';
-import {BusinessError,menuCommandSchema,salesImportSchema,type Access,type CommandResult,type MenuItem,type ImportedSales,type SalesLine,type SalesStockDeduction,type SalesStockShortage} from '@saas/contracts';
+import {BusinessError,menuCommandSchema,salesImportSchema,type Access,type CommandResult,type MenuItem,type ImportedSales,type SalesLine,type SalesStockDeduction,type SalesStockShortage,type Kitchen,type PointOfSale,type Location} from '@saas/contracts';
 import {decimal} from '@saas/domain';
-import {validateMenu,validateSale,salePayload,salesStockRequirements} from '../domain/sales';
+import {validateMenu,validateSale,salePayload,salesStockRequirements,salesSourceKey,resolveSalesRouting} from '../domain/sales';
 import {recipeSnapshot} from './recipes';
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import {reconcileStock} from './counts';
@@ -29,7 +29,7 @@ export async function postMenuItem(db:Database,access:Access,input:unknown):Prom
  try{return await db.transaction(async tx=>{
   await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);await assertGeneration(tx,org,c.generation);const prior=await previous(tx,org,c.operationId,digest);if(prior)return prior;
   const current=(await tx.query<{revision:number;payload:MenuItem}>('SELECT revision,payload FROM menu_items WHERE organization_id=$1 AND id=$2',[org,c.record.id])).rows[0];if((current?.revision??0)!==c.expectedRevision)throw new BusinessError('REVISION_CONFLICT','تغير صنف البيع؛ ألغِ الإجراء المرفوض وافتح أحدث تعريف.');
-  if(current&&(current.payload.source!==c.record.source||current.payload.code!==c.record.code))throw new BusinessError('IMMUTABLE_CODE','مصدر وكود البيع ثابتان؛ أضف صنفاً جديداً للكود الآخر.');validateMenu(await recipeSnapshot(tx,org),c.record);
+  if(current&&(current.payload.source!==c.record.source||current.payload.code!==c.record.code))throw new BusinessError('IMMUTABLE_CODE','مصدر وكود البيع ثابتان؛ أضف صنفاً جديداً للكود الآخر.');validateMenu({...await recipeSnapshot(tx,org),kitchens:(await tx.query<Kitchen>('SELECT id,active,location_id AS "locationId" FROM kitchens WHERE organization_id=$1',[org])).rows},c.record);
   await tx.query('INSERT INTO menu_items(organization_id,id,source,code,revision,version_id,payload) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(organization_id,id) DO UPDATE SET revision=$5,version_id=$6,payload=$7',[org,c.record.id,c.record.source,c.record.code,c.expectedRevision+1,c.record.versionId,JSON.stringify(c.record)]);
   return record(tx,access,c.operationId,digest,c.type);
  });}catch(e){if((e as {code?:string}).code==='23505')throw new BusinessError('DUPLICATE_MENU','كود البيع مستخدم لهذا المصدر.');throw e;}
@@ -41,8 +41,10 @@ export async function postSalesImport(db:Database,access:Access,input:unknown):P
   if(!(await tx.query('SELECT 1 FROM locations WHERE organization_id=$1 AND id=$2 AND active',[org,c.locationId])).rows.length)throw new BusinessError('INVALID_REFERENCE','اختر موقعاً نشطاً لهذه المؤسسة.');
   if((await tx.query('SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=ANY($2::uuid[])',[org,c.lines.map(l=>l.lineId)])).rows.length)throw new BusinessError('PAYLOAD_CONFLICT','معرّف سطر المبيعات مستخدم بالفعل.');
   const versions=await recipeSnapshot(tx,org),menus={menuItems:(await tx.query<{payload:MenuItem;revision:number}>('SELECT payload,revision FROM menu_items WHERE organization_id=$1',[org])).rows.map(r=>({...r.payload,revision:r.revision}))},acceptedLineIds:string[]=[],duplicateLineIds:string[]=[],fresh:SalesLine[]=[];let total=decimal('0');
-  for(const l of c.lines){const old=(await tx.query<{payload:SalesLine}>('SELECT payload FROM sales_details WHERE organization_id=$1 AND source=$2 AND location_id=$3 AND business_date=$4 AND transaction_id=$5 AND line_key=$6',[org,c.source,c.locationId,l.businessDate,l.transactionId,l.lineKey])).rows[0];
-   if(old){if(salePayload(old.payload)!==salePayload(l))throw new BusinessError('EXTERNAL_CONFLICT','تفصيل البيع مستورد ببيانات مختلفة؛ لم يحفظ أي سطر من الملف.');duplicateLineIds.push(l.lineId);}else{validateSale({...versions,menuItems:menus.menuItems},c.source,l);acceptedLineIds.push(l.lineId);fresh.push(l);total=total.add(l.netAmount);}}
+  const routeSnapshot={kitchens:(await tx.query<Kitchen>('SELECT id,name,active,location_id AS "locationId" FROM kitchens WHERE organization_id=$1',[org])).rows,pointsOfSale:(await tx.query<PointOfSale>('SELECT id,name,source,kitchen_id AS "kitchenId",active,revision FROM points_of_sale WHERE organization_id=$1',[org])).rows,locations:(await tx.query<Location>('SELECT id,active FROM locations WHERE organization_id=$1',[org])).rows},sourceKey=salesSourceKey(c.source,c.posId);
+  for(const l of c.lines){const old=(await tx.query<{payload:SalesLine}>("SELECT payload FROM sales_details WHERE organization_id=$1 AND source=$2 AND ($3::text='' OR location_id=$3) AND business_date=$4 AND transaction_id=$5 AND line_key=$6",[org,sourceKey,c.posId?'':c.locationId,l.businessDate,l.transactionId,l.lineKey])).rows[0];
+   if(old){if(salePayload(old.payload)!==salePayload(l))throw new BusinessError('EXTERNAL_CONFLICT','تفصيل البيع مستورد ببيانات مختلفة؛ لم يحفظ أي سطر من الملف.');duplicateLineIds.push(l.lineId);}else{validateSale({...versions,menuItems:menus.menuItems},c.source,l,true,c.kitchenId);acceptedLineIds.push(l.lineId);fresh.push(l);total=total.add(l.netAmount);}}
+  const routing=resolveSalesRouting(routeSnapshot,c,fresh.length>0);
   const requirements=salesStockRequirements(versions,fresh),stockDeductions:SalesStockDeduction[]=[],stockShortages:SalesStockShortage[]=[];let stockAmount=decimal('0');
   const before=requirements.length?await reconcileStock(tx,org):[];
   for(const r of requirements){
@@ -61,8 +63,8 @@ export async function postSalesImport(db:Database,access:Access,input:unknown):P
    await record(tx,access,movementId,hash(['sales-stock',c.operationId,deduction]),'sales.issue');
   }
   const after=requirements.length?await reconcileStock(tx,org):[];if(after.some(b=>b.locationId===c.locationId&&requirements.some(r=>r.itemId===b.itemId)&&!b.matches))throw new BusinessError('RECONCILIATION_MISMATCH','فشلت مطابقة خصم البيع؛ لم تقبل المبيعات أو أي خصم.');
-  const result:ImportedSales={document:c,acceptedLineIds,duplicateLineIds,netAmount:total.toFixed(6),postedAt:new Date().toISOString(),stockDeductions,stockShortages,stockDeductionAmount:stockAmount.toFixed(12)};await tx.query('INSERT INTO sales_imports(organization_id,operation_id,location_id,result) VALUES($1,$2,$3,$4)',[org,c.operationId,c.locationId,JSON.stringify(result)]);
-  for(const l of fresh)await tx.query('INSERT INTO sales_details VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[org,c.source,c.locationId,l.businessDate,l.transactionId,l.lineKey,l.lineId,c.operationId,l.menuItemId,l.versionId,JSON.stringify(l)]);
+  const result:ImportedSales={routing,document:c,acceptedLineIds,duplicateLineIds,netAmount:total.toFixed(6),postedAt:new Date().toISOString(),stockDeductions,stockShortages,stockDeductionAmount:stockAmount.toFixed(12)};await tx.query('INSERT INTO sales_imports(organization_id,operation_id,location_id,result) VALUES($1,$2,$3,$4)',[org,c.operationId,c.locationId,JSON.stringify(result)]);
+  for(const l of fresh)await tx.query('INSERT INTO sales_details VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[org,sourceKey,c.locationId,l.businessDate,l.transactionId,l.lineKey,l.lineId,c.operationId,l.menuItemId,l.versionId,JSON.stringify(l)]);
   for(const l of c.lines)await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[org,l.lineId,hash(['sales-line',c.operationId,l.lineId]),JSON.stringify({operationId:l.lineId,outcome:'accepted'})]);return record(tx,access,c.operationId,digest,c.type);
  });
 }

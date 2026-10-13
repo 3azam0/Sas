@@ -1,7 +1,7 @@
 import {reportQuerySchema,type ReportQuery,type ReportResponse,type Snapshot} from '@saas/contracts';
 import {local} from './offline';
 
-const prefix=(scope:string)=>'report:v1:'+scope+':';
+const prefix=(scope:string)=>'report:v2:'+scope+':';
 export function reportKey(query:ReportQuery){return prefix(query.organizationId)+JSON.stringify(reportQuerySchema.parse(query));}
 function matches(data:ReportResponse,query:ReportQuery){return data?.schemaVersion===1&&data.organizationId===query.organizationId&&data.generation===query.generation&&reportKey(data.query)===reportKey(query);}
 export async function cachedReport(query:ReportQuery){const saved=await local.preferences.get(reportKey(query));if(!saved)return undefined;try{const data=JSON.parse(saved.value) as ReportResponse;return matches(data,query)?data:undefined;}catch{return undefined;}}

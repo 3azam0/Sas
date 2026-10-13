@@ -1,3 +1,4 @@
+import {kitchenInventoryMigration} from './kitchen-inventory-schema';
 import {salesTables} from './sales';
 import {productionTables} from './production';
 import {recipeTables} from './recipes';
@@ -94,4 +95,5 @@ DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='kitchen_rec
  ALTER TABLE kitchen_issues ADD CONSTRAINT kitchen_recipient_scope FOREIGN KEY(organization_id,kitchen_id) REFERENCES kitchens(organization_id,id);
 END IF; END $$;
 `;
-export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration;
+export {kitchenInventoryMigration} from './kitchen-inventory-schema';
+export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration;

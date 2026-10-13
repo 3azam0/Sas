@@ -3,7 +3,7 @@ import {tables} from './sample-data/admin.mjs';
 // schema change. Abort first if its signature already differs for any other reason.
 export function kitchenIssueMigrationSql(schema){
  const quoted=values=>values.map(v=>"'"+v+"'").join(',');
- const issueTables=tables.filter(t=>t!=='kitchens');
+ const issueTables=tables.filter(t=>t!=='kitchens'&&t!=='points_of_sale');
  const old=quoted(issueTables.filter(t=>t!=='kitchen_issues')),current=quoted(issueTables);
  const signature=list=>`(SELECT md5(string_agg(table_name||':'||column_name||':'||udt_name,',' ORDER BY table_name,ordinal_position)) FROM information_schema.columns WHERE table_schema='fodo' AND table_name IN (${list}))`;
  return `SET LOCAL search_path=fodo,pg_catalog;

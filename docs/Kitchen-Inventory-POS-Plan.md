@@ -1,6 +1,6 @@
 # Kitchen inventory and POS routing — agreed scope
 
-Agreed 12 October 2026. **Planned, not implemented or deployed.** This amendment follows the delivered Recharts BI release. The current hosted kitchen-issue workflow still consumes materials immediately from the source warehouse; this plan defines its next stock-holding kitchen workflow.
+Agreed 12 October; implemented and hosted 13 October 2026. Build `11a85380a337ca2e`, Supabase API version 12. See [verification](./releases/kitchen-inventory-pos-2026-10-13.md). Existing accepted immediate-consumption issues remain historical records; new kitchen supply transfers stock.
 
 ## Business structure
 
@@ -39,4 +39,4 @@ Resolve recipe estimates against the relevant kitchen's inventory costs and keep
 5. Update BI and document labels to distinguish transfer, consumption and remaining kitchen stock; preserve the meaning of historical immediate-consumption issues and accepted sales.
 6. Verify transfer quantity/value conservation, per-POS routing of a shared meal, selective deduction, accepted shortages, no cross-kitchen fallback, duplicate retry safety, source-specific sales identities, tenant isolation, offline dependencies and report reconciliation before hosted delivery.
 
-This agreement changes the planned behavior only. Existing client stock and historical documents have not been reset, moved or reposted.
+Existing stock and historical documents were not reset, moved or reposted. Existing kitchen recipients gained empty, tenant-qualified stock locations. Configure the parent warehouse, POS and menu availability explicitly before new routed sales. Formal branch/subscription administration remains deferred; kitchen locations share the existing organization and parent warehouse scope.
