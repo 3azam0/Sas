@@ -98,3 +98,6 @@
  .kitchen-save-buttons .primary,.kitchen-save-buttons .secondary{min-width:0;padding:10px}
  .kitchen-consumption-note{font-size:9px;line-height:1.6}
 }
+
+/* Keep searchable kitchen names clear of the dropdown chevron at both breakpoints. */
+.kitchen-issue-form .kitchen-document-fields .catalog-search input{padding-inline-end:38px}

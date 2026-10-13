@@ -3,7 +3,7 @@ import {useEffect,useRef,useState,type KeyboardEvent} from 'react';
 import {kitchenIssueSchema,quantitySchema,type KitchenIssueDocument,type Snapshot,type Command,type OpeningDocument,type PostedKitchenIssue} from '@saas/contracts';
 import {decimal,projectedQuantity} from '@saas/domain';
 import {normalizeNumber} from '../../../packages/domain/opening-import';
-import {FormInput,FormSelect,SearchableSelect,WorkflowForm,focusControl} from './FormControls';
+import {FormInput,SearchableSelect,WorkflowForm,focusControl} from './FormControls';
 import Collection,{amountSorts,syncStatusOptions} from './Collection';
 import {OperationStatus,DocumentLink,reviewFirst} from './OperationStatus';
 import {saveKitchenIssue,resolveKitchenIssue,type LocalKitchenIssue,type LocalSetup} from './offline';
@@ -57,7 +57,7 @@ export default function KitchenIssues({snapshot,location,rows,setups,commands,op
 export function KitchenIssueEditor({snapshot,location,generation,initial,commands,openings,close,saved}:{snapshot:Snapshot;location:string;generation?:string;initial?:LocalKitchenIssue;commands:Command[];openings:OpeningDocument[];close:()=>void;saved:()=>void}){
  const dialog=useRef<HTMLDialogElement>(null),locked=useRef(false),operationId=useRef(crypto.randomUUID());
  const [kitchenId,setKitchenId]=useState(initial?.document.kitchenId??snapshot.kitchens?.find(k=>k.active&&k.name===initial?.document.kitchen)?.id??''),[businessDate,setDate]=useState(initial?.document.businessDate??today()),[reference,setReference]=useState(initial?.document.reference??''),[notes,setNotes]=useState(initial?.document.notes??''),[lines,setLines]=useState<Line[]>(initial?.document.lines.map(l=>({...l,lineId:crypto.randomUUID()}))??[fresh()]),[busy,setBusy]=useState(false),[error,setError]=useState('');
- useEffect(()=>{const modal=dialog.current;modal?.showModal();modal?.querySelector<HTMLSelectElement>('select[aria-label="المطبخ المستلم"]')?.focus({preventScroll:true});},[]);
+ useEffect(()=>{const modal=dialog.current;modal?.showModal();modal?.querySelector<HTMLInputElement>('input[role="combobox"][aria-label="المطبخ المستلم"]')?.focus({preventScroll:true});},[]);
  const items=snapshot.items.filter(i=>i.active!==false&&i.unitId),entered=lines.filter(l=>l.itemId||l.quantity),total=estimate(snapshot,entered,location);
  const available=(id:string)=>projectedQuantity(snapshot,commands,location,id,openings);
  const [showNotes,setShowNotes]=useState(!!initial?.document.notes);
@@ -102,7 +102,7 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,command
   <div className="modal-header"><div><span className="eyebrow">صرف داخلي من <strong>{sourceName}</strong></span><h2 id="kitchen-issue-title">{initial?'تصحيح صرف مطبخ':'صرف مواد للمطبخ'}</h2><p>اختر المطبخ، ثم المواد والكميات. يُخصم الرصيد بعد قبول المزامنة.</p></div><button type="button" className="icon-button" disabled={busy} aria-label="إغلاق صرف المطبخ" onClick={close}>×</button></div>
   <WorkflowForm className="kitchen-issue-form" busy={busy} error={error} onEdit={()=>setError('')} documentCheck={check} onKeyDown={keyboard} onSubmit={()=>void submit()}>
    <section className="kitchen-document-fields" aria-label="بيانات مستند الصرف">
-    <label className="kitchen-recipient-field"><span>المطبخ المستلم <span className="field-required" aria-hidden="true">*</span></span><FormSelect aria-label="المطبخ المستلم" required value={kitchenId} onChange={e=>setKitchenId(e.target.value)}><option value="">اختر المطبخ</option>{(snapshot.kitchens??[]).filter(k=>(k.active&&k.locationId!==location)||k.id===kitchenId).map(k=><option key={k.id} value={k.id} disabled={!k.active||k.locationId===location}>{k.name}{!k.active?" (محذوف)":""}</option>)}</FormSelect></label>
+    <label className="kitchen-recipient-field"><span>المطبخ المستلم <span className="field-required" aria-hidden="true">*</span></span><SearchableSelect aria-label="المطبخ المستلم" aria-describedby="kitchen-recipient-hint" required value={kitchenId} onChange={e=>setKitchenId(e.target.value)}><option value="">اختر أو ابحث عن المطبخ</option>{(snapshot.kitchens??[]).filter(k=>(k.active&&k.locationId!==location)||k.id===kitchenId).map(k=><option key={k.id} value={k.id} disabled={!k.active||k.locationId===location}>{k.name}{!k.active?" (محذوف)":""}</option>)}</SearchableSelect><small className="field-hint" id="kitchen-recipient-hint">تُنقل المواد إلى مخزون المطبخ الذي تختاره.</small></label>
     <label><span>تاريخ الصرف <span className="field-required" aria-hidden="true">*</span></span><FormInput aria-label="تاريخ الصرف" type="date" required max={today()} value={businessDate} onChange={e=>setDate(e.target.value)}/></label>
     <label className="kitchen-reference-field"><span>مرجع الصرف <small>اختياري</small></span><FormInput aria-label="مرجع الصرف" minLength={2} maxLength={100} placeholder="مثال: وردية الغداء" value={reference} onChange={e=>setReference(e.target.value)}/></label>
    </section>

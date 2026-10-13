@@ -5,7 +5,7 @@ Delivered 13 October 2026. **المطابخ** manages stock kitchens, POS and su
 1. Open **المطابخ → إدارة المطابخ**. Add a kitchen or edit the existing one and select its main warehouse. Each kitchen has an independent stock location, initially empty. The warehouse association uses the existing organization/location scope; it does not create a paid branch.
 2. Open **إدارة نقاط البيع**. Add a POS name, choose its kitchen and enter the source used by menu codes. The current client's trial menu source is **FODO**. Several terminals may use that source; their sale identities stay separate. Source is fixed after creation; a kitchen assignment can be edited for future sales.
 3. In **المبيعات → أصناف البيع**, edit each meal and add all kitchens allowed to prepare the whole meal. Search, arrows and Enter select kitchens; selected chips can be removed. Active meals need at least one kitchen.
-4. Select the source warehouse in **الموقع**, then **صرف مخزون** or **إنشاء مستند صرف**. Choose a different destination kitchen and add materials/quantities. The reference remains optional. Save and synchronize before importing dependent sales.
+4. Select the source warehouse in **الموقع**, then **صرف مخزون** or **إنشاء مستند صرف**. In **المطبخ المستلم**, search for and choose a different destination kitchen, then add materials/quantities. The kitchen picker opens when the form appears; arrows and Enter select a result and move to the date. The reference remains optional. Save and synchronize before importing dependent sales.
 5. Choose the POS in **استيراد المبيعات**. Its kitchen and source appear automatically; import the usual CSV, review selected deductions and confirm completed sales.
 
 ## Stock behavior
