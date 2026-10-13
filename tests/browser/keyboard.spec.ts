@@ -3,16 +3,18 @@ async function enter(page:Page){await page.goto('/');await page.getByRole('butto
 test('receiving keyboard adds to the list, merges exactly and protects unfinished entries',async({page})=>{
  await enter(page);const posts:string[]=[];page.on('request',request=>{if(request.method()==='POST')posts.push(request.url());});
  await page.getByRole('button',{name:'استلام مواد',exact:true}).click();const dialog=page.getByRole('dialog',{name:'استلام مواد',exact:true});
+ await expect(dialog.locator('.modal-header .form-keyboard-help')).toBeVisible();await expect(dialog.locator('.modal-body .form-keyboard-help')).toHaveCount(0);
  await expect(dialog.getByLabel('المورد',{exact:true})).toBeFocused();await dialog.getByLabel('المورد',{exact:true}).press('Enter');await expect(dialog.getByLabel('تاريخ الاستلام',{exact:true})).toBeFocused();
  await dialog.getByLabel('تاريخ الاستلام',{exact:true}).press('Enter');await dialog.getByLabel('مرجع الاستلام',{exact:true}).press('Enter');await expect(dialog.getByLabel('المادة',{exact:true})).toBeFocused();
  await dialog.getByLabel('المادة',{exact:true}).press('Shift+Enter');await expect(dialog.getByLabel('مرجع الاستلام',{exact:true})).toBeFocused();
  const material=dialog.getByLabel('المادة',{exact:true});await material.fill('أرز');await material.press('Enter');
  const quantity=dialog.getByRole('textbox',{name:/^الكمية/}),cost=dialog.getByLabel('تكلفة الوحدة (ج.م)',{exact:true});
  await expect(quantity).toBeFocused();await quantity.fill('0.1');await quantity.press('Enter');await expect(cost).toBeFocused();await cost.fill('20');await cost.press('Enter');
- await expect(material).toBeFocused();await expect(dialog.locator('.kitchen-receipt-list>li')).toHaveCount(1);expect(posts).toEqual([]);
+ await expect(material).toBeFocused();await expect(material).toHaveAttribute('aria-expanded','false');await expect(dialog.getByRole('button',{name:'بيانات المستند',exact:true})).toHaveAttribute('aria-expanded','false');await expect(dialog.locator('.kitchen-receipt-list>li')).toHaveCount(1);expect(posts).toEqual([]);
  await material.press('Escape');await dialog.getByRole('button',{name:'تعديل أرز مصري',exact:true}).click();await expect(dialog.getByRole('button',{name:'حفظ تعديل المادة',exact:true})).toBeVisible();await dialog.getByRole('button',{name:'إلغاء تعديل المادة',exact:true}).click();
  await material.fill('أرز');await material.press('Enter');await quantity.fill('0.2');await cost.fill('20');await cost.press('Alt+Insert');
  await expect(dialog.locator('.kitchen-receipt-list>li')).toHaveCount(1);await expect(dialog.locator('.document-summary strong')).toHaveText('٦ ج.م');
+ await dialog.getByRole('button',{name:'بيانات المستند',exact:true}).click();await dialog.getByLabel('مرجع الاستلام',{exact:true}).fill('x');await dialog.getByRole('button',{name:'بيانات المستند',exact:true}).click();await material.press('Control+Enter');await expect(dialog.getByLabel('مرجع الاستلام',{exact:true})).toBeFocused();expect(posts).toEqual([]);await dialog.getByLabel('مرجع الاستلام',{exact:true}).fill('');await dialog.getByRole('button',{name:'بيانات المستند',exact:true}).click();
  await material.fill('أرز');await material.press('Enter');await quantity.fill('1');await quantity.press('Control+Enter');
  await expect(dialog.getByRole('alert')).toContainText('أضف المادة الحالية');expect(posts).toEqual([]);
  await dialog.getByRole('button',{name:'إلغاء',exact:true}).click();

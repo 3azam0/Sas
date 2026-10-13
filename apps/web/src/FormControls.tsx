@@ -52,7 +52,7 @@ export const FormSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSe
 });
 function plainText(value:ReactNode):string{return Children.toArray(value).map(child=>isValidElement<{children?:ReactNode}>(child)?plainText(child.props.children):String(child??'')).join('');}
 export function matchesSearch(value:string,query:string){const clean=(v:string)=>v.normalize('NFKC').replace(/[\u064B-\u065F\u0670ـ]/g,'').replace(/[أإآ]/g,'ا').replace(/\s+/g,' ').toLocaleLowerCase();return clean(value).includes(clean(query.trim()));}
-export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void;onCreate?:(query:string)=>void;createLabel?:string}>(function SearchableSelect({children,onSearchEnter,onCreate,createLabel='إضافة مادة جديدة',...props},ref){
+export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void;onCreate?:(query:string)=>void;createLabel?:string;openOnFocus?:boolean}>(function SearchableSelect({children,onSearchEnter,onCreate,createLabel='إضافة مادة جديدة',openOnFocus=true,...props},ref){
  const select=useRef<HTMLSelectElement>(null),search=useRef<HTMLInputElement>(null),list=useRef<HTMLDivElement>(null);
  const {id,message,context,check}=useFeedback(select,undefined,search),inputId=props.id??id+'-input';
  const [query,setQuery]=useState<string|null>(null),[open,setOpen]=useState(false),[active,setActive]=useState(-1),[uncontrolled,setUncontrolled]=useState(String(props.defaultValue??''));
@@ -104,7 +104,7 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
  </div>,portal):null;
  return <span className="catalog-select">
   <span className="catalog-search"><input {...inputProps as InputHTMLAttributes<HTMLInputElement>} ref={search} id={inputId} type="search" role="combobox" autoComplete="off" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={expanded} aria-controls={expanded?id+'-options':undefined} aria-activedescendant={expanded&&active>=0&&(matches[active]||onCreate&&active===matches.length)?id+'-option-'+active:undefined} aria-required={props.required||undefined} aria-invalid={invalid} aria-describedby={described} value={query??(selected?.value?selected.label:'')} placeholder={selected?.value?'ابحث بالاسم أو الكود…':selected?.label??'اختر أو ابحث بالاسم أو الكود…'}
-   onFocus={event=>{props.onFocus?.(event as unknown as React.FocusEvent<HTMLSelectElement>);placePopup();setOpen(true);setActive(matches.findIndex(option=>option.value===value));event.currentTarget.select();}}
+   onFocus={event=>{props.onFocus?.(event as unknown as React.FocusEvent<HTMLSelectElement>);if(openOnFocus){placePopup();setOpen(true);setActive(matches.findIndex(option=>option.value===value));}event.currentTarget.select();}}
    onClick={()=>{if(!open){placePopup();setOpen(true);setActive(matches.findIndex(option=>option.value===value));}}}
    onBlur={event=>{if(event.relatedTarget instanceof Node&&list.current?.contains(event.relatedTarget))return;dismiss();if(select.current)props.onBlur?.({...event,target:select.current,currentTarget:select.current} as React.FocusEvent<HTMLSelectElement>);if(!(event.relatedTarget instanceof HTMLButtonElement))context?.report(id,check());}}
    onChange={event=>{setQuery(event.target.value);placePopup();setOpen(true);setActive(-1);}}

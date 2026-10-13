@@ -89,9 +89,92 @@
 .receipt-modal .receipt-document-section .form-label small{font-size:9px}
 .receipt-modal .receipt-document-section :is(input,select){min-height:38px;font-size:12px;padding-block:7px}
 .receipt-modal .receiving-composer .form-section-heading p{font-size:10px;line-height:1.4;margin:3px 0 0}
-.receipt-modal .modal-body>.form-keyboard-help{font-size:9px;line-height:1.5;margin-bottom:6px}
-.receipt-modal .modal-body>.form-keyboard-help kbd{font-size:9px;padding:0 3px}
+.receipt-modal .modal-header{padding:10px 18px;gap:12px}
+.receipt-modal .modal-header>div{min-width:0}
+.receipt-modal .modal-header h2{font-size:18px;line-height:1.35;margin:0}
+.receipt-modal .modal-header p{font-size:10px;line-height:1.5;margin:3px 0 0}
+.receipt-modal .modal-header .eyebrow{font-size:9px;line-height:1.4}
+.receipt-modal .modal-header .form-keyboard-help{display:block;font-size:9px;line-height:1.6;margin:5px 0 0;white-space:normal}
+.receipt-modal .modal-header .form-keyboard-help kbd{font-size:9px;padding:0 3px;white-space:nowrap}
+.receipt-modal .modal-header .icon-button{width:36px;height:36px;min-height:36px;flex-shrink:0;font-size:20px}
 @media(max-width:760px){
+ .receipt-modal .modal-header{padding:9px 14px}
+ .receipt-modal .modal-header h2{font-size:17px}
  .receipt-modal .receipt-document-section .document-fields{padding:8px;gap:8px}
  .receipt-modal .receipt-document-section :is(input,select){min-height:44px;font-size:16px}
+}
+
+/* Keep receiving entry and receipt visible together. */
+.collapsible-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.collapsible-heading>div{min-width:0}
+.collapsible-heading>div:first-child{flex:1}
+.collapsible-heading h2,.collapsible-heading h3{min-width:0}
+.section-toggle{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:36px;flex-shrink:0;margin-inline-start:auto;padding:6px 9px;border:1px solid #e3e8ef;border-radius:8px;background:#fff;color:#526276;font-size:11px;line-height:1.3;white-space:nowrap}
+.section-toggle:hover{background:#fff4ec;border-color:#eac8a8;color:#af3b18}
+.collapsible-body{min-width:0}
+.collapsible-body[hidden]{display:none!important}
+.collapsible-section[data-section-open="false"]>.collapsible-heading{margin-bottom:0!important}
+.bi-chart-grid>.collapsible-section[data-section-open="false"],.recipe-layout>.collapsible-section[data-section-open="false"],.receiving-workspace>.collapsible-section[data-section-open="false"]{align-self:start;min-height:0}
+.bi-chart>.collapsible-heading{padding:0;margin-bottom:12px}
+.document-fields-section{margin-bottom:14px}
+.document-fields-section>.collapsible-heading,.document-lines>.collapsible-heading{margin-bottom:8px}
+.document-fields-section>.collapsible-heading h3,.document-lines>.collapsible-heading h3{font-size:13px;margin:0}
+.document-fields-section .document-fields{margin-bottom:0}
+.directory-list-section>.collapsible-heading,.kitchen-metadata-section>.collapsible-heading{margin-block:8px;font-size:12px}
+.directory-list-section>.collapsible-heading h3,.kitchen-metadata-section>.collapsible-heading h3{font-size:13px}
+.opening-intro>.collapsible-body>p{padding:0 24px 20px}
+.setup-panel>.collapsible-body>.setup-tabs,.setup-panel>.collapsible-body>.setup-search{padding-inline:24px}
+.receipt-modal .receiving-receipt-pane>.collapsible-body{display:flex;flex-direction:column;min-height:0;flex:1}
+.receiving-composer .section-toggle,.receiving-receipt-pane .section-toggle{min-height:32px;font-size:10px;padding:4px 7px}
+.receipt-modal .receiving-receipt-pane[data-section-open="false"]{flex:0}
+@media(max-width:760px){
+ .section-toggle{min-height:44px;padding:8px 10px}
+ .collapsible-heading{gap:8px}
+ .setup-panel>.collapsible-body>.setup-tabs,.setup-panel>.collapsible-body>.setup-search{padding-inline:18px}
+ .receiving-composer .section-toggle,.receiving-receipt-pane .section-toggle{min-height:44px}
+}
+@media print{.section-toggle{display:none!important}.collapsible-body[hidden]{display:block!important}}
+.receiving-details-toggle{display:flex;align-items:center;gap:8px;min-height:32px;padding:4px 0;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
+.receiving-details-toggle:focus-visible{outline:2px solid #d94b20;outline-offset:3px;border-radius:4px}
+.receiving-document-summary{max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.receipt-modal .receiving-document-heading{margin-bottom:4px}
+.receiving-workspace{min-width:0;min-height:0}
+.receipt-modal .receiving-receipt-pane{padding:10px 12px;border:1px solid #e3e8ef;border-radius:12px;background:#fff;margin:12px 0 0;min-width:0}
+.receiving-receipt-pane .form-section-heading{flex-wrap:wrap;gap:6px}
+.receiving-receipt-pane .form-section-heading h3{font-size:13px;margin:0}
+.receiving-list-scroll{min-width:0;min-height:0}
+.receiving-receipt-pane .kitchen-receipt-line{grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:11px 12px}
+.receiving-receipt-pane .kitchen-receipt-item{grid-column:1;grid-row:1}
+.receiving-receipt-pane .kitchen-receipt-actions{grid-column:2;grid-row:1}
+.receiving-receipt-pane .kitchen-receipt-details{grid-column:1/-1;grid-row:2;padding-top:9px;border-top:1px solid #edf0f5}
+.receiving-receipt-pane .kitchen-receipt-details dt{margin-bottom:4px}
+.receiving-receipt-pane .kitchen-receipt-details dd{font-size:11px}
+.receiving-receipt-pane .kitchen-receipt-details .kitchen-receipt-quantity{font-size:14px}
+.receiving-receipt-pane .kitchen-receipt-latest{animation:receiving-added 1.8s ease-out;background:#fff}
+.receiving-show-list{display:none}
+@keyframes receiving-added{from{background:#fff0e2}to{background:#fff}}
+@media(prefers-reduced-motion:reduce){.receiving-receipt-pane .kitchen-receipt-latest{animation:none}}
+@media(min-width:900px){
+ .receipt-modal{width:min(1120px,calc(100vw - 32px))}
+ .receipt-modal .modal-body{display:flex;flex-direction:column;overflow:hidden}
+ .receipt-modal .receipt-fields{flex:1;min-height:0;display:flex;flex-direction:column}
+ .receipt-modal .receipt-document-section{flex-shrink:0}
+ .receiving-workspace{display:grid;grid-template-columns:minmax(330px,.9fr) minmax(0,1.1fr);gap:14px;flex:1;overflow:hidden}
+ .receipt-modal .receiving-workspace>.receiving-composer{overflow-y:auto;overscroll-behavior:contain;margin:0;padding:12px;scroll-padding:12px}
+ .receiving-workspace .receiving-composer-details>label{flex-basis:140px}
+ .receiving-workspace .receiving-entry-add{width:100%;margin-top:0!important}
+ .receipt-modal .receiving-receipt-pane{display:flex;flex-direction:column;min-height:0;margin:0}
+ .receiving-receipt-pane>.form-section-heading{flex-shrink:0}
+ .receiving-list-scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-inline:2px;scroll-padding:12px}
+}
+@media(max-width:899px){
+ .receiving-show-list{display:inline-flex;align-items:center;min-height:36px;padding:4px 0;font-size:10px;white-space:nowrap}
+ .receiving-workspace .receiving-composer{margin-bottom:10px}
+ .receiving-receipt-pane .form-section-heading{align-items:center}
+}
+
+@media(max-width:899px){
+ .receipt-modal .receiving-composer>.form-section-heading{flex-direction:row;align-items:flex-start}
+ .receiving-composer>.form-section-heading>div{min-width:0;flex:1}
+ .receipt-modal .receiving-composer-details .field-hint{font-size:10px;line-height:1.4}
 }

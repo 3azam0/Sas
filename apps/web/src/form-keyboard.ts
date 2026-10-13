@@ -22,9 +22,11 @@ export function formFields(form:HTMLFormElement){
 }
 export function focusControl(node:FormControl|null|undefined,form:HTMLFormElement|null,revealAttempts=0){
  if(!node)return;
+ if(node.closest('[data-collapsible-body][hidden]')){if(revealAttempts>=3)return;node.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));requestAnimationFrame(()=>focusControl(node,form,revealAttempts+1));return;}
  if(node.closest('[data-collection-row]')?.hasAttribute('hidden')){if(revealAttempts>=3)return;node.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));requestAnimationFrame(()=>focusControl(node,form,revealAttempts+1));return;}
  node.focus({preventScroll:true});
- const body=form?.querySelector<HTMLElement>('.workflow-body,.modal-body');
+ const pane=node.closest<HTMLElement>('[data-form-scroll]');
+ const body=pane&&['auto','scroll'].includes(getComputedStyle(pane).overflowY)?pane:form?.querySelector<HTMLElement>('.workflow-body,.modal-body');
  if(body?.contains(node)){const field=(node.closest('label,td')??node).getBoundingClientRect(),viewport=body.getBoundingClientRect(),top=field.top<viewport.top+12?field.top-viewport.top-12:field.bottom>viewport.bottom-12?field.bottom-viewport.bottom+12:0;if(top)body.scrollBy({top,behavior:'instant'});}
  const table=node.closest<HTMLElement>('.table-scroll');if(table){const field=node.getBoundingClientRect(),viewport=table.getBoundingClientRect(),left=field.left<viewport.left+12?field.left-viewport.left-12:field.right>viewport.right-12?field.right-viewport.right+12:0;if(left)table.scrollBy({left,behavior:'instant'});}
 }

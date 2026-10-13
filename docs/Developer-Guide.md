@@ -16,7 +16,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.44 — 13 October 2026
+Version 2.45 — 13 October 2026
+
+Long form groups, item lists, charts and history panels now share keyboard-accessible **طي / توسيع** controls. Collapse preserves drafts, filters and pages; validation and linked navigation reveal their targets. Receiving uses a visible desktop entry/list workspace, collapsible metadata and header keyboard hints. Use the shared component for future long sections; see [collapsible sections](./runbooks/Collapsible-Sections.md) and [receiving guide](./runbooks/Direct-Receiving.md).
 
 Receiving document details and entry headings now use compact typography and spacing, with desktop inputs at 38px minimum height and mobile inputs at 44px/16px text. See [compact receiving release](./releases/receiving-compact-2026-10-13.md).
 

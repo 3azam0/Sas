@@ -1,4 +1,5 @@
 'use client';
+import CollapsibleSection from './CollapsibleSection';
 import {DocumentEditor,DocumentFields,DocumentLines,DocumentSummary} from './DocumentForm';
 import {operationLabels,OperationStatus,reviewFirst,DocumentLink} from './OperationStatus';
 import Collection,{syncStatusOptions} from './Collection';
@@ -19,20 +20,20 @@ export default function OpeningStock({snapshot,location,rows,expired,synchronize
  const eligible=snapshot.items.filter(i=>i.active!==false&&!snapshot.balances.some(b=>b.locationId===location&&b.itemId===i.id)&&!rows.some(r=>r.document.locationId===location&&!['cancelled','superseded'].includes(r.status)&&r.document.lines.some(l=>l.itemId===i.id)));
  async function resolve(row:LocalOpening,action:'retry'|'cancel'){try{await resolveOpening(row.scope,row.id,action);if(action==='retry')await synchronize();}catch(e){setError(e instanceof Error?e.message:'تعذرت معالجة المستند');}}
  return <>
-  <section className="panel opening-intro"><div className="panel-heading"><div><h2>الرصيد الافتتاحي للموقع</h2><p>أول كمية وتكلفة لكل مادة في هذا الموقع. المواد ذات الحركات السابقة تحتاج استلاماً أو تسوية، وليس رصيداً افتتاحياً جديداً.</p></div><button className="primary" disabled={expired||!snapshot.locations.some(l=>l.id===location&&l.active!==false)||eligible.length===0} onClick={()=>{setError('');setEditor({});}}>إضافة رصيد افتتاحي</button></div>
+  <CollapsibleSection className="panel opening-intro"><div className="panel-heading"><div><h2>الرصيد الافتتاحي للموقع</h2><p>أول كمية وتكلفة لكل مادة في هذا الموقع. المواد ذات الحركات السابقة تحتاج استلاماً أو تسوية، وليس رصيداً افتتاحياً جديداً.</p></div><button className="primary" disabled={expired||!snapshot.locations.some(l=>l.id===location&&l.active!==false)||eligible.length===0} onClick={()=>{setError('');setEditor({});}}>إضافة رصيد افتتاحي</button></div>
    <p>كل مستند يُقبل بالكامل أو يُرفض بالكامل. أقصى حد ٢٠٠ مادة. الكمية بوحدة المخزون الأساسية والتكلفة لكل وحدة؛ اترك المواد ذات الرصيد صفر خارج المستند.</p>
    {eligible.length===0&&<div className="empty"><p>لا توجد مواد جديدة متاحة لرصيد افتتاحي في الموقع. أضف مادة أو موقعاً من إعداد المخزون.</p><button className="secondary" onClick={openSetup}>فتح إعداد المخزون</button></div>}
    {error&&<p className="error" role="alert">{error}</p>}
-  </section>
+  </CollapsibleSection>
   {editor&&<OpeningEditor key={`${location}-${editor.row?.id??'new'}`} snapshot={snapshot} location={location} items={eligible} initial={editor.row} close={()=>setEditor(null)} saved={()=>{setEditor(null);notify('تم حفظ مستند الرصيد الافتتاحي على هذا الجهاز. الرصيد المؤكد يتغير بعد قبول المزامنة.');void synchronize();}}/>}
-  <section className="panel"><div className="panel-heading"><h2>مستندات الرصيد الافتتاحي</h2><span className="pill">{visible.length} مستند</span></div><Collection rows={(reviewFirst(visible))??[]} title="مستندات الرصيد الافتتاحي" resetKey={location} searchText={r=>r.document.reason+" "+r.document.lines.map(l=>snapshot.items.find(i=>i.id===l.itemId)?.name).join(" ")} dateValue={r=>r.document.businessDate} filters={[{key:"status",label:"حالة المزامنة",value:r=>r.status,options:syncStatusOptions}]} rowIds={r=>[r.id]}>{pageRows=>pageRows.map(row=>{
+  <CollapsibleSection className="panel"><div className="panel-heading"><h2>مستندات الرصيد الافتتاحي</h2><span className="pill">{visible.length} مستند</span></div><Collection rows={(reviewFirst(visible))??[]} title="مستندات الرصيد الافتتاحي" resetKey={location} searchText={r=>r.document.reason+" "+r.document.lines.map(l=>snapshot.items.find(i=>i.id===l.itemId)?.name).join(" ")} dateValue={r=>r.document.businessDate} filters={[{key:"status",label:"حالة المزامنة",value:r=>r.status,options:syncStatusOptions}]} rowIds={r=>[r.id]}>{pageRows=>pageRows.map(row=>{
    const total=row.document.lines.reduce((sum,l)=>sum.add(decimal(l.quantity).mul(l.unitCost)),decimal('0')).toString();
    return <details key={row.id} id={`operation-${row.id}`} tabIndex={-1} className="opening-document"><summary><strong>{row.document.reason}</strong> · {row.document.businessDate} · {number(total)} ج.م <span className={'pill '+(row.status==='accepted'?'good':'warning')}><OperationStatus status={row.status}/></span></summary><small dir="ltr">{row.id}</small>{row.document.source&&<p>ملف المصدر: {row.document.source.fileName}</p>}
     <Collection rows={row.document.lines} title={"مواد الرصيد — "+row.document.reason} searchText={l=>snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}>{pageRows=>(<div className="table-scroll"><table><thead><tr><th>المادة</th><th>الكمية</th><th>تكلفة الوحدة</th><th>القيمة</th></tr></thead><tbody>{pageRows.map(l=><tr key={l.lineId}><td>{snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}</td><td>{number(l.quantity)} {snapshot.units?.find(u=>u.id===l.unitId)?.name??l.unitId}</td><td>{number(l.unitCost)}</td><td>{number(decimal(l.quantity).mul(l.unitCost).toString())}</td></tr>)}</tbody></table></div>)}</Collection>
     {row.error&&<p className="error">{row.error}</p>}{row.replacementId&&<p>مستند التصحيح: <span dir="ltr"><DocumentLink id={row.replacementId} view="opening" location={location} label={row.replacementId}/></span></p>}{row.replacesId&&<p>تصحيح للمستند: <span dir="ltr"><DocumentLink id={row.replacesId} view="opening" location={location} label={row.replacesId}/></span></p>}
     {row.status==='needsReview'&&<div className="review-actions"><button className="secondary" disabled={expired} onClick={()=>void resolve(row,'retry')}>إعادة محاولة المستند</button><button className="secondary" disabled={expired} onClick={()=>setEditor({row})}>تصحيح المستند</button><button className="text-button" onClick={()=>void resolve(row,'cancel')}>إلغاء المستند المرفوض</button></div>}
    </details>;
-  })}</Collection></section>
+  })}</Collection></CollapsibleSection>
  </>;
 }
 type Line=OpeningDocument['lines'][number];

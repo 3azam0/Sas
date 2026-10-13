@@ -75,3 +75,6 @@ Regression entry points: `tests/browser/forms-ux.spec.ts`, `workflow-ux.spec.ts`
 Direct receiving uses one item picker beside quantity. Item selection focuses quantity; Enter there focuses cost, and Enter after cost adds the entry to the newest-first receipt list. Add/Alt+Insert use the same validation. Edit replaces the existing line; unfinished entry/edit blocks Save. Cost stays per base stock unit, including pack conversions. Stock issue header, shortcut hints and kitchen/date/reference details have compact spacing; mobile inputs retain 44px height.
 
 Receiving document details and entry headings also use compact typography and spacing. Optional/required indicators remain visible, and mobile document inputs retain 44px height and 16px text.
+
+
+Long groups and page panels now share **طي / توسيع** buttons with `aria-expanded` and `aria-controls`. Required-field validation opens a collapsed group before focusing; linked documents and report drill-down also open their destination. Collapse retains mounted form controls, collection filters, sorting and pages. Read-only chart drawings remount when expanded to avoid measuring a hidden canvas. See [section behavior](./Collapsible-Sections.md). Receiving shortcut hints are in its fixed header; metadata, entry and added-item list can each collapse independently.
