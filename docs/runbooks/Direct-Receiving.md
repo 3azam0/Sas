@@ -1,5 +1,7 @@
 # Direct multi-item receiving
 
+Usability update, 15 October 2026: start from the **استلام مواد** home action or the inventory/history header. The date stays visible; **تفاصيل إضافية** contains the optional supplier/reference and starts closed on new receipts. Filled optional values remain summarized when collapsed, and invalid fields are revealed for correction. The final action is now **حفظ الاستلام**. A document-specific notice distinguishes pending local capture, confirmation and review; it follows the saved operation rather than announcing stock acceptance after Save alone. The existing validation, stock posting and unit/cost rules below still apply.
+
 1. Select the destination **الموقع**. The location and inventory units must exist; suppliers are optional. You can create a material inside receiving even when the catalog is empty.
 2. Click **استلام مواد**. Choose a supplier or keep **بدون مورد محدد**, set the business date and optionally enter **مرجع الاستلام** (invoice number or note). A blank reference is allowed; a supplied reference must contain 2–200 characters. The system retains its unique document and line IDs in either case.
 3. Use the single material picker and adjacent quantity input; choose a receiving unit/pack and cost **per base inventory unit**. For example, 2 bags × 5 kg = 10 kg; at 20 EGP/kg the line value is 200 EGP.

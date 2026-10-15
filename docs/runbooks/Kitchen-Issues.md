@@ -1,6 +1,8 @@
 # Kitchens, stock and POS
 Delivered 13 October 2026. **المطابخ** manages stock kitchens, POS and supply documents.
 
+Usability update, 15 October: **صرف للمطبخ** opens supply from the selected source location. **المطبخ والتاريخ** contains the essential fields; optional reference and notes are under **تفاصيل إضافية للصرف**. Desktop entry and added lines sit alongside one another. After adding a line, search regains focus without opening the result list over the controls below; typing/clicking still opens results. Validation reveals invalid optional details. Local save is provisional until confirmed acceptance updates stock. See [daily workflow](./Daily-Workflow.md).
+
 ## First setup
 1. Open **المطابخ → إدارة المطابخ**. Add a kitchen or edit the existing one and select its main warehouse. Each kitchen has an independent stock location, initially empty. The warehouse association uses the existing organization/location scope; it does not create a paid branch.
 2. Open **إدارة نقاط البيع**. Add a POS name, choose its kitchen and enter the source used by menu codes. The current client's trial menu source is **FODO**. Several terminals may use that source; their sale identities stay separate. Source is fixed after creation; a kitchen assignment can be edited for future sales.

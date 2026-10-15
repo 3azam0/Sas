@@ -1,5 +1,7 @@
 # BI dashboard and reports
 
+The home page now opens with daily actions. Expand **ملخص أداء الأعمال** to load its analytics, or use **التقارير والرسوم** for the dedicated report screen. Reports remain read-only and retain their existing date filters, scopes and definitions.
+
 **مطابقة الاستهلاك** compares pinned-sales requirements with independently verified physical-count consumption per material/location, with signed variance charts and explicit incomplete reasons. Unlike the current inventory report, it reconstructs its comparative cost at the closing count. See [period reconciliation](./Consumption-Reconciliation.md).
 
 **سجل صرف المطابخ** provides complete accepted supply documents with daily/ranked charts and allocated unit costs, separately from consumption. See [kitchen supply report](./Kitchen-Supply-Report.md).

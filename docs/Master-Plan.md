@@ -1,12 +1,12 @@
 # FooDo — Modular Business Management SaaS Master Plan
 
-Updated: 13 October 2026. This is the main development roadmap and progress reference.
+Updated: 15 October 2026. This is the main development roadmap and progress reference.
 
 ## Current development progress
 
 Read this summary for **what is done and what remains**. The dated checkpoints below describe earlier releases; their old statements about pending hosting, sales deductions or reports do not override this summary. See the [developer guide](./Developer-Guide.md) for implementation rules and [hosted release](./Hosted-Release.md) for operational behavior.
 
-**Current milestone: Phase 4C3 is delivered.** The first-client trial is hosted at [FooDo](https://fodo.am-agent2026.workers.dev/). This is a working trial release, not completion of the full SaaS roadmap or approval to start real operations.
+**Current milestone: Phase 4C3, the client guide and daily-workflow usability are delivered.** The first-client trial is hosted at [FooDo](https://fodo.am-agent2026.workers.dev/). This is a working trial release, not completion of the full SaaS roadmap or approval to start real operations.
 
 | Area | Status | Completed / practical limit |
 | --- | --- | --- |
@@ -26,7 +26,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Theoretical usage and selected deductions — 4C2 | Delivered | All recipe ingredients count toward theoretical usage; only selected ingredients deduct from the selling kitchen. Shortages are highlighted while otherwise valid imports succeed. |
 | BI reports and charts | Delivered | Overview and dedicated reports, Recharts, filters/sorting/server pagination, full-range aggregates, CSV and cached report queries; kitchen supply report included. |
 | Actual versus theoretical consumption — 4C3 | Delivered | Physical-count-based reconciliation, independent movement checks, variance charts, shortages, incomplete reasons and closing-count cost valuation. Valid opening/closing counts are needed to establish actual consumption. |
-| Forms and list usability | Delivered baseline | Searchable dropdowns, keyboard navigation/help, pagination/filtering/sorting, compact receipt entry, visible added lines, mobile layouts and collapsible sections. Further fixes depend on trial feedback. |
+| Forms and list usability | Delivered baseline | Task-first home, daily/grouped navigation, mobile all-sections menu, compact essential fields and optional details, visible entry lists and accurate save/sync feedback; searchable dropdowns, keyboard help, pagination/filtering/sorting and collapsible sections retained. See [daily workflow](./runbooks/Daily-Workflow.md). Further fixes depend on trial feedback. |
 | Offline capture and recovery | Delivered operational foundation | Durable tenant-bound queues, dependency ordering, retries/review, bounded offline access and recovery formats. Production restore rehearsal remains a launch task. |
 | Sales financial corrections | Not implemented | Explicit accepted-sale refund/void handling, financial reversal and controlled stock disposition are the next functional cost-control slice. |
 | Restaurant expenses and profitability | Not implemented | Expense capture/categories and reliable period profitability remain; recipe contribution estimates are not net profit. |
@@ -53,6 +53,8 @@ These are roadmap items, not authorization to deploy new transactions or delete 
 - Native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
 
 ### Latest verification and release evidence
+
+Daily-workflow release: hosted build **1a84a8b7f338a9cf**, Cloudflare version **67**, Supabase API remains **14**. All 29 targeted tests, TypeScript and production/offline builds passed. See [release evidence](./releases/daily-workflow-usability-2026-10-15.md). No client transaction was posted or reset. The next functional slice remains sales financial corrections, followed by expenses/profitability.
 
 Client-guide release: hosted build **d61643ced1ead0a0**, Cloudflare version **65**, Supabase API remains **14**. Eleven targeted tests, type checking, production/offline builds and desktop/mobile hosted checks passed. Unsaved receiving reference/item entries survive help opening/closing; help shortcuts cannot submit the receipt. No client transaction was posted. See [guide release evidence](./releases/client-guide-2026-10-13.md).
 

@@ -1,6 +1,6 @@
 # In-app Arabic client guide
 
-Open **دليل الاستخدام** in the **الإعدادات والمتابعة** sidebar group. Search Arabic titles, aliases and instruction text, or choose a task from its group. On mobile, **تصفح الموضوعات** reveals the topic list. Selecting a topic or a related topic clears the query, returns to its instructions and moves keyboard focus to the reading heading. No guide download/export is provided.
+Open **دليل الاستخدام** in the **المساعدة والمتابعة** sidebar group, or use **القائمة** on mobile to find it. Search Arabic titles, aliases and instruction text, or choose a task from its group. Within the mobile guide, **تصفح الموضوعات** reveals the topic list. Selecting a topic or a related topic clears the query, returns to its instructions and moves keyboard focus to the reading heading. No guide download/export is provided.
 
 Use **مساعدة** in the top bar for the current screen, or in a document header for that operation. Reports also provide help for the selected report, including **مطابقة الاستهلاك** and kitchen supply. The side panel opens above the current screen/document and supports searching all topics. Closing with its button or Escape restores focus to the help trigger; it leaves draft fields and added lines intact. Ctrl/Command+Enter and Alt+Insert within help do not save or add to the underlying transaction. Native modal focus confines interaction to help while it is open.
 

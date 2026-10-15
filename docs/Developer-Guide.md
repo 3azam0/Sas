@@ -16,7 +16,9 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.49 — 13 October 2026
+Version 2.50 — 15 October 2026
+
+Daily-workflow usability is delivered: a task-first home, grouped desktop navigation, a five-control mobile bar with a native all-sections dialog, optional receiving/supply metadata and an operation-ID-bound saved-document notice. Keep pending/accepted-awaiting confirmation separate from confirmed stock. Active low-stock attention uses the current location; queue/review attention covers this device across locations. Home analytics mount only when expanded, and dedicated reports remain available. Preserve existing view IDs, tenant/generation scope, form drafts, keyboard validation and stock posting rules. See [daily workflow](./runbooks/Daily-Workflow.md) and [verified release](./releases/daily-workflow-usability-2026-10-15.md). This supersedes earlier horizontal mobile navigation and default-expanded home analytics descriptions.
 
 The [main development plan](./Master-Plan.md#current-development-progress) starts with a delivered/remaining status table and ordered remaining work. Phase 4C3 and the in-app Arabic client guide are delivered; financial corrections and expenses are unimplemented, and real-use acceptance/restore/trial cleanup remain. Update that summary with each delivered slice rather than treating dated historical checkpoints as current status.
 

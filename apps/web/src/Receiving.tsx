@@ -26,7 +26,7 @@ export function ReceiptHistory({snapshot,location,rows,expired,synchronize,edit}
 }
 
 type EditorLine=ReceivingLine;
-export default function ReceiptDialog({snapshot,location,itemId,initial,close,saved,materialSaved}:{snapshot:Snapshot;location:string;itemId?:string;initial?:LocalReceipt;close:()=>void;saved:()=>void;materialSaved?:()=>void}){
+export default function ReceiptDialog({snapshot,location,itemId,initial,close,saved,materialSaved}:{snapshot:Snapshot;location:string;itemId?:string;initial?:LocalReceipt;close:()=>void;saved:(id:string)=>void;materialSaved?:()=>void}){
  const dialog=useRef<HTMLDialogElement>(null),form=useRef<HTMLFormElement>(null),locked=useRef(false);
  const [createdItems,setCreatedItems]=useState<Snapshot['items']>([]);
  const catalog=[...snapshot.items,...createdItems.filter(item=>!snapshot.items.some(current=>current.id===item.id))];
@@ -43,7 +43,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
  const [businessDate,setDate]=useState(initial?.document.businessDate??today());
  const [reason,setReason]=useState(initial?.document.reason??''),[supplierId,setSupplier]=useState(initial?.document.supplierId??'');
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
- const [detailsOpen,setDetailsOpen]=useState(true);const listScroll=useRef<HTMLDivElement>(null),listHeading=useRef<HTMLHeadingElement>(null);
+ const [detailsOpen,setDetailsOpen]=useState(!!initial?.document.supplierId||!!initial?.document.reason);const listScroll=useRef<HTMLDivElement>(null),listHeading=useRef<HTMLHeadingElement>(null);
  useEffect(()=>{listHeading.current?.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));listScroll.current?.scrollTo({top:0});},[listVersion]);
  const [touched,setTouched]=useState<Record<string,boolean>>({}),[submitted,setSubmitted]=useState(false);
  useEffect(()=>{dialog.current?.showModal();},[]);
@@ -144,7 +144,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
      enteredQuantity:l.selection?l.enteredQuantity:undefined};
    });
    const document:ReceiptDocument=receiptDocumentSchema.parse({operationId:crypto.randomUUID(),organizationId:snapshot.organizationId,generation:snapshot.generation,locationId:location,type:'receipt.document',businessDate,reason,supplierId:supplierId||undefined,capturedAt:new Date().toISOString(),schemaVersion:1,currency:'EGP',lines:receiptLines});
-   await saveReceipt(document,initial?.id);saved();
+   await saveReceipt(document,initial?.id);saved(document.operationId);
   }catch(e){locked.current=false;setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع المواد والكميات وتكلفة وحدة المخزون.');}
   finally{setBusy(false);}
  }
@@ -154,12 +154,14 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
   <div className="modal-header"><div><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>أضف المواد إلى القائمة، ثم احفظ مستند الاستلام.</p><FormKeyboardHelp/></div><HelpButton topic="receiving"/><button type="button" className="icon-button" disabled={busy||!!newMaterial} onClick={close} aria-label="إغلاق">×</button></div>
   <KeyboardForm busy={busy||!!newMaterial} ref={form} className="modal-form" noValidate onKeyDown={keyboard} onSubmit={e=>void submit(e)}>
    <div className="modal-body"><fieldset disabled={busy||!!newMaterial} className="receipt-fields form-fields">
-    <section className="form-section receipt-document-section" aria-labelledby="receipt-details-title">
-     <div className="form-section-heading receiving-document-heading"><h3 id="receipt-details-title"><button type="button" className="receiving-details-toggle" aria-label="بيانات المستند" aria-expanded={detailsOpen} aria-controls="receiving-document-fields" onClick={()=>setDetailsOpen(open=>!open)}>بيانات المستند <span aria-hidden="true">{detailsOpen?'⌃':'⌄'}</span></button></h3>{detailsOpen?<small>الحقول المعلّمة بـ * مطلوبة</small>:<small className="receiving-document-summary">{businessDate} · {snapshot.suppliers?.find(s=>s.id===supplierId)?.name??'بدون مورد محدد'}{reason&&' · '+reason}</small>}</div>
-     <div id="receiving-document-fields" hidden={!detailsOpen}>
-     <DocumentFields collapsible={false}>
-      <label><span className="form-label">المورد <small>اختياري</small></span><select aria-label="المورد" value={supplierId} onChange={e=>{setSupplier(e.target.value);setError('');}}><option value="">بدون مورد محدد</option>{snapshot.suppliers?.filter(s=>s.active||s.id===supplierId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+    <section className="form-section receipt-document-section" aria-label="بيانات الاستلام">
+     <div className="receiving-document-essential">
       <label><span className="form-label">تاريخ الاستلام <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تاريخ الاستلام" type="date" required max={today()} value={businessDate} {...fieldProps('businessDate')} onChange={e=>{setDate(e.target.value);setError('');}}/>{fieldError('businessDate')}</label>
+      <div><button type="button" className="receiving-details-toggle" aria-label="تفاصيل إضافية للاستلام" aria-expanded={detailsOpen} aria-controls="receiving-document-fields" onClick={()=>setDetailsOpen(open=>!open)}>تفاصيل إضافية <small>اختياري</small><span aria-hidden="true">{detailsOpen?'⌃':'⌄'}</span></button><small className="receiving-optional-summary">{supplierId?(snapshot.suppliers?.find(s=>s.id===supplierId)?.name??'مورد محدد'):'بدون مورد محدد'}{reason&&' · '+reason}</small></div>
+     </div>
+     <div id="receiving-document-fields" hidden={!detailsOpen}>
+     <DocumentFields collapsible={false} columns={2}>
+      <label><span className="form-label">المورد <small>اختياري</small></span><select aria-label="المورد" value={supplierId} onChange={e=>{setSupplier(e.target.value);setError('');}}><option value="">بدون مورد محدد</option>{snapshot.suppliers?.filter(s=>s.active||s.id===supplierId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
       <label><span className="form-label">مرجع الاستلام <small>اختياري</small></span><input aria-label="مرجع الاستلام" minLength={2} maxLength={200} placeholder="فاتورة ١٢٣ أو توريد اليوم" value={reason} {...fieldProps('reason')} onChange={e=>{setReason(e.target.value);setError('');}}/>{fieldError('reason')}</label>
      </DocumentFields></div>
     </section>
@@ -199,7 +201,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
    </fieldset></div>
    <div className="modal-footer">
     {error&&<p className="error form-error-summary" role="alert">{error}</p>}
-    <div className="document-actions"><DocumentSummary label="إجمالي الاستلام المتوقع" value={number(total.toString())+' ج.م'} detail={number(lines.length)+' مادة · يُحدّث الرصيد بعد قبول المستند بالمزامنة'}/><div className="document-buttons"><div className="modal-actions"><button type="submit" className="primary" disabled={busy||!!newMaterial}>{busy?'جارٍ الحفظ…':'حفظ العملية'}</button><button type="button" className="secondary" disabled={busy||!!newMaterial} onClick={close}>إلغاء</button></div></div></div>
+    <div className="document-actions"><DocumentSummary label="إجمالي الاستلام المتوقع" value={number(total.toString())+' ج.م'} detail={number(lines.length)+' مادة · يُحدّث الرصيد بعد قبول المستند بالمزامنة'}/><div className="document-buttons"><div className="modal-actions"><button type="submit" className="primary" disabled={busy||!!newMaterial}>{busy?'جارٍ الحفظ…':'حفظ الاستلام'}</button><button type="button" className="secondary" disabled={busy||!!newMaterial} onClick={close}>إلغاء</button></div></div></div>
    </div>
   </KeyboardForm>
  </dialog>{newMaterial&&<SetupEditor section="items" snapshot={snapshot} composeAvailable={false} saved={()=>{}} close={()=>returnToEntry('itemId')} quickCreate={{name:newMaterial.name,created:record=>{
