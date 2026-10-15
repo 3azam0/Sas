@@ -1,5 +1,7 @@
 # Direct multi-item receiving
 
+Current placement, 15 October: only the date remains in the receiving header. **تفاصيل إضافية** and its supplier/reference summary are below the header, directly above the expandable supplier/reference fields. Compact item cards are unchanged. This supersedes the additional-details header placement below.
+
 Compact layout update, 15 October 2026: the date and **تفاصيل إضافية** control now sit on the left of the desktop form header and wrap beneath its title on phones. The optional supplier/reference still expand in the body and retain validation/focus behavior. Added-item cards use small inline quantity, cost and value pairs with content-driven height; edit/delete and purchase-unit conversion details remain visible. See [verified header/card release](../releases/receiving-header-cards-2026-10-15.md).
 
 Usability update, 15 October 2026: start from the **استلام مواد** home action or the inventory/history header. The date stays visible; **تفاصيل إضافية** contains the optional supplier/reference and starts closed on new receipts. Filled optional values remain summarized when collapsed, and invalid fields are revealed for correction. The final action is now **حفظ الاستلام**. A document-specific notice distinguishes pending local capture, confirmation and review; it follows the saved operation rather than announcing stock acceptance after Save alone. The existing validation, stock posting and unit/cost rules below still apply.

@@ -1,6 +1,8 @@
 # Kitchens, stock and POS
 Delivered 13 October 2026. **المطابخ** manages stock kitchens, POS and supply documents.
 
+Current placement, 15 October: kitchen and date remain in the header. **تفاصيل إضافية** and its reference/notes summary are in the form body immediately below it. This supersedes the additional-details header placement below; compact cards, validation and stock transfer rules are unchanged.
+
 Compact header/card update, 15 October: kitchen, date and **تفاصيل إضافية** now sit in the left side of the desktop header and wrap beneath its title on phones. Optional reference/notes open directly beneath the header. Compact receipt cards retain material identity, available/remaining stock, quantity, cost, value and edit/delete. The header uses the same keyboard/validation form as the body. This supersedes the earlier **المطبخ والتاريخ** section placement described below. See [verified compact kitchen release](../releases/kitchen-header-cards-2026-10-15.md).
 
 Usability update, 15 October: **صرف للمطبخ** opens supply from the selected source location. **المطبخ والتاريخ** contains the essential fields; optional reference and notes are under **تفاصيل إضافية للصرف**. Desktop entry and added lines sit alongside one another. After adding a line, search regains focus without opening the result list over the controls below; typing/clicking still opens results. Validation reveals invalid optional details. Local save is provisional until confirmed acceptance updates stock. See [daily workflow](./Daily-Workflow.md).

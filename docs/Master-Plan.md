@@ -54,6 +54,8 @@ These are roadmap items, not authorization to deploy new transactions or delete 
 
 ### Latest verification and release evidence
 
+Latest form placement correction: build **7d15668d13274a36**, Cloudflare version **71**, API remains **14**. Additional-details controls and summaries are below both form headers; header dates/kitchen selector and compact cards remain. Type checking, hosted build and 16 targeted tests passed. See [release evidence](./releases/additional-details-placement-2026-10-15.md).
+
 Latest kitchen polish: build **d19d6caa3698da89**, Cloudflare version **70**, API remains **14**. Compact receiving and kitchen supply now share card styling; kitchen/date/details are in the header. Type checking and 16 receiving/kitchen/keyboard tests passed. See [release evidence](./releases/kitchen-header-cards-2026-10-15.md).
 
 Latest receiving polish: hosted build **5bf6606f98edf33b**, Cloudflare version **68**, API remains **14**. Header date/details and compact item cards passed type checking, eight receiving/keyboard tests, the hosted frontend build and desktop/mobile verification using a cancelled unsaved receipt. See [release evidence](./releases/receiving-header-cards-2026-10-15.md).

@@ -1,5 +1,7 @@
 # Hosted client release — agreed scope
 
+Additional-details controls/summaries are now below the receiving and kitchen supply headers. Dates and the receiving kitchen stay in their headers. Build **7d15668d13274a36**, Cloudflare version **71**, API remains **14**. See [placement correction](./releases/additional-details-placement-2026-10-15.md); prior header descriptions below are historical.
+
 Kitchen supply now matches compact receiving: header kitchen/date/additional-details controls and shorter item cards, with all stock details/actions retained. Build **d19d6caa3698da89**, Cloudflare version **70**; Supabase API remains **14**. See [release evidence](./releases/kitchen-header-cards-2026-10-15.md).
 
 Receiving header/card polish is hosted as build **5bf6606f98edf33b**, Cloudflare version **68**; Supabase API remains **14**. Date and optional-details controls occupy the left desktop header, with responsive wrapping; item cards use compact inline metrics and automatic height. See [verified release](./releases/receiving-header-cards-2026-10-15.md).
