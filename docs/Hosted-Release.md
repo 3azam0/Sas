@@ -1,5 +1,7 @@
 # Hosted client release — agreed scope
 
+Kitchen supply now matches compact receiving: header kitchen/date/additional-details controls and shorter item cards, with all stock details/actions retained. Build **d19d6caa3698da89**, Cloudflare version **70**; Supabase API remains **14**. See [release evidence](./releases/kitchen-header-cards-2026-10-15.md).
+
 Receiving header/card polish is hosted as build **5bf6606f98edf33b**, Cloudflare version **68**; Supabase API remains **14**. Date and optional-details controls occupy the left desktop header, with responsive wrapping; item cards use compact inline metrics and automatic height. See [verified release](./releases/receiving-header-cards-2026-10-15.md).
 
 Delivered 15 October 2026: task-first home with receiving, kitchen supply and inventory actions; simplified desktop/mobile navigation; compact essential fields and optional details; accurate pending/confirmed/review feedback. Hosted build **1a84a8b7f338a9cf**, Cloudflare version **67**; Supabase API remains **14**. Deployment **b512d0ac-3be3-42ee-8b29-aaed076bd178** routes 100% to version **b746274d-ffc6-4735-a2dc-6cd8273c92a6**. See [workflow guide](./runbooks/Daily-Workflow.md) and [release evidence](./releases/daily-workflow-usability-2026-10-15.md). No stock policy, tenant schema or client data changed. Earlier build numbers below are historical milestones.
