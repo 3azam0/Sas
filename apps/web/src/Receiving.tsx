@@ -151,19 +151,20 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
  function returnToEntry(key:'itemId'|'enteredQuantity'){setNewMaterial(null);focusEntry(key);}
  const choice=selected(entry),quantity=base(entry),item=choice.item;
  return <><dialog ref={dialog} className="modal receipt-modal" aria-labelledby="receipt-title" onCancel={e=>{e.preventDefault();if(!busy&&!newMaterial)close();}}>
-  <div className="modal-header"><div><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>أضف المواد إلى القائمة، ثم احفظ مستند الاستلام.</p><FormKeyboardHelp/></div><HelpButton topic="receiving"/><button type="button" className="icon-button" disabled={busy||!!newMaterial} onClick={close} aria-label="إغلاق">×</button></div>
   <KeyboardForm busy={busy||!!newMaterial} ref={form} className="modal-form" noValidate onKeyDown={keyboard} onSubmit={e=>void submit(e)}>
-   <div className="modal-body"><fieldset disabled={busy||!!newMaterial} className="receipt-fields form-fields">
-    <section className="form-section receipt-document-section" aria-label="بيانات الاستلام">
-     <div className="receiving-document-essential">
-      <label><span className="form-label">تاريخ الاستلام <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تاريخ الاستلام" type="date" required max={today()} value={businessDate} {...fieldProps('businessDate')} onChange={e=>{setDate(e.target.value);setError('');}}/>{fieldError('businessDate')}</label>
-      <div><button type="button" className="receiving-details-toggle" aria-label="تفاصيل إضافية للاستلام" aria-expanded={detailsOpen} aria-controls="receiving-document-fields" onClick={()=>setDetailsOpen(open=>!open)}>تفاصيل إضافية <small>اختياري</small><span aria-hidden="true">{detailsOpen?'⌃':'⌄'}</span></button><small className="receiving-optional-summary">{supplierId?(snapshot.suppliers?.find(s=>s.id===supplierId)?.name??'مورد محدد'):'بدون مورد محدد'}{reason&&' · '+reason}</small></div>
+   <div className="modal-header receiving-header"><div className="receiving-header-title"><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>أضف المواد إلى القائمة، ثم احفظ مستند الاستلام.</p><FormKeyboardHelp/></div>
+     <div className="receiving-document-essential receiving-header-details">
+      <label><span className="form-label">تاريخ الاستلام <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تاريخ الاستلام" type="date" required disabled={busy||!!newMaterial} max={today()} value={businessDate} {...fieldProps('businessDate')} onChange={e=>{setDate(e.target.value);setError('');}}/>{fieldError('businessDate')}</label>
+      <div><button type="button" className="receiving-details-toggle" disabled={busy||!!newMaterial} aria-label="تفاصيل إضافية للاستلام" aria-expanded={detailsOpen} aria-controls="receiving-document-fields" onClick={()=>setDetailsOpen(open=>!open)}>تفاصيل إضافية <small>اختياري</small><span aria-hidden="true">{detailsOpen?'⌃':'⌄'}</span></button><small className="receiving-optional-summary">{supplierId?(snapshot.suppliers?.find(s=>s.id===supplierId)?.name??'مورد محدد'):'بدون مورد محدد'}{reason&&' · '+reason}</small></div>
      </div>
-     <div id="receiving-document-fields" hidden={!detailsOpen}>
+     <div className="receiving-header-actions"><HelpButton topic="receiving"/><button type="button" className="icon-button" disabled={busy||!!newMaterial} onClick={close} aria-label="إغلاق">×</button></div>
+   </div>
+   <div className="modal-body"><fieldset disabled={busy||!!newMaterial} className="receipt-fields form-fields">
+    <section id="receiving-document-fields" hidden={!detailsOpen} className="form-section receipt-document-section" aria-label="بيانات الاستلام الإضافية">
      <DocumentFields collapsible={false} columns={2}>
       <label><span className="form-label">المورد <small>اختياري</small></span><select aria-label="المورد" value={supplierId} onChange={e=>{setSupplier(e.target.value);setError('');}}><option value="">بدون مورد محدد</option>{snapshot.suppliers?.filter(s=>s.active||s.id===supplierId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
       <label><span className="form-label">مرجع الاستلام <small>اختياري</small></span><input aria-label="مرجع الاستلام" minLength={2} maxLength={200} placeholder="فاتورة ١٢٣ أو توريد اليوم" value={reason} {...fieldProps('reason')} onChange={e=>{setReason(e.target.value);setError('');}}/>{fieldError('reason')}</label>
-     </DocumentFields></div>
+     </DocumentFields>
     </section>
     <div className="receiving-workspace">
     <CollapsibleSection data-form-scroll key={entryVersion} className={'receiving-composer'+(editingId?' receiving-composer-editing':'')} aria-labelledby="receiving-entry-title">

@@ -1,5 +1,7 @@
 # Hosted client release — agreed scope
 
+Receiving header/card polish is hosted as build **5bf6606f98edf33b**, Cloudflare version **68**; Supabase API remains **14**. Date and optional-details controls occupy the left desktop header, with responsive wrapping; item cards use compact inline metrics and automatic height. See [verified release](./releases/receiving-header-cards-2026-10-15.md).
+
 Delivered 15 October 2026: task-first home with receiving, kitchen supply and inventory actions; simplified desktop/mobile navigation; compact essential fields and optional details; accurate pending/confirmed/review feedback. Hosted build **1a84a8b7f338a9cf**, Cloudflare version **67**; Supabase API remains **14**. Deployment **b512d0ac-3be3-42ee-8b29-aaed076bd178** routes 100% to version **b746274d-ffc6-4735-a2dc-6cd8273c92a6**. See [workflow guide](./runbooks/Daily-Workflow.md) and [release evidence](./releases/daily-workflow-usability-2026-10-15.md). No stock policy, tenant schema or client data changed. Earlier build numbers below are historical milestones.
 
 Delivered **دليل الاستخدام**: 21 Arabic task topics, normalized text search, related topics, shared keyboard instructions and contextual **مساعدة** on screens/document headers. Help opens above the current form, preserves draft fields/lines and restores focus on close. There are no guide downloads. Hosted build **d61643ced1ead0a0**, Cloudflare version **65**; Supabase API remains **14**. See [guide behavior](./runbooks/Client-Guide.md) and [release evidence](./releases/client-guide-2026-10-13.md).

@@ -143,13 +143,18 @@
 .receiving-receipt-pane .form-section-heading{flex-wrap:wrap;gap:6px}
 .receiving-receipt-pane .form-section-heading h3{font-size:13px;margin:0}
 .receiving-list-scroll{min-width:0;min-height:0}
-.receiving-receipt-pane .kitchen-receipt-line{grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:11px 12px}
+.receiving-receipt-pane .kitchen-receipt-line{grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;padding:7px 10px;align-items:start}
+.receiving-receipt-pane .kitchen-receipt-item{gap:1px;line-height:1.35}
+.receiving-receipt-pane .kitchen-receipt-item>strong{font-size:12px}
+.receiving-receipt-pane .kitchen-receipt-item>small,.receiving-receipt-pane .kitchen-receipt-item>span{font-size:9px;line-height:1.4}
 .receiving-receipt-pane .kitchen-receipt-item{grid-column:1;grid-row:1}
 .receiving-receipt-pane .kitchen-receipt-actions{grid-column:2;grid-row:1}
-.receiving-receipt-pane .kitchen-receipt-details{grid-column:1/-1;grid-row:2;padding-top:9px;border-top:1px solid #edf0f5}
-.receiving-receipt-pane .kitchen-receipt-details dt{margin-bottom:4px}
-.receiving-receipt-pane .kitchen-receipt-details dd{font-size:11px}
-.receiving-receipt-pane .kitchen-receipt-details .kitchen-receipt-quantity{font-size:14px}
+.receiving-receipt-pane .kitchen-receipt-details{display:flex;flex-wrap:wrap;grid-column:1/-1;grid-row:2;gap:3px 12px;padding-top:5px;border-top:1px solid #edf0f5;line-height:1.45}
+.receiving-receipt-pane .kitchen-receipt-details>div{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 4px;max-width:100%}
+.receiving-receipt-pane .kitchen-receipt-details dt{font-size:10px;line-height:1.45;margin:0}
+.receiving-receipt-pane .kitchen-receipt-details dt::after{content:':' }
+.receiving-receipt-pane .kitchen-receipt-details dd,.receiving-receipt-pane .kitchen-receipt-details .kitchen-receipt-quantity{font-size:11px;line-height:1.45}
+.receiving-receipt-pane .kitchen-receipt-details .field-hint{flex-basis:100%;font-size:9px;line-height:1.4;margin:0}
 .receiving-receipt-pane .kitchen-receipt-latest{animation:receiving-added 1.8s ease-out;background:#fff}
 .receiving-show-list{display:none}
 @keyframes receiving-added{from{background:#fff0e2}to{background:#fff}}
@@ -177,4 +182,22 @@
  .receipt-modal .receiving-composer>.form-section-heading{flex-direction:row;align-items:flex-start}
  .receiving-composer>.form-section-heading>div{min-width:0;flex:1}
  .receipt-modal .receiving-composer-details .field-hint{font-size:10px;line-height:1.4}
+}
+
+.receipt-modal .receiving-header{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px) auto;align-items:start;gap:10px 16px}
+.receipt-modal .receiving-header-details{grid-template-columns:minmax(135px,1fr) minmax(0,1fr);gap:12px;padding:0;align-items:start}
+.receipt-modal .receiving-header-details>label{margin:0;gap:3px;font-size:11px}
+.receipt-modal .receiving-header-details .form-label{font-size:10px;line-height:1.4}
+.receipt-modal .receiving-header-details input{min-height:36px;font-size:12px;padding:6px 9px}
+.receipt-modal .receiving-header-details .receiving-details-toggle{font-size:11px;min-height:24px;padding:0;gap:5px;flex-wrap:wrap}
+.receipt-modal .receiving-header-details .receiving-optional-summary{font-size:10px;line-height:1.4}
+.receiving-header-actions{display:flex;align-items:center;gap:8px}
+.receipt-modal .receipt-document-section[hidden]{display:none}
+@media(max-width:899px){
+ .receipt-modal .receiving-header{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px}
+ .receiving-header-title{grid-column:1;grid-row:1}
+ .receiving-header-actions{grid-column:2;grid-row:1}
+ .receipt-modal .receiving-header-details{grid-column:1/-1;grid-row:2;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+ .receipt-modal .receiving-header-details input{min-height:44px;font-size:16px}
+ .receipt-modal .receiving-header-details .receiving-details-toggle{min-height:32px}
 }

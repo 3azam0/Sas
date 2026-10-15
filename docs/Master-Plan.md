@@ -54,6 +54,8 @@ These are roadmap items, not authorization to deploy new transactions or delete 
 
 ### Latest verification and release evidence
 
+Latest receiving polish: hosted build **5bf6606f98edf33b**, Cloudflare version **68**, API remains **14**. Header date/details and compact item cards passed type checking, eight receiving/keyboard tests, the hosted frontend build and desktop/mobile verification using a cancelled unsaved receipt. See [release evidence](./releases/receiving-header-cards-2026-10-15.md).
+
 Daily-workflow release: hosted build **1a84a8b7f338a9cf**, Cloudflare version **67**, Supabase API remains **14**. All 29 targeted tests, TypeScript and production/offline builds passed. See [release evidence](./releases/daily-workflow-usability-2026-10-15.md). No client transaction was posted or reset. The next functional slice remains sales financial corrections, followed by expenses/profitability.
 
 Client-guide release: hosted build **d61643ced1ead0a0**, Cloudflare version **65**, Supabase API remains **14**. Eleven targeted tests, type checking, production/offline builds and desktop/mobile hosted checks passed. Unsaved receiving reference/item entries survive help opening/closing; help shortcuts cannot submit the receipt. No client transaction was posted. See [guide release evidence](./releases/client-guide-2026-10-13.md).
