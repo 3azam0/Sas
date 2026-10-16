@@ -33,7 +33,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Restaurant expenses and profitability | Delivered basic scope | Categorized/location-dated expenses, single linked reversal, offline journal and financial reports. Result after recipe estimates/expenses is explicitly estimated; actual consumption still requires valid physical counts, and full accounting is deferred. |
 | Client usage guide | Delivered | **دليل الاستخدام** with 24 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
 | Real-use launch readiness | Remaining | Trial acceptance, verified restore, controlled temporary-data removal, real opening balances and operating procedures before real use. |
-| GitHub publication of latest work | Pending publication | Source checkpoint 03ca287 and the hosted Windows helper release are verified. The previous publication attempt could not resolve github.com; no new PR/CI/merge is claimed. |
+| GitHub publication of latest work | Pending publication | Source checkpoint 03ca287 and the hosted Windows helper release are verified. The latest push was blocked when Windows could not run Git Credential Manager (NtCreateDirectoryObject access denied); no new PR/remote CI/merge is claimed. |
 
 ### Remaining work in delivery order
 
