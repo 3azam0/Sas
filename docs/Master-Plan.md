@@ -32,7 +32,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Restaurant expenses and profitability | Delivered basic scope | Categorized/location-dated expenses, single linked reversal, offline journal and financial reports. Result after recipe estimates/expenses is explicitly estimated; actual consumption still requires valid physical counts, and full accounting is deferred. |
 | Client usage guide | Delivered | **دليل الاستخدام** with 23 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
 | Real-use launch readiness | Remaining | Trial acceptance, verified restore, controlled temporary-data removal, real opening balances and operating procedures before real use. |
-| GitHub publication of latest work | Pending verification/publication | Latest milestone has a local commit and hosted deployment. The recorded Windows credential-helper issue still prevents claiming the latest work is pushed or merged. |
+| GitHub publication of latest work | Pending publication | Source checkpoint 7974998 and the hosted release are verified. The latest push failed because this environment could not resolve github.com; no new PR/CI/merge is claimed. |
 
 ### Remaining work in delivery order
 
@@ -51,6 +51,8 @@ The financial implementation is described in [cost-control completion](./Cost-Co
 - Native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
 
 ### Latest verification and release evidence
+
+Cost-control completion: build **63ee15b46405aaff**, Cloudflare version **73**, Supabase API **15**, source checkpoint **7974998**. Sales corrections, expenses/reversals, financial reporting and acceptance guidance are delivered. Full suite: 346 tests passed; final targeted run: 16 passed, including two additional UI regressions. Type checking, production/offline and hosted builds, desktop/mobile draft verification and unchanged client data checks passed. Client acceptance and launch/restore remain pending. See [release evidence](./releases/cost-control-completion-2026-10-16.md).
 
 Latest form placement correction: build **7d15668d13274a36**, Cloudflare version **71**, API remains **14**. Additional-details controls and summaries are below both form headers; header dates/kitchen selector and compact cards remain. Type checking, hosted build and 16 targeted tests passed. See [release evidence](./releases/additional-details-placement-2026-10-15.md).
 

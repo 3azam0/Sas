@@ -1,3 +1,7 @@
+# Current cost-control release — 16 October 2026
+
+Build **63ee15b46405aaff**, Cloudflare version **73** (100% traffic verified), Supabase API **15**, additive migration **20261015172714_cost_control_finance**. Sales corrections and expenses are available under **المصروفات والتصحيحات**. The financial report includes dated refunds/reversals, expense categories and an explicitly estimated result; original inventory consumption/shortages remain unchanged. Dexie schema 12/recovery 18 include the journal. Technical checks and hosted desktop/mobile verification passed without posting or resetting client transactions. Human client acceptance remains pending. See [release evidence](./releases/cost-control-completion-2026-10-16.md).
+
 # Hosted client release — agreed scope
 
 Additional-details controls/summaries are now below the receiving and kitchen supply headers. Dates and the receiving kitchen stay in their headers. Build **7d15668d13274a36**, Cloudflare version **71**, API remains **14**. See [placement correction](./releases/additional-details-placement-2026-10-15.md); prior header descriptions below are historical.
