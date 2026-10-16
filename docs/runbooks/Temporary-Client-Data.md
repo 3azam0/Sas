@@ -1,3 +1,7 @@
+# Finance journal compatibility — 16 October 2026
+
+Additive migration `20261015172714_cost_control_finance.sql` verifies the previous trial signature, adds an empty finance baseline and updates that signature. It changes no trial transactions or generations. Regenerate cleanup with the current administrative script; finance is deleted before referenced sales and restored after its dependencies. Historical kitchen migration helpers freeze their original table lists. Cleanup remains subject to explicit user authorization and review of any real activity mixed into the trial.
+
 # Temporary client trial data
 
 The kitchen release adds a nullable movement link, a private issue table and a kitchen directory. Migrations `20261012065508_kitchen_consumption.sql` and `20261012073503_kitchen_directory.sql` verify each previous trial schema signature before extending the baseline with empty collections and updating that signature. Original catalog rows and stock activity remain untouched. Regenerate cleanup SQL with the current administrative script; its dependency order includes kitchen issues before kitchen records. These migrations do not end or reseed the trial.

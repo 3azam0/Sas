@@ -1,4 +1,6 @@
-import {tables} from './sample-data/admin.mjs';
+import {tables as currentTables} from './sample-data/admin.mjs';
+// Freeze this historical upgrade at its original schema stage.
+const tables=currentTables.filter(t=>t!=='finance_entries');
 export function kitchenDirectoryMigrationSql(schema){
  const quoted=values=>values.map(v=>"'"+v+"'").join(',');
  const signature=list=>`(SELECT md5(string_agg(table_name||':'||column_name||':'||udt_name,',' ORDER BY table_name,ordinal_position)) FROM information_schema.columns WHERE table_schema='fodo' AND table_name IN (${quoted(list)}))`;

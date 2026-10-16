@@ -1,12 +1,12 @@
 # FooDo — Modular Business Management SaaS Master Plan
 
-Updated: 15 October 2026. This is the main development roadmap and progress reference.
+Updated: 16 October 2026. This is the main development roadmap and progress reference.
 
 ## Current development progress
 
 Read this summary for **what is done and what remains**. The dated checkpoints below describe earlier releases; their old statements about pending hosting, sales deductions or reports do not override this summary. See the [developer guide](./Developer-Guide.md) for implementation rules and [hosted release](./Hosted-Release.md) for operational behavior.
 
-**Current milestone: Phase 4C3, the client guide and daily-workflow usability are delivered.** The first-client trial is hosted at [FooDo](https://fodo.am-agent2026.workers.dev/). This is a working trial release, not completion of the full SaaS roadmap or approval to start real operations.
+**Current milestone: Phase 4C3, sales financial corrections, basic expenses, the client guide and daily-workflow usability are delivered. Client acceptance remains pending.** The first-client trial is hosted at [FooDo](https://fodo.am-agent2026.workers.dev/). This is a working trial release, not completion of the full SaaS roadmap or approval to start real operations.
 
 | Area | Status | Completed / practical limit |
 | --- | --- | --- |
@@ -22,27 +22,25 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Kitchen stock and POS routing | Delivered | Kitchens hold stock under the main warehouse; each POS routes to one kitchen; a meal may be prepared independently in several kitchens. Kitchen supply transfers stock/value. |
 | Recipes and composition — 4A | Delivered | Versioned recipes/BOMs, nested definitions, item composition entry point, batch/portion estimates and food-cost percentages. Definitions alone do not move stock. |
 | Production and yield — 4B | Delivered | Actual inputs, usable stocked outputs, exact cost allocation, normal yield loss, abnormal waste and failed batches. |
-| Menu mapping and sales import — 4C1 | Delivered | Pinned recipes/output ratios, completed-sale CSV preview and duplicate-safe accepted imports. Refunds/voids are not yet supported. |
+| Menu mapping and sales import — 4C1 | Delivered | Pinned recipes/output ratios, completed-sale CSV preview and duplicate-safe accepted imports. Linked financial refunds/voids are delivered separately from completed-sale imports. |
 | Theoretical usage and selected deductions — 4C2 | Delivered | All recipe ingredients count toward theoretical usage; only selected ingredients deduct from the selling kitchen. Shortages are highlighted while otherwise valid imports succeed. |
 | BI reports and charts | Delivered | Overview and dedicated reports, Recharts, filters/sorting/server pagination, full-range aggregates, CSV and cached report queries; kitchen supply report included. |
 | Actual versus theoretical consumption — 4C3 | Delivered | Physical-count-based reconciliation, independent movement checks, variance charts, shortages, incomplete reasons and closing-count cost valuation. Valid opening/closing counts are needed to establish actual consumption. |
 | Forms and list usability | Delivered baseline | Task-first home, daily/grouped navigation, mobile all-sections menu, compact essential fields and optional details, visible entry lists and accurate save/sync feedback; searchable dropdowns, keyboard help, pagination/filtering/sorting and collapsible sections retained. See [daily workflow](./runbooks/Daily-Workflow.md). Further fixes depend on trial feedback. |
 | Offline capture and recovery | Delivered operational foundation | Durable tenant-bound queues, dependency ordering, retries/review, bounded offline access and recovery formats. Production restore rehearsal remains a launch task. |
-| Sales financial corrections | Not implemented | Explicit accepted-sale refund/void handling, financial reversal and controlled stock disposition are the next functional cost-control slice. |
-| Restaurant expenses and profitability | Not implemented | Expense capture/categories and reliable period profitability remain; recipe contribution estimates are not net profit. |
-| Client usage guide | Delivered | **دليل الاستخدام** with 21 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
+| Sales financial corrections | Delivered | Linked partial refunds and full remaining voids, cumulative caps, explicit stock disposition, unchanged stock/preparation/shortages, dated revenue effects and audit. |
+| Restaurant expenses and profitability | Delivered basic scope | Categorized/location-dated expenses, single linked reversal, offline journal and financial reports. Result after recipe estimates/expenses is explicitly estimated; actual consumption still requires valid physical counts, and full accounting is deferred. |
+| Client usage guide | Delivered | **دليل الاستخدام** with 23 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
 | Real-use launch readiness | Remaining | Trial acceptance, verified restore, controlled temporary-data removal, real opening balances and operating procedures before real use. |
 | GitHub publication of latest work | Pending verification/publication | Latest milestone has a local commit and hosted deployment. The recorded Windows credential-helper issue still prevents claiming the latest work is pushed or merged. |
 
 ### Remaining work in delivery order
 
-1. **Sales financial corrections:** define and implement linked refunds/voids against accepted sale lines, duplicate-safe amounts/quantities, explicit stock disposition, audit and report effects. A financial reversal must not automatically recreate physically consumed ingredients. Keep original sales immutable and verify kitchen scope, shortages and retries.
-2. **Basic restaurant expenses and profitability:** dated categorized expenses, validation and audit, inclusion in period reports, and a clearly defined distinction between revenue, inventory consumption, recipe estimates and expenses. Prevent double-counting waste/production costs. Include electricity, phone credit and knife sharpening as expense examples rather than inventory materials.
-3. **First-client acceptance:** review actual operating workflows and guide clarity, fix reported issues, confirm receiving units/recipe quantities and selective deduction choices, test real POS file formats, and agree physical count boundaries. Use isolated data for write/destructive tests.
-4. **Launch and recovery checks:** rehearse backup/restore in an isolated target, verify offline/reconnect/conflict behavior on the client's devices, document support/recovery, confirm access and external-POS fiscal responsibility, and complete GitHub publication/CI review. Hosted deployment alone does not confirm these checks.
-5. **Move from trial to real use:** only after explicit authorization, remove the marked temporary trial transactions/data according to the cleanup runbook, preserve the approved client catalog/settings as agreed, settle pending queues, establish real opening balances and confirm readiness. Do not clear client data merely to complete this checklist.
+1. **First-client acceptance:** review real receiving units/recipe quantities and selected deductions, validate an actual POS export, agree physical-count boundaries, and walk through expenses and corrections. See [acceptance checklist](./runbooks/Cost-Control-Acceptance.md). Technical tests do not establish client approval.
+2. **Launch and recovery checks:** rehearse restoration in an isolated target, verify offline/reconnect behavior on actual client devices, document support/recovery, confirm access and external-POS fiscal responsibility, and complete GitHub publication/CI review.
+3. **Move from trial to real use:** only after explicit authorization, settle device queues, remove temporary trial data using the guarded cleanup, retain the approved catalog/settings and establish real opening balances. Do not clear data to complete a checklist.
 
-These are roadmap items, not authorization to deploy new transactions or delete data. The client guide is implemented; keep it current with each feature release. The next functional slice after reconciliation remains financial corrections.
+The financial implementation is described in [cost-control completion](./Cost-Control-Completion.md), [sales corrections](./runbooks/Financial-Corrections.md) and [expenses](./runbooks/Expenses.md). Membership/billing, separate demos and cashier shifts remain deferred.
 
 ### Deferred until needed
 

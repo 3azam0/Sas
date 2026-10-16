@@ -1,3 +1,7 @@
+# Current finance delivery
+
+Sales corrections and expenses use the shared finance contract/journal, tenant serialization, append-only API permissions, immutable source links and same-ID acceptance receipts. Refunds never recreate stock or alter original preparation/shortage evidence. Expense reversals use the source amount once. Dexie schema 12/recovery 18 include finance actions, scope/reset handling and linked rejection corrections. The hosted baseline migration remains immutable; finance is additive. See [scope and rules](./Cost-Control-Completion.md), [client acceptance](./runbooks/Cost-Control-Acceptance.md) and the current release record.
+
 # Current scope amendment
 
 Delivered 13 October 2026: kitchens hold inventory within the existing branch/location scope; meals may be available in several kitchens; each POS belongs to one kitchen and prepares the complete meal independently. New sales require explicit POS context and consume checked ingredients only from its kitchen, accepting shortages without fallback. Kitchen supply is a stock transfer. Cashier shifts and split preparation remain deferred. See [delivered scope](./Kitchen-Inventory-POS-Plan.md), [setup and operating guide](./runbooks/Kitchen-Issues.md) and [verified release](./releases/kitchen-inventory-pos-2026-10-13.md). This supersedes historical immediate-consumption kitchen instructions below.
@@ -16,7 +20,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.50 — 15 October 2026
+Version 2.51 — 16 October 2026
 
 Current form placement: additional-details toggles and supplier/reference/notes summaries belong in the body directly below receiving/kitchen headers. Dates and the kitchen selector remain in the header. Keep the toggle and controlled fields in the same keyboard/validation form, preserve existing values and reveal invalid optional fields. See [placement correction](./releases/additional-details-placement-2026-10-15.md).
 

@@ -22,6 +22,7 @@ export function salesReport(snapshot:Snapshot,locationId:string,from='',to='',ba
    }catch{issues.push(`تعذر حساب مكونات ${sale.menuName}`);}
   }
  }
+ for(const r of snapshot.financeRecords??[]){const c=r.command;if(c.type==='sales.correct'&&c.locationId===locationId&&(!from||c.businessDate>=from)&&(!to||c.businessDate<=to))net=net.sub(r.amount);}
  const lines=[...totals.values()].map(r=>{
   const item=snapshot.items.find(i=>i.id===r.itemId),balance=snapshot.balances.find(b=>b.locationId===locationId&&b.itemId===r.itemId),price=snapshot.receiptPrices?.find(p=>p.locationId===locationId&&p.itemId===r.itemId);
   const unitCost=basis==='stock_average'?(balance&&decimal(balance.quantity).gt(0)?decimal(balance.value).div(balance.quantity).toString():null):price?.unitCost??null;

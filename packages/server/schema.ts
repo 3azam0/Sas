@@ -96,4 +96,5 @@ DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='kitchen_rec
 END IF; END $$;
 `;
 export {kitchenInventoryMigration} from './kitchen-inventory-schema';
-export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration;
+import {financeTables} from './finance';
+export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables;

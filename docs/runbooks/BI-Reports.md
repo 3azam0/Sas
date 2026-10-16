@@ -1,3 +1,7 @@
+# Financial reporting — 16 October 2026
+
+The **المصروفات والنتيجة التقديرية** report includes full-range dated sales corrections, net operating expenses, full recipe estimates and a clearly estimated operating result. Its details have server sorting/pagination/CSV/cache and expense-category chart drill-down. Corrections are booked on their own date and may relate to earlier sales; original consumption remains. Missing recipe prices are incomplete, not zero. See [expense rules](./Expenses.md) and [sales corrections](./Financial-Corrections.md).
+
 # BI dashboard and reports
 
 The home page now opens with daily actions. Expand **ملخص أداء الأعمال** to load its analytics, or use **التقارير والرسوم** for the dedicated report screen. Reports remain read-only and retain their existing date filters, scopes and definitions.
