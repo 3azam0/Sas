@@ -1,4 +1,8 @@
-# Current printing release — 16 October 2026
+# Windows direct printing — 16 October 2026
+
+Helper **1.0.0**, hosted build **f21015cbfa86cf90**, Cloudflare version **78**, API remains **15**, source **03ca287**. Download/pair the Windows helper from the print preview and configure installed A4/80 mm printer queues. The print action submits raster pages directly without opening the browser dialog; ambiguous results require status review and explicit reprinting. Android is deferred. The helper is unsigned and exact printer output remains a client-device acceptance task. See [operations](./runbooks/Printing.md) and [release evidence](./releases/windows-print-helper-2026-10-16.md).
+
+# Previous printing release — 16 October 2026
 
 A4 portrait/landscape and 80 mm (8 cm) roll previews are hosted for receiving, kitchen supply and reports. Build **de9a995f4b069e17**, Cloudflare version **75**, API remains **15**, source **3228082**. Full document lines and explicit current-page report scope were verified in hosted desktop/mobile previews. Physical printer/driver verification remains. See [printing runbook](./runbooks/Printing.md) and [release evidence](./releases/printing-2026-10-16.md).
 

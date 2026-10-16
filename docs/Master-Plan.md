@@ -25,7 +25,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Menu mapping and sales import — 4C1 | Delivered | Pinned recipes/output ratios, completed-sale CSV preview and duplicate-safe accepted imports. Linked financial refunds/voids are delivered separately from completed-sale imports. |
 | Theoretical usage and selected deductions — 4C2 | Delivered | All recipe ingredients count toward theoretical usage; only selected ingredients deduct from the selling kitchen. Shortages are highlighted while otherwise valid imports succeed. |
 | BI reports and charts | Delivered | Overview and dedicated reports, Recharts, filters/sorting/server pagination, full-range aggregates, CSV and cached report queries; kitchen supply report included. |
-| A4 and 80 mm printing | Layouts delivered; direct printing remains | Shared paper preview for receiving, kitchen supply and reports. Complete document lines, A4 charts and roll text; report details explicitly cover the current page. Windows/Android printing without the browser dialog is newly required; connector and exact hardware acceptance remain. See [printing](./runbooks/Printing.md). |
+| A4 and 80 mm printing | Windows helper delivered; physical acceptance remains | Paired Windows helper, direct submission, native/raster checks, download, device printer setup and explicit job/reprint status. Full document lines, A4 charts and roll text retained. Android is deferred. Exact printer output must be verified. See [printing](./runbooks/Printing.md). |
 | Actual versus theoretical consumption — 4C3 | Delivered | Physical-count-based reconciliation, independent movement checks, variance charts, shortages, incomplete reasons and closing-count cost valuation. Valid opening/closing counts are needed to establish actual consumption. |
 | Forms and list usability | Delivered baseline | Task-first home, daily/grouped navigation, mobile all-sections menu, compact essential fields and optional details, visible entry lists and accurate save/sync feedback; searchable dropdowns, keyboard help, pagination/filtering/sorting and collapsible sections retained. See [daily workflow](./runbooks/Daily-Workflow.md). Further fixes depend on trial feedback. |
 | Offline capture and recovery | Delivered operational foundation | Durable tenant-bound queues, dependency ordering, retries/review, bounded offline access and recovery formats. Production restore rehearsal remains a launch task. |
@@ -33,13 +33,11 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Restaurant expenses and profitability | Delivered basic scope | Categorized/location-dated expenses, single linked reversal, offline journal and financial reports. Result after recipe estimates/expenses is explicitly estimated; actual consumption still requires valid physical counts, and full accounting is deferred. |
 | Client usage guide | Delivered | **دليل الاستخدام** with 24 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
 | Real-use launch readiness | Remaining | Trial acceptance, verified restore, controlled temporary-data removal, real opening balances and operating procedures before real use. |
-| GitHub publication of latest work | Pending publication | Source checkpoint 3228082 and the hosted printing release are verified. The previous publication attempt could not resolve github.com; no new PR/CI/merge is claimed. |
+| GitHub publication of latest work | Pending publication | Source checkpoint 03ca287 and the hosted Windows helper release are verified. The previous publication attempt could not resolve github.com; no new PR/CI/merge is claimed. |
 
 ### Remaining work in delivery order
 
-0. **Direct printing:** deliver the requested Windows/Android A4 and 80 mm workflow without the browser print dialog. Confirm shared branch print station versus independent Android printing, then implement paired connector/printer setup and verify exact hardware. Existing paper layouts remain usable; direct hardware support is not yet delivered.
-
-1. **First-client acceptance:** review real receiving units/recipe quantities and selected deductions, validate an actual POS export, agree physical-count boundaries, and walk through expenses and corrections. See [acceptance checklist](./runbooks/Cost-Control-Acceptance.md). Technical tests do not establish client approval.
+1. **First-client acceptance:** install/pair the Windows print helper and verify actual A4/80 mm printers, review real receiving units/recipe quantities and selected deductions, validate an actual POS export, agree physical-count boundaries, and walk through expenses and corrections. See [acceptance checklist](./runbooks/Cost-Control-Acceptance.md). Technical tests do not establish client approval.
 2. **Launch and recovery checks:** rehearse restoration in an isolated target, verify offline/reconnect and A4/80 mm printing on actual client devices, document support/recovery, confirm access and external-POS fiscal responsibility, and complete GitHub publication/CI review.
 3. **Move from trial to real use:** only after explicit authorization, settle device queues, remove temporary trial data using the guarded cleanup, retain the approved catalog/settings and establish real opening balances. Do not clear data to complete a checklist.
 
@@ -51,9 +49,11 @@ The financial implementation is described in [cost-control completion](./Cost-Co
 - Subscription billing and enforced entitlements: base subscription for one branch, additional branches as paid capacity; kitchens/stock locations must not accidentally count as paid branches.
 - Dedicated client-demo environments. Continue with local development and the hosted first-client trial; a separate demo is not needed now.
 - Native POS/checkout, cashier shifts, tables, KDS, delivery and broader restaurant operations.
-- Native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
+- Independent Android browser printing helper, native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
 
 ### Latest verification and release evidence
+
+Windows direct printing: helper **1.0.0**, hosted build **f21015cbfa86cf90**, Cloudflare version **78**, API remains **15**, source **03ca287**. Native compilation and 18 printer-free protocol/raster checks passed; 29 focused web/release tests, type checking and production/offline/hosted builds passed. The hosted ZIP hash matches its manifest. Arabic/logo raster and long A4 pagination were checked in the browser. Installation/pairing and physical printer acceptance remain for the client; Android is deferred. See [release evidence](./releases/windows-print-helper-2026-10-16.md).
 
 Printing: build **de9a995f4b069e17**, Cloudflare version **75**, API remains **15**, source **3228082**. Twenty-four distinct targeted tests passed across the two focused runs; TypeScript, production/offline and hosted builds passed. Hosted receiving/kitchen/report previews were verified at desktop and phone widths, including a complete 50-line receipt. Physical driver/paper/cut checks remain for client devices. See [release evidence](./releases/printing-2026-10-16.md).
 
