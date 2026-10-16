@@ -1,3 +1,7 @@
+# Current printing release — 16 October 2026
+
+A4 portrait/landscape and 80 mm (8 cm) roll previews are hosted for receiving, kitchen supply and reports. Build **de9a995f4b069e17**, Cloudflare version **75**, API remains **15**, source **3228082**. Full document lines and explicit current-page report scope were verified in hosted desktop/mobile previews. Physical printer/driver verification remains. See [printing runbook](./runbooks/Printing.md) and [release evidence](./releases/printing-2026-10-16.md).
+
 # Current cost-control release — 16 October 2026
 
 Build **63ee15b46405aaff**, Cloudflare version **73** (100% traffic verified), Supabase API **15**, additive migration **20261015172714_cost_control_finance**. Sales corrections and expenses are available under **المصروفات والتصحيحات**. The financial report includes dated refunds/reversals, expense categories and an explicitly estimated result; original inventory consumption/shortages remain unchanged. Dexie schema 12/recovery 18 include the journal. Technical checks and hosted desktop/mobile verification passed without posting or resetting client transactions. Human client acceptance remains pending. See [release evidence](./releases/cost-control-completion-2026-10-16.md).
