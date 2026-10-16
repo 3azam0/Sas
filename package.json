@@ -17,7 +17,7 @@
     "check": "pnpm typecheck && pnpm test",
     "setup:check": "node scripts/environment.mjs",
     "build:cloud": "node scripts/build-cloud.mjs",
-    "build:print-helper": "powershell -NoProfile -ExecutionPolicy Bypass -File helpers/windows/Build.ps1 -Test",
+    "build:print-helper": "powershell -NoProfile -File helpers/windows/Build.ps1 -Test",
     "test:cloud": "node scripts/verify-cloud.mjs",
     "types:cloud": "wrangler types cloud/worker-configuration.d.ts --config .cloud-build/wrangler.json --include-runtime false --strict-vars false"
   },

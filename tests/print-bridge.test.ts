@@ -1,6 +1,6 @@
 import {afterEach,beforeEach,describe,it,expect,vi} from 'vitest';
 import {helperOrigin,pairPrintHelper,helperPrinters,printJobStatus,helperToken,forgetHelper,sendPrintPacket,printRecordKey,savePrintReceipt,readPrintReceipt,printSubmissionFailure,PrintBridgeError,type PrintPacket,type PrintReceipt} from '../apps/web/src/print-bridge';
-import {printSliceEnd} from '../apps/web/src/print-capture';
+import {printSliceEnd,lastInkRow} from '../apps/web/src/print-capture';
 let storage:Map<string,string>;
 beforeEach(()=>{storage=new Map();vi.stubGlobal('localStorage',{getItem:(k:string)=>storage.get(k)??null,setItem:(k:string,v:string)=>storage.set(k,v),removeItem:(k:string)=>storage.delete(k)});});
 afterEach(()=>vi.unstubAllGlobals());
@@ -42,5 +42,10 @@ describe('Windows print helper browser contract',()=>{
   expect(printSliceEnd(80,100,200,[{top:80,bottom:120}])).toBe(180);
   expect(printSliceEnd(0,100,500,[{top:0,bottom:400}])).toBe(100);
   expect(printSliceEnd(180,100,200,[])).toBe(200);
+ });
+ it('retains the last rendered ink row while ignoring blank or transparent tail pixels',()=>{
+  const pixels=new Uint8ClampedArray(2*4*4).fill(255);expect(lastInkRow(pixels,2,4)).toBe(0);
+  pixels[(2*2+1)*4]=0;expect(lastInkRow(pixels,2,4)).toBe(3);
+  pixels[(3*2)*4]=0;pixels[(3*2)*4+3]=0;expect(lastInkRow(pixels,2,4)).toBe(3);
  });
 });

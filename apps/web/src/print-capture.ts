@@ -3,6 +3,8 @@ import type {PrintPage} from './print-bridge';
 export type PrintBlock={top:number;bottom:number};
 /** Prefer a complete row/chart over cutting through it; oversized blocks still make progress. */
 export function printSliceEnd(start:number,maximum:number,end:number,blocks:PrintBlock[]){let cut=Math.min(start+maximum,end);for(const b of [...blocks].sort((a,b)=>a.top-b.top)){if(b.top>start+.5&&b.top<cut&&b.bottom>cut&&b.bottom-b.top<=maximum)cut=b.top;}return cut>start?cut:Math.min(start+maximum,end);}
+/** Keep the rendered footer, allowing for subpixel layout differences in the SVG image. */
+export function lastInkRow(pixels:Uint8ClampedArray,width:number,height:number){for(let y=height-1;y>=0;y--)for(let x=0;x<width;x++){const i=(y*width+x)*4;if(pixels[i+3]>0&&(pixels[i]<250||pixels[i+1]<250||pixels[i+2]<250))return y+1;}return 0;}
 
 function copyStyle(source:Element,target:Element,pseudo?:string){const style=getComputedStyle(source,pseudo);for(const property of Array.from(style))(target as HTMLElement).style.setProperty(property,style.getPropertyValue(property));return style;}
 async function clonePrintNode(source:Node):Promise<Node>{
@@ -15,7 +17,7 @@ async function clonePrintNode(source:Node):Promise<Node>{
 }
 export async function capturePrintSheet(sheet:HTMLElement,paper:PrintPaper,orientation:PrintOrientation,widthDots=576):Promise<PrintPage[]>{
  await document.fonts?.ready;for(const img of Array.from(sheet.querySelectorAll('img')))if(!img.complete)await img.decode();
- const rect=sheet.getBoundingClientRect(),height=sheet.scrollHeight,scale=paper==='a4'?2:widthDots/rect.width;
+ const rect=sheet.getBoundingClientRect(),height=sheet.scrollHeight+96,scale=paper==='a4'?2:widthDots/rect.width;
  if(rect.width<=0||height<=0||height*scale>30000||rect.width*height*scale*scale>32000000)throw new Error('المستند كبير جداً. ضيّق التقرير أو اطبع عدداً أقل من السجلات.');
  const style=getComputedStyle(sheet),paddingY=parseFloat(style.paddingTop)*scale;
  const blocks=Array.from(sheet.querySelectorAll('.document-print-table tr,.document-print-header,.document-print-total,.document-print-warning,.document-print-signatures,.document-print-footer,.document-print-metrics>div,.document-print-charts .bi-chart')).map(el=>{const r=el.getBoundingClientRect();return {top:(r.top-rect.top)*scale-paddingY,bottom:(r.bottom-rect.top)*scale-paddingY};});
@@ -24,7 +26,8 @@ export async function capturePrintSheet(sheet:HTMLElement,paper:PrintPaper,orien
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width',String(rect.width));svg.setAttribute('height',String(height));const object=document.createElementNS(svg.namespaceURI,'foreignObject');object.setAttribute('width','100%');object.setAttribute('height','100%');object.appendChild(clone);svg.appendChild(object);
  const image=new Image();await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('تعذر تجهيز صورة الطباعة. جرّب Chrome أو Edge في ويندوز.'));image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(svg));});
  const master=document.createElement('canvas');master.width=Math.round(rect.width*scale);master.height=Math.ceil(height*scale);const ctx=master.getContext('2d')!;ctx.fillStyle='#fff';ctx.fillRect(0,0,master.width,master.height);ctx.drawImage(image,0,0,master.width,master.height);
- const pages:PrintPage[]=[];const a4Height=Math.round(master.width*(orientation==='portrait'?297/210:210/297)),contentEnd=paper==='a4'?master.height-paddingY:master.height;
+ const tailHeight=Math.min(master.height,Math.ceil(512*scale)),ink=lastInkRow(ctx.getImageData(0,master.height-tailHeight,master.width,tailHeight).data,master.width,tailHeight);
+ const pages:PrintPage[]=[];const a4Height=Math.round(master.width*(orientation==='portrait'?297/210:210/297)),contentEnd=ink?Math.min(master.height,master.height-tailHeight+ink+Math.ceil(3*scale)):master.height;
  let start=paper==='a4'?paddingY:0;
  while(start<contentEnd){const canvas=document.createElement('canvas');canvas.width=master.width;canvas.height=paper==='a4'?a4Height:Math.min(2048,Math.ceil(contentEnd-start));const context=canvas.getContext('2d')!;context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);
   const repeat=paper==='a4'&&pages.length?tables.find(t=>start>t.top+t.height+.5&&start<t.bottom):undefined;
