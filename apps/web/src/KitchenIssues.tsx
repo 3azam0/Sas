@@ -168,7 +168,7 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,command
 }
 
 function KitchenIssuePrint({snapshot,row,close}:{snapshot:Snapshot;row:IssueRow;close:()=>void}){
- return <PrintPreview title="طباعة مستند صرف" close={close}><KitchenIssuePrintSheet snapshot={snapshot} row={row}/></PrintPreview>;
+ return <PrintPreview organizationId={snapshot.organizationId} documentId={row.id} title="طباعة مستند صرف" close={close}><KitchenIssuePrintSheet snapshot={snapshot} row={row}/></PrintPreview>;
 }
 export function KitchenIssuePrintSheet({snapshot,row}:{snapshot:Snapshot;row:IssueRow}){
  const d=row.document,p=row.posted;

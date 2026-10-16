@@ -25,6 +25,10 @@ it('expires both cookies on logout and adds security headers',async()=>{
  vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(null,{status:204})));const worker=createWorker({},'test');
  const r=await worker.fetch(new Request(origin+'/api/v1/auth/logout',{method:'POST',headers:{Origin:origin,Cookie:cookie}}),env);expect(r.headers.get('Set-Cookie')).toContain('Max-Age=0');expect(r.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");expect(r.headers.get('Cache-Control')).toBe('no-store');
 });
+it('allows only the fixed loopback helper connection while retaining other policy boundaries',async()=>{
+ const r=await createWorker({},'test').fetch(new Request(origin+'/missing'),env),policy=r.headers.get('Content-Security-Policy')!;
+ expect(policy).toContain("connect-src 'self' http://127.0.0.1:17856;");expect(policy).toContain("script-src 'self';");expect(policy).toContain("frame-ancestors 'none'");expect(policy).not.toContain('connect-src *');expect(policy).not.toContain('http://192.168.');
+});
 
 it('requires authenticated same-origin POST for reports and forwards its exact filters and generation',async()=>{
  const fetcher=vi.fn().mockResolvedValue(Response.json({schemaVersion:1,rows:[],total:0}));vi.stubGlobal('fetch',fetcher);

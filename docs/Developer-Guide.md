@@ -1,8 +1,8 @@
 # Current printing support
 
-Direct printing without the browser dialog is now required for Windows and Android. It is not implemented by the existing paper previews. Choose between a shared running branch print station and independent Android native printing before committing to a connector. Preserve offline/LAN operation, paired-device authorization, explicit printer mappings and safe job/reprint handling. Xprinter is a target example, not a certified model list. See the scope amendment in the [printing runbook](./runbooks/Printing.md).
+The current delivery is the Windows helper only; Android is deferred. The browser uses a paired localhost protocol for explicit direct printing, with per-organization tokens and durable job references. The portable .NET helper handles A4 through Windows drivers and 80 mm ESC/POS raster through an installed queue. No automatic resend follows an ambiguous result. Build it with helpers/windows/Build.ps1 -Test before the hosted bundle; CI transfers the verified Windows artifact to the Linux build. Exact printer compatibility remains a physical acceptance task. See the [printing runbook](./runbooks/Printing.md).
 
-A4 portrait/landscape and 80 mm roll previews share document branding, paper preferences and explicit browser printing. Receiving/kitchen documents include all lines; reports separate full-filter totals from current-page details. Do not post transactions to test print layouts. See [printing runbook](./runbooks/Printing.md).
+A4 portrait/landscape and 80 mm roll previews share document branding, paper preferences, raster previews and direct helper submission. Receiving/kitchen documents include all lines; reports separate full-filter totals from current-page details. Do not post transactions to test print layouts. See [printing runbook](./runbooks/Printing.md).
 
 # Current finance delivery
 
@@ -26,7 +26,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.52 — 16 October 2026
+Version 2.53 — 16 October 2026
 
 Current form placement: additional-details toggles and supplier/reference/notes summaries belong in the body directly below receiving/kitchen headers. Dates and the kitchen selector remain in the header. Keep the toggle and controlled fields in the same keyboard/validation form, preserve existing values and reveal invalid optional fields. See [placement correction](./releases/additional-details-placement-2026-10-15.md).
 

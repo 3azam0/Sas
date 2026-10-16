@@ -17,8 +17,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  print_helper:
+    name: Windows print helper
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Compile helper and run protocol checks without a printer
+        shell: pwsh
+        run: ./helpers/windows/Build.ps1 -Test
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: windows-print-helper
+          path: apps/web/public/downloads/
+          if-no-files-found: error
+          retention-days: 14
+
   quality:
     name: Quality and offline checks
+    needs: [print_helper]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -37,6 +56,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Use the verified Windows helper in the hosted build
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: windows-print-helper
+          path: apps/web/public/downloads/
       - name: Build hosted frontend and backend without deployment credentials
         run: pnpm build:cloud
         env:
@@ -81,7 +105,7 @@ jobs:
   gate:
     name: CI gate
     if: always()
-    needs: [quality, secrets]
+    needs: [quality, secrets, print_helper]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -89,6 +113,8 @@ jobs:
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
           SECRET_RESULT: ${{ needs.secrets.result }}
+          PRINT_HELPER_RESULT: ${{ needs.print_helper.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$SECRET_RESULT" = success
+          test "$PRINT_HELPER_RESULT" = success

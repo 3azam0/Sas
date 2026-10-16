@@ -1,37 +1,37 @@
-# A4 and 80 mm roll printing
+# Windows direct printing — A4 and 80 mm
 
-## Scope amendment — direct printing requested
+Current scope: Windows helper 1.0.0 and the FooDo browser integration. Android remains deferred. Exact printer models and physical output still require acceptance on the client's equipment.
 
-The client now requires Windows and Android printing without the browser print dialog. Xprinter is an example brand; the exact printer model/interface has not been chosen. The hosted A4/80 mm layouts below are delivered, but their current transport is still `window.print()`. Direct printing is pending and must not be described as already supported.
+## First setup
 
-For the current web-first release, the proposed setup is a local print connector at the branch: save separate A4/80 mm printer mappings, pair authorized devices once, and send explicit Print actions to the configured printer without invoking `window.print()`. A Windows print station can provide the installed A4 driver and USB/network receipt-printer access for both its own browser and Android browsers on the same LAN. That arrangement requires the station to remain running. If Android must print independently when the station is off, add an Android companion/native adapter; a web/PWA installation alone does not implement that native connector.
+1. Open a receiving/kitchen document's print preview, or choose **طباعة التقرير** in Reports.
+2. Expand **إعداد الطابعة · ويندوز** and download the Windows helper. Extract the ZIP and open **Start-FooDo-Print.cmd**. Windows 10/11 with .NET Framework 4.8 is required. Install the printer's official Windows driver first.
+3. In the helper window, choose the A4 and/or 80 mm printer queues and save. A4 uses an installed driver that advertises A4. The roll uses ESC/POS raster through an installed queue; confirm the usable width (512/576/640 dots) for the exact model. Cutting is opt-in for printers supporting the command. PDF/XPS/Fax/OneNote virtual queues are excluded because they can open their own save dialogs.
+4. Enter the helper's one-use pairing code in FooDo and connect. The code expires after 10 minutes. Allow the browser's local-device connection permission if asked. That initial connection permission is separate from printing.
+5. Choose A4 portrait/landscape or 80 mm roll. **معاينة نسخة الطابعة** shows the actual raster pages. **طباعة مباشرة** sends the job without calling the browser print dialog.
 
-Keep document rendering and print-job contracts shared across these adapters. Use printer-width-aware raster output for Arabic/logo consistency on thermal printers; confirm usable dots/width and cut capability for each chosen model. Do not claim every Xprinter or Bluetooth variant is compatible. Network-capable receipt printers are the proposed shared-station target; USB can be served by the Windows station.
+Keep the helper running; minimizing sends it to the tray. Its window/tray menu can close it. It does not install drivers, change the default printer, register a URL scheme, add startup tasks, change certificates or add firewall rules. The package is unsigned; ZIP/executable SHA-256 hashes are provided in the download manifest. The initial download requires connectivity.
 
-Required implementation: paired device authentication, explicit allowed app origins and printers, authenticated local transport, device-specific printer mappings, bounded job size/queue, stable job IDs, submission status, explicit reprint handling and actionable unavailable-printer errors. Do not put signing secrets in the web bundle, expose arbitrary local file/command access, silently fall back to the browser dialog or automatically replay a job after an ambiguous printer submission. Spool acceptance is not proof that paper printed. The LAN/connector route must work without Internet access for already-authorized cached documents; a cloud-only signing dependency would not meet that requirement.
+## Documents and reports
 
-The remaining setup decision is whether Android needs independent printing or may use the running branch print station. Hardware acceptance must cover both devices, Arabic, logo, long receipts, A4 pagination, paper-out/offline conditions and an interrupted submission. Xprinter publishes [Android and Windows SDKs](https://www.xprintertech.com/sdk.html). QZ Tray is a possible Windows bridge, but suppressing its own dialogs requires [trusted message signing](https://qz.io/docs/signing); do not treat installing it alone as silent printing or assume Android runs the desktop connector.
+Receiving/kitchen documents include every line, independent of screen pagination. Receiving retains base quantity, pack conversion, inventory-unit cost and total. Unaccepted documents carry a provisional warning; pending kitchen costs remain unknown. Printing never posts inventory or changes stock.
 
-## Current hosted behavior
+Reports preserve filters, scope, update/cached state, full filtered totals and explicit current-detail-page scope. A4 includes charts; roll output uses labelled stacked rows. A4 raster pagination repeats table headings and prefers complete rows/charts. Long rolls are emitted as consecutive image strips with one final optional cut. Arabic/logo rendering occurs in the browser, avoiding reliance on a printer's text code page.
 
-Open a saved receiving document and choose **عرض وطباعة مستند الاستلام**. Kitchen supply uses **عرض وطباعة المستند**. Reports use **طباعة / PDF**. Each opens the same preview with A4 or **رول 80 مم (8 سم)**; A4 supports portrait/landscape, and the browser remembers the paper choice on that device.
+## Job status and reprints
 
-Receiving and kitchen documents print every document line, independent of screen pagination. Receiving shows base-stock quantity, entered-pack conversion where recorded, unit cost per inventory unit and total. An unaccepted document carries a provisional warning; pending kitchen costs remain unknown. Printing never posts a document or changes stock.
+The helper accepts one job ID once, rejects changed data under the same ID and stores scoped receipts. The browser stores the job reference before submission. A lost response is **unknown**, not proof of failure; the UI never automatically resends. Use **تحقق من حالة الطلب** and inspect the printer before explicitly confirming another copy. **submitted** means handed to the queue, not proof that paper printed. Restarting the helper marks queued/sending receipts unknown without replay. A failure confirmed before sending is shown separately.
 
-Reports preserve the selected period, scope, filters, update timestamp and cached-copy status. Totals and charts cover the full filtered range; the details explicitly cover the current page only. Print each required detail page or use the existing complete CSV export. Inventory reports remain current balances rather than historical balances. Missing estimates/reconciliation values remain incomplete; financial results remain estimated. Sales shortages retain their full location/period scope.
+## Local security and offline operation
 
-A4 includes charts. The roll uses compact summaries and labelled item rows without charts. Long names and document IDs wrap. Long roll output may span multiple pages/cuts; the app does not issue ESC/POS cut or cash-drawer commands.
+The helper binds only to **127.0.0.1:17856**. Allowed website origins are exactly the hosted FooDo origin and **http://127.0.0.1:3108** for the existing local environment. The Host header is checked; CORS/PNA responses are restricted to allowed origins. Pairings bind a random token to origin and organization; only token hashes are retained by the helper. Pair attempts are limited and pairings can be revoked from its window. Browser credentials are scoped by organization and are never sent to Cloudflare/Supabase. The helper exposes no file, shell, network-target or remote-settings API.
 
-## Printer setup and client check
+Settings and job receipts live under **%LOCALAPPDATA%/FooDo/PrintHelper/settings.json**. Raster pages are kept in bounded memory only. Requests are capped at 16 MB, 40 pages and 32 million image pixels; PNG headers/decoded dimensions are checked. Pending work is bounded and only one worker submits jobs. The app's hosted CSP permits only the fixed helper address in addition to its existing same-origin connections.
 
-1. Choose the paper in FooDo, then **طباعة / حفظ PDF**.
-2. Select the printer (or PDF) in the browser dialog. Match A4 or the installed 80 mm roll driver paper, use 100% scaling and disable browser headers/footers. A4 direction must also match the preview.
-3. Check a sample on the actual printer for Arabic shaping, logo, long material names, conversions, all document lines and final totals. Check a long document for page breaks/cuts.
+Already-authorized cached documents can print locally without Internet signing. This does not extend the app's offline authorization or document availability. User/device access to Windows and the paired browser remains necessary.
 
-The preview uses 210/297 mm A4 and an 80 mm roll with 3 mm inner side padding. The custom roll height is measured after fonts/images/layout are ready and capped at 1000 mm per CSS page; longer content paginates. Driver support and printable margins require the physical-device check. Silent printing, automatic printer selection, tax invoices, kitchen order tickets and raw thermal commands are outside this change.
+## Build, tests and release
 
-## Implementation
+Run **helpers/windows/Build.ps1 -Test** to compile, execute native checks without a printer, and create the portable ZIP plus manifest under **apps/web/public/downloads/**. Generated binaries are ignored by Git. GitHub CI builds/checks the helper on Windows and passes the artifact to the hosted build on Linux. Hosted builds verify the ZIP manifest hash and include the helper bytes in the build identity. The user guide remains in-app and is not downloadable.
 
-`apps/web/src/PrintPreview.tsx` owns the body-portal modal, paper preference, orientation, font/image readiness, focus restoration and explicit print action. `printing.ts` builds valid `@page` sizes. `PrintTable` supplies roll labels; document sheets render without list pagination. `ReportPrint.tsx` pins the report response selected when the preview opened. `app/printing.css` is imported last in both Next and hosted entrypoints and isolates the preview during print.
-
-The user guide includes **الطباعة على A4 ورول 80 مم**. The guide itself remains an in-app resource without a download action. Application/offline bundles include the print components; document availability still follows existing cached/synchronized data.
+Before real use, test Arabic/logo legibility, long names, all lines/totals, A4 page breaks/margins, roll width, optional cutting, paper-out/offline behavior, interrupted submission and explicit reprints on each actual printer. Generic ESC/POS compatibility does not certify every Xprinter variant.

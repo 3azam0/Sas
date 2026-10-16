@@ -11,7 +11,7 @@ const money=(v:string|null|undefined)=>v==null?'غير مكتمل':n(v,2)+' ج.�
 const movement:Record<string,string>={'receipt.post':'استلام','purchase.receive':'استلام شراء','purchase.reverse':'عكس استلام','purchase.return':'مرتجع مورد','waste.post':'هالك','kitchen.issue':'استهلاك مطبخ سابق','kitchen.transfer.in':'توريد مخزون للمطبخ','kitchen.transfer.out':'تحويل إلى مطبخ','sales.issue':'خصم مبيعات','count.adjust':'تسوية جرد','production.input':'مدخل إنتاج','production.output':'ناتج إنتاج','transfer.dispatch':'إرسال تحويل','transfer.receive':'استلام تحويل',opening:'رصيد افتتاحي','opening.post':'رصيد افتتاحي','sales.correct':'مرتجع / إلغاء بيع','expense.post':'مصروف تشغيل','expense.reverse':'عكس مصروف',balance:'رصيد حالي',sale:'بيع',production:'دفعة تحضير'};
 
 export default function ReportPrint({snapshot,data,title,cached,close}:{snapshot:Snapshot;data:ReportResponse;title:string;cached:boolean;close:()=>void}){
- return <PrintPreview title={'طباعة '+title} orientation="landscape" close={close}>{paper=><ReportPrintSheet snapshot={snapshot} data={data} title={title} paper={paper} cached={cached}/>}</PrintPreview>;
+ return <PrintPreview organizationId={snapshot.organizationId} documentId={'report:'+data.checkpoint+':'+JSON.stringify(data.query)} title={'طباعة '+title} orientation="landscape" close={close}>{paper=><ReportPrintSheet snapshot={snapshot} data={data} title={title} paper={paper} cached={cached}/>}</PrintPreview>;
 }
 export function ReportPrintSheet({snapshot,data,title,paper,cached=false}:{snapshot:Snapshot;data:ReportResponse;title:string;paper:PrintPaper;cached?:boolean}){
  const q=data.query,c=data.current,kind=q.kind,recon=data.reconciliation;

@@ -10,12 +10,17 @@ await mkdir('.cloud-build',{recursive:true});
 const options={bundle:true,tsconfig:'tsconfig.json',logLevel:'warning',target:'es2022'};
 await esbuild.build({...options,entryPoints:['cloud/frontend.tsx'],outdir:'.cloud-build/frontend',platform:'browser',minify:true,jsx:'automatic',define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_FODO_HOSTED':'"1"','process.env.NEXT_PUBLIC_FODO_BUILD':'"1.0"'}});
 const js=await readFile('.cloud-build/frontend/frontend.js'),css=await readFile('.cloud-build/frontend/frontend.css');
-const buildId=createHash('sha256').update(js).update(css).digest('hex').slice(0,16),jsPath=`/assets/fodo-${buildId}.js`,cssPath=`/assets/fodo-${buildId}.css`;
+const helperZip=await readFile('apps/web/public/downloads/foodo-print-windows-1.0.0.zip'),helperManifest=JSON.parse((await readFile('apps/web/public/downloads/foodo-print-windows.json','utf8')).replace(/^\uFEFF/,''));
+if(helperManifest.version!=='1.0.0'||helperManifest.protocol!==1||helperManifest.platform!=='windows'||createHash('sha256').update(helperZip).digest('hex')!==helperManifest.sha256)throw new Error('Windows print helper download is missing or mismatched. Run helpers/windows/Build.ps1 -Test first.');
+const buildId=createHash('sha256').update(js).update(css).update(helperZip).digest('hex').slice(0,16),jsPath=`/assets/fodo-${buildId}.js`,cssPath=`/assets/fodo-${buildId}.css`;
 const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#d94b20"><meta name="description" content="إدارة المخزون والوصفات والتكاليف"><title>FooDo | إدارة المخزون والتكاليف</title><link rel="icon" type="image/png" href="/branding/foodo-icon-v1.png"><link rel="apple-touch-icon" href="/branding/foodo-icon-v1.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="${cssPath}"></head><body><div id="root"></div><script type="module" src="${jsPath}"></script></body></html>`;
 const brandingFiles=(await readdir('apps/web/public/branding')).filter(file=>/^[a-z0-9-]+\.(webp|png)$/.test(file));
 const paths=['/',jsPath,cssPath,'/icon.svg','/manifest.webmanifest',...brandingFiles.map(file=>'/branding/'+file)];
 const sw=hostedServiceWorker(buildId,paths);
 const data={};function asset(path,contents,type,cache='public, max-age=31536000, immutable'){data[path]={data:gzipSync(contents).toString('base64'),type,cache};}
+for(const file of ['foodo-print-windows-1.0.0.zip','foodo-print-windows.json']){
+ const bytes=await readFile('apps/web/public/downloads/'+file);asset('/downloads/'+file,bytes,file.endsWith('.zip')?'application/zip':'application/json; charset=utf-8','no-store');
+}
 asset('/',html,'text/html; charset=utf-8','no-store');asset(jsPath,js,'application/javascript; charset=utf-8');asset(cssPath,css,'text/css; charset=utf-8');asset('/sw.js',sw,'application/javascript; charset=utf-8','no-cache');
 asset('/icon.svg',await readFile('apps/web/public/icon.svg'),'image/svg+xml','public, max-age=86400');asset('/manifest.webmanifest',await readFile('apps/web/public/manifest.webmanifest'),'application/manifest+json','no-cache');
 for(const file of brandingFiles)asset('/branding/'+file,await readFile('apps/web/public/branding/'+file),file.endsWith('.webp')?'image/webp':'image/png');

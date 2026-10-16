@@ -61,6 +61,6 @@ export function createWorker(assets:Assets,buildId:string){return {async fetch(r
  let r:Response;try{r=await handle(request,env,assets,buildId);}catch{r=error(503,'تعذر الاتصال بالخدمة. حاول مجدداً.');}
  r.headers.set('X-Content-Type-Options','nosniff');r.headers.set('Referrer-Policy','same-origin');r.headers.set('X-Frame-Options','DENY');
  r.headers.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
- r.headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+ r.headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://127.0.0.1:17856; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
  r.headers.set('Strict-Transport-Security','max-age=31536000');return r;
 }};}
