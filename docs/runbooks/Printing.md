@@ -1,5 +1,19 @@
 # A4 and 80 mm roll printing
 
+## Scope amendment — direct printing requested
+
+The client now requires Windows and Android printing without the browser print dialog. Xprinter is an example brand; the exact printer model/interface has not been chosen. The hosted A4/80 mm layouts below are delivered, but their current transport is still `window.print()`. Direct printing is pending and must not be described as already supported.
+
+For the current web-first release, the proposed setup is a local print connector at the branch: save separate A4/80 mm printer mappings, pair authorized devices once, and send explicit Print actions to the configured printer without invoking `window.print()`. A Windows print station can provide the installed A4 driver and USB/network receipt-printer access for both its own browser and Android browsers on the same LAN. That arrangement requires the station to remain running. If Android must print independently when the station is off, add an Android companion/native adapter; a web/PWA installation alone does not implement that native connector.
+
+Keep document rendering and print-job contracts shared across these adapters. Use printer-width-aware raster output for Arabic/logo consistency on thermal printers; confirm usable dots/width and cut capability for each chosen model. Do not claim every Xprinter or Bluetooth variant is compatible. Network-capable receipt printers are the proposed shared-station target; USB can be served by the Windows station.
+
+Required implementation: paired device authentication, explicit allowed app origins and printers, authenticated local transport, device-specific printer mappings, bounded job size/queue, stable job IDs, submission status, explicit reprint handling and actionable unavailable-printer errors. Do not put signing secrets in the web bundle, expose arbitrary local file/command access, silently fall back to the browser dialog or automatically replay a job after an ambiguous printer submission. Spool acceptance is not proof that paper printed. The LAN/connector route must work without Internet access for already-authorized cached documents; a cloud-only signing dependency would not meet that requirement.
+
+The remaining setup decision is whether Android needs independent printing or may use the running branch print station. Hardware acceptance must cover both devices, Arabic, logo, long receipts, A4 pagination, paper-out/offline conditions and an interrupted submission. Xprinter publishes [Android and Windows SDKs](https://www.xprintertech.com/sdk.html). QZ Tray is a possible Windows bridge, but suppressing its own dialogs requires [trusted message signing](https://qz.io/docs/signing); do not treat installing it alone as silent printing or assume Android runs the desktop connector.
+
+## Current hosted behavior
+
 Open a saved receiving document and choose **عرض وطباعة مستند الاستلام**. Kitchen supply uses **عرض وطباعة المستند**. Reports use **طباعة / PDF**. Each opens the same preview with A4 or **رول 80 مم (8 سم)**; A4 supports portrait/landscape, and the browser remembers the paper choice on that device.
 
 Receiving and kitchen documents print every document line, independent of screen pagination. Receiving shows base-stock quantity, entered-pack conversion where recorded, unit cost per inventory unit and total. An unaccepted document carries a provisional warning; pending kitchen costs remain unknown. Printing never posts a document or changes stock.

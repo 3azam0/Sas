@@ -1,5 +1,7 @@
 # Current printing support
 
+Direct printing without the browser dialog is now required for Windows and Android. It is not implemented by the existing paper previews. Choose between a shared running branch print station and independent Android native printing before committing to a connector. Preserve offline/LAN operation, paired-device authorization, explicit printer mappings and safe job/reprint handling. Xprinter is a target example, not a certified model list. See the scope amendment in the [printing runbook](./runbooks/Printing.md).
+
 A4 portrait/landscape and 80 mm roll previews share document branding, paper preferences and explicit browser printing. Receiving/kitchen documents include all lines; reports separate full-filter totals from current-page details. Do not post transactions to test print layouts. See [printing runbook](./runbooks/Printing.md).
 
 # Current finance delivery
