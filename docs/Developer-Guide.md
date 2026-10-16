@@ -1,3 +1,7 @@
+# Current printing support
+
+A4 portrait/landscape and 80 mm roll previews share document branding, paper preferences and explicit browser printing. Receiving/kitchen documents include all lines; reports separate full-filter totals from current-page details. Do not post transactions to test print layouts. See [printing runbook](./runbooks/Printing.md).
+
 # Current finance delivery
 
 Sales corrections and expenses use the shared finance contract/journal, tenant serialization, append-only API permissions, immutable source links and same-ID acceptance receipts. Refunds never recreate stock or alter original preparation/shortage evidence. Expense reversals use the source amount once. Dexie schema 12/recovery 18 include finance actions, scope/reset handling and linked rejection corrections. The hosted baseline migration remains immutable; finance is additive. See [scope and rules](./Cost-Control-Completion.md), [client acceptance](./runbooks/Cost-Control-Acceptance.md) and the current release record.
@@ -20,7 +24,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.51 — 16 October 2026
+Version 2.52 — 16 October 2026
 
 Current form placement: additional-details toggles and supplier/reference/notes summaries belong in the body directly below receiving/kitchen headers. Dates and the kitchen selector remain in the header. Keep the toggle and controlled fields in the same keyboard/validation form, preserve existing values and reveal invalid optional fields. See [placement correction](./releases/additional-details-placement-2026-10-15.md).
 

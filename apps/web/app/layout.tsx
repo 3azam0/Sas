@@ -14,3 +14,4 @@ export const viewport:Viewport={width:'device-width',initialScale:1,themeColor:'
 export default function Layout({children}:{children:React.ReactNode}){return <html lang="ar" dir="rtl"><body>{children}</body></html>;}
 
 import './reports.css';
+import './printing.css';
