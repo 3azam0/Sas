@@ -33,7 +33,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Restaurant expenses and profitability | Delivered basic scope | Categorized/location-dated expenses, single linked reversal, offline journal and financial reports. Result after recipe estimates/expenses is explicitly estimated; actual consumption still requires valid physical counts, and full accounting is deferred. |
 | Client usage guide | Delivered | **دليل الاستخدام** with 24 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
 | Real-use launch readiness | Remaining | Trial acceptance, verified restore, controlled temporary-data removal, real opening balances and operating procedures before real use. |
-| GitHub publication of latest work | Pending publication | Source checkpoint 03ca287 and the hosted Windows helper release are verified. The latest push was blocked when Windows could not run Git Credential Manager (NtCreateDirectoryObject access denied); no new PR/remote CI/merge is claimed. |
+| GitHub publication of latest work | Pending publication | Source checkpoint 9721b92 and the hosted authentication/Windows helper releases are verified. The latest push was blocked when Windows could not run Git Credential Manager (NtCreateDirectoryObject access denied); no new PR/remote CI/merge is claimed. |
 
 ### Remaining work in delivery order
 
@@ -52,6 +52,8 @@ The financial implementation is described in [cost-control completion](./Cost-Co
 - Independent Android browser printing helper, native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
 
 ### Latest verification and release evidence
+
+Authentication UI: responsive Arabic sign-in, password visibility, actionable feedback, bounded requests and in-place same-organization renewal. Source **9721b92**, build **f2f4a5f166769ef3**, Cloudflare version **79**, API remains **15**. All 367 tests, TypeScript and production/offline/hosted builds passed. Browser verification covered desktop/phone layouts, keyboard use and renewal preserving the draft; no real client credentials or transactions were used. See [release evidence](./releases/auth-screen-ux-2026-10-18.md).
 
 Windows direct printing: helper **1.0.0**, hosted build **f21015cbfa86cf90**, Cloudflare version **78**, API remains **15**, source **03ca287**. Native compilation and 18 printer-free protocol/raster checks passed; 29 focused web/release tests, type checking and production/offline/hosted builds passed. The hosted ZIP hash matches its manifest. Arabic/logo raster and long A4 pagination were checked in the browser. Installation/pairing and physical printer acceptance remain for the client; Android is deferred. See [release evidence](./releases/windows-print-helper-2026-10-16.md).
 

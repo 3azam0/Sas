@@ -1,3 +1,7 @@
+# Current authentication UI — 18 October 2026
+
+Responsive sign-in and in-place session renewal are delivered. Build **f2f4a5f166769ef3**, Cloudflare version **79**, API remains **15**, source **9721b92**. Password visibility, clear validation/service/connectivity feedback and administrator recovery guidance are included. Renewal preserves the current workspace and checks the expected organization before accepting data. All 367 tests, TypeScript and production/offline/hosted builds passed; browser UI verification used isolated test credentials. See [release evidence](./releases/auth-screen-ux-2026-10-18.md).
+
 # Windows direct printing — 16 October 2026
 
 Helper **1.0.0**, hosted build **f21015cbfa86cf90**, Cloudflare version **78**, API remains **15**, source **03ca287**. Download/pair the Windows helper from the print preview and configure installed A4/80 mm printer queues. The print action submits raster pages directly without opening the browser dialog; ambiguous results require status review and explicit reprinting. Android is deferred. The helper is unsigned and exact printer output remains a client-device acceptance task. See [operations](./runbooks/Printing.md) and [release evidence](./releases/windows-print-helper-2026-10-16.md).
