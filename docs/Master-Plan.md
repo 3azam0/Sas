@@ -1,6 +1,6 @@
 # FooDo — Modular Business Management SaaS Master Plan
 
-Updated: 16 October 2026. This is the main development roadmap and progress reference.
+Updated: 18 October 2026. This is the main development roadmap and progress reference.
 
 ## Current development progress
 
@@ -11,7 +11,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Area | Status | Completed / practical limit |
 | --- | --- | --- |
 | Web foundation and local environment | Delivered | Arabic RTL application, FooDo branding, local launcher and shared domain/API contracts. Native mobile/desktop applications remain later work. |
-| Hosted access and tenant isolation | Delivered for first-client trial | Cloudflare frontend, Supabase Auth/API, tenant-scoped storage and authorization. Membership administration and self-service onboarding remain deferred. |
+| Hosted access and tenant isolation | Delivered for first-client trial | Cloudflare frontend, Supabase Auth/API, tenant-scoped storage and authorization. Responsive sign-in, in-place session renewal, password visibility and clear access/connectivity feedback are delivered. Membership administration and self-service onboarding remain deferred. |
 | Client organization | Delivered | Organization name, logo/contact profile and details opened from **المؤسسة الحالية**. Temporary trial data remains until an explicitly authorized cleanup. |
 | Inventory setup | Delivered | Materials, independent categories, units, purchase-unit conversions, suppliers and stock locations; quick material/category creation during receiving. |
 | Opening stock and receiving | Delivered | Multi-material opening documents/imports, multi-item receiving, optional supplier/reference, newest-first entry list and unit-cost conversion. |

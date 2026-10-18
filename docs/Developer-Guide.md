@@ -1,3 +1,7 @@
+# Current authentication UI — 18 October 2026
+
+Hosted sign-in uses a dedicated responsive Arabic RTL layout and compact authentication form, with password visibility, Caps Lock guidance, password-manager autocomplete, keyboard navigation, field errors, connectivity/service/access/throttling feedback and bounded login/bootstrap requests. Renewal opens a native dialog over the existing workspace, checks the expected organization before accepting a snapshot, preserves drafts/outboxes and restores focus when closed. Initial cached-scope loading must not flash the sign-in form. No public signup or self-service password reset is introduced; the help section directs users to their organization administrator. Session cookies remain HTTP-only, Secure and SameSite=Strict; no tokens or passwords belong in browser preferences. Preserve the distinction between provider outages and invalid credentials. See [auth release](./releases/auth-screen-ux-2026-10-18.md).
+
 # Current printing support
 
 The current delivery is the Windows helper only; Android is deferred. The browser uses a paired localhost protocol for explicit direct printing, with per-organization tokens and durable job references. The portable .NET helper handles A4 through Windows drivers and 80 mm ESC/POS raster through an installed queue. No automatic resend follows an ambiguous result. Build it with helpers/windows/Build.ps1 -Test before the hosted bundle; CI transfers the verified Windows artifact to the Linux build. Exact printer compatibility remains a physical acceptance task. See the [printing runbook](./runbooks/Printing.md).
@@ -26,7 +30,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.53 — 16 October 2026
+Version 2.54 — 18 October 2026
 
 Current form placement: additional-details toggles and supplier/reference/notes summaries belong in the body directly below receiving/kitchen headers. Dates and the kitchen selector remain in the header. Keep the toggle and controlled fields in the same keyboard/validation form, preserve existing values and reveal invalid optional fields. See [placement correction](./releases/additional-details-placement-2026-10-15.md).
 

@@ -14,3 +14,4 @@ createRoot(document.getElementById('root')!).render(<Workspace/>);
 
 import '../apps/web/app/reports.css';
 import '../apps/web/app/printing.css';
+import '../apps/web/app/auth.css';

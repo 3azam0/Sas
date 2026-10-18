@@ -7,6 +7,14 @@ const snapshot:Snapshot={organizationId:'grills',organizationName:'Fixture',curr
 const command:Command={operationId:crypto.randomUUID(),organizationId:'grills',locationId:'central',itemId:'beef',type:'waste.post',quantity:'2',reason:'Test waste',businessDate:'2026-10-09',capturedAt:new Date().toISOString(),schemaVersion:1};
 afterEach(async()=>{vi.unstubAllGlobals();await local.commands.clear();await local.snapshots.clear();});
 describe('durable offline outbox and convergence',()=>{
+ it('passes cancellation to renewal bootstrap without replacing snapshots or removing queued work',async()=>{
+  await acceptSnapshot(snapshot);await saveCommand(command);
+  const controller=new AbortController();controller.abort();
+  const fetcher=vi.fn().mockRejectedValue(new DOMException('Cancelled','AbortError'));vi.stubGlobal('fetch',fetcher);
+  await expect(bootstrap('grills',controller.signal)).rejects.toThrow('Cancelled');
+  expect(fetcher.mock.calls[0][1].signal).toBe(controller.signal);expect((await local.commands.get(command.operationId))?.status).toBe('pending');
+  expect((await local.snapshots.get('grills'))?.organizationId).toBe('grills');
+ });
  it('does not overwrite a tenant snapshot when the session changes',async()=>{
   await acceptSnapshot(snapshot);
   vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({...snapshot,organizationId:'bistro'})));

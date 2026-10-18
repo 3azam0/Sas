@@ -21,6 +21,18 @@ it('refreshes expired tokens once, preserves generation/body and avoids exposing
  const r=await handle(new Request(origin+'/api/v1/sales',{method:'POST',headers:{Origin:origin,Cookie:cookie,'X-Fodo-Generation':'generation'},body:'{"operation":"sale"}'}),env,{},'test');
  expect(await r.json()).toEqual({outcome:'accepted'});expect(fetcher).toHaveBeenCalledTimes(3);expect(fetcher.mock.calls[2][1]).toMatchObject({body:'{"operation":"sale"}',headers:{'X-Fodo-Generation':'generation',Authorization:'Bearer new.jwt.token'}});expect(r.headers.has('Set-Cookie')).toBe(true);
 });
+it('does not misreport authentication or workspace service outages as bad credentials or inactive access',async()=>{
+ const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
+ const request=()=>new Request(origin+'/api/v1/auth/login',{method:'POST',headers:{Origin:origin},body:JSON.stringify({email:'owner@example.com',password:'test-password',deviceId:'00000000-0000-4000-8000-000000000000'})});
+ for(const [upstream,expected] of [[400,401],[429,429],[500,503],[503,503]]){
+  fetcher.mockResolvedValueOnce(Response.json({message:'Private upstream detail'},{status:upstream}));
+  const response=await handle(request(),env,{},'test');expect(response.status).toBe(expected);expect(await response.text()).not.toContain('Private upstream');expect(response.headers.has('Set-Cookie')).toBe(false);
+ }
+ for(const [upstream,expected] of [[403,403],[401,401],[429,503],[503,503]]){
+  fetcher.mockResolvedValueOnce(Response.json(tokens)).mockResolvedValueOnce(Response.json({},{status:upstream}));
+  const response=await handle(request(),env,{},'test');expect(response.status).toBe(expected);expect(response.headers.has('Set-Cookie')).toBe(false);
+ }
+});
 it('expires both cookies on logout and adds security headers',async()=>{
  vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(null,{status:204})));const worker=createWorker({},'test');
  const r=await worker.fetch(new Request(origin+'/api/v1/auth/logout',{method:'POST',headers:{Origin:origin,Cookie:cookie}}),env);expect(r.headers.get('Set-Cookie')).toContain('Max-Age=0');expect(r.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");expect(r.headers.get('Cache-Control')).toBe('no-store');

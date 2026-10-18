@@ -28,9 +28,9 @@ export async function handle(request:Request,env:Env,assets:Assets,buildId:strin
   const text=await request.text();if(text.length>2048)return error(413,'الطلب يتجاوز الحد المسموح.');
   let body:{email:string;password:string;deviceId:string};try{body=JSON.parse(text);}catch{return error(400,'بيانات الطلب غير صالحة.');}
   if(typeof body.email!=='string'||body.email.length>254||typeof body.password!=='string'||body.password.length>100||!/^\w{8}-(\w{4}-){3}\w{12}$/.test(body.deviceId??''))return error(400,'تحقق من بيانات الدخول.');
-  const r=await auth(env,'password',{email:body.email,password:body.password});if(!r.ok)return error(r.status===429?429:401,'تعذر تسجيل الدخول.');
+  const r=await auth(env,'password',{email:body.email,password:body.password});if(!r.ok){await r.body?.cancel();return error(r.status===429?429:r.status>=500?503:401,'تعذر تسجيل الدخول.');}
   const session=await r.json() as Session;
-  const scoped=await backend(env,'bootstrap',session,body.deviceId);if(!scoped.ok)return error(403,'الحساب غير مفعّل لهذه المؤسسة.');
+  const scoped=await backend(env,'bootstrap',session,body.deviceId);if(!scoped.ok){await scoped.body?.cancel();return error(scoped.status>=500||scoped.status===429?503:scoped.status===401?401:403,'تعذر فتح مساحة العمل.');}
   // Discard the verification snapshot; it is downloaded through the standard bootstrap path.
   await scoped.arrayBuffer();return sessionCookies(json({ok:true}),session,body.deviceId);
  }
