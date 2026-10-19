@@ -1,12 +1,12 @@
 # FooDo — Modular Business Management SaaS Master Plan
 
-Updated: 18 October 2026. This is the main development roadmap and progress reference.
+Updated: 19 October 2026. This is the main development roadmap and progress reference.
 
 ## Current development progress
 
 Read this summary for **what is done and what remains**. The dated checkpoints below describe earlier releases; their old statements about pending hosting, sales deductions or reports do not override this summary. See the [developer guide](./Developer-Guide.md) for implementation rules and [hosted release](./Hosted-Release.md) for operational behavior.
 
-**Current milestone: Phase 4C3, sales financial corrections, basic expenses, the client guide and daily-workflow usability are delivered. Client acceptance remains pending.** The first-client trial is hosted at [FooDo](https://fodo.am-agent2026.workers.dev/). This is a working trial release, not completion of the full SaaS roadmap or approval to start real operations.
+**Current milestone: Phase 4C3, sales financial corrections, basic expenses, the client guide and daily-workflow usability and filter clarity are delivered. Client acceptance remains pending.** The first-client trial is hosted at [FooDo](https://fodo.am-agent2026.workers.dev/). This is a working trial release, not completion of the full SaaS roadmap or approval to start real operations.
 
 | Area | Status | Completed / practical limit |
 | --- | --- | --- |
@@ -27,7 +27,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | BI reports and charts | Delivered | Overview and dedicated reports, Recharts, filters/sorting/server pagination, full-range aggregates, CSV and cached report queries; kitchen supply report included. |
 | A4 and 80 mm printing | Windows helper delivered; physical acceptance remains | Paired Windows helper, direct submission, native/raster checks, download, device printer setup and explicit job/reprint status. Full document lines, A4 charts and roll text retained. Android is deferred. Exact printer output must be verified. See [printing](./runbooks/Printing.md). |
 | Actual versus theoretical consumption — 4C3 | Delivered | Physical-count-based reconciliation, independent movement checks, variance charts, shortages, incomplete reasons and closing-count cost valuation. Valid opening/closing counts are needed to establish actual consumption. |
-| Forms and list usability | Delivered baseline | Task-first home, daily/grouped navigation, mobile all-sections menu, compact essential fields and optional details, visible entry lists and accurate save/sync feedback; searchable dropdowns, keyboard help, pagination/filtering/sorting and collapsible sections retained. See [daily workflow](./runbooks/Daily-Workflow.md). Further fixes depend on trial feedback. |
+| Forms and list usability | Delivered baseline | Task-first home, daily/grouped navigation, mobile all-sections menu, compact essential fields and optional details, visible entry lists and accurate save/sync feedback; searchable dropdowns, keyboard help, pagination/filtering/sorting and collapsible sections retained. See [daily workflow](./runbooks/Daily-Workflow.md). Shared compact filter bars, removable selections, reset including sort, searchable categories/suppliers/kitchens, date presets and explicit zero-stock labels are delivered. Further fixes depend on trial feedback. |
 | Offline capture and recovery | Delivered operational foundation | Durable tenant-bound queues, dependency ordering, retries/review, bounded offline access and recovery formats. Production restore rehearsal remains a launch task. |
 | Sales financial corrections | Delivered | Linked partial refunds and full remaining voids, cumulative caps, explicit stock disposition, unchanged stock/preparation/shortages, dated revenue effects and audit. |
 | Restaurant expenses and profitability | Delivered basic scope | Categorized/location-dated expenses, single linked reversal, offline journal and financial reports. Result after recipe estimates/expenses is explicitly estimated; actual consumption still requires valid physical counts, and full accounting is deferred. |
@@ -52,6 +52,8 @@ The financial implementation is described in [cost-control completion](./Cost-Co
 - Independent Android browser printing helper, native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
 
 ### Latest verification and release evidence
+
+Filter clarity: inventory, operational lists and reports share compact immediate filters, active selection chips and reset including sort; mobile secondary controls collapse without hiding scope/selections. Inventory distinguishes whole-location cards, matching rows, zero balances and inactive materials. See [release evidence](./releases/filter-clarity-2026-10-19.md).
 
 Authentication UI: responsive Arabic sign-in, password visibility, actionable feedback, bounded requests and in-place same-organization renewal. Source **9721b92**, build **f2f4a5f166769ef3**, Cloudflare version **79**, API remains **15**. All 367 tests, TypeScript and production/offline/hosted builds passed. Browser verification covered desktop/phone layouts, keyboard use and renewal preserving the draft; no real client credentials or transactions were used. See [release evidence](./releases/auth-screen-ux-2026-10-18.md).
 

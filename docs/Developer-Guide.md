@@ -1,3 +1,7 @@
+# Current filter usability — 19 October 2026
+
+Inventory, operational collections and server reports use `FilterToolbar`: immediate filtering, removable active selections and one reset including nondefault ordering. Category/supplier/kitchen filters use searchable selectors; `includeEmptyOption` is opt-in for filters so All remains selectable without changing document selectors. Keep filtering/sorting before local pagination, the original record denominator for externally filtered collections and page-one resets. Collection reset-key effects clear internal controls only, preserving caller shortcuts such as low-stock navigation. Report reset restores the current month/current location/default ordering while retaining the report kind and page size; report keyboard navigation and Ctrl/Cmd+Enter refresh remain available. Dates use inclusive Cairo-business-day presets. Mobile secondary fields collapse while scope and active chips remain visible. Zero balances display «رصيد صفر», inactive materials «غير نشط»; positive availability and configured minimum thresholds are separate concepts. Inventory KPI cards describe the entire location; report KPIs describe the complete filtered range. Preserve tenant scopes, exact decimal comparisons, accepted-only aggregates and existing offline cache boundaries. See [filter release](./releases/filter-clarity-2026-10-19.md).
+
 # Current authentication UI — 18 October 2026
 
 Hosted sign-in uses a dedicated responsive Arabic RTL layout and compact authentication form, with password visibility, Caps Lock guidance, password-manager autocomplete, keyboard navigation, field errors, connectivity/service/access/throttling feedback and bounded login/bootstrap requests. Renewal opens a native dialog over the existing workspace, checks the expected organization before accepting a snapshot, preserves drafts/outboxes and restores focus when closed. Initial cached-scope loading must not flash the sign-in form. No public signup or self-service password reset is introduced; the help section directs users to their organization administrator. Session cookies remain HTTP-only, Secure and SameSite=Strict; no tokens or passwords belong in browser preferences. Preserve the distinction between provider outages and invalid credentials. See [auth release](./releases/auth-screen-ux-2026-10-18.md).
@@ -30,7 +34,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.54 — 18 October 2026
+Version 2.55 — 19 October 2026
 
 Current form placement: additional-details toggles and supplier/reference/notes summaries belong in the body directly below receiving/kitchen headers. Dates and the kitchen selector remain in the header. Keep the toggle and controlled fields in the same keyboard/validation form, preserve existing values and reveal invalid optional fields. See [placement correction](./releases/additional-details-placement-2026-10-15.md).
 

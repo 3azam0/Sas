@@ -53,7 +53,7 @@ export const FormSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSe
  return <><select {...props} ref={value=>{node.current=value;if(typeof forwarded==='function')forwarded(value);else if(forwarded)forwarded.current=value;}} aria-invalid={message?true:props['aria-invalid']} aria-describedby={[props['aria-describedby'],message?id+'-error':undefined].filter(Boolean).join(' ')||undefined} onBlur={e=>{props.onBlur?.(e);if(!(e.relatedTarget instanceof HTMLButtonElement))context?.report(id,check());}} onChange={e=>{props.onChange?.(e);if(message||context?.submitted)context?.report(id,check());}}/>{props.required&&<small className="field-hint"><span className="field-required">* مطلوب</span></small>}{message&&<small className="field-error" id={id+'-error'}>{message}</small>}</>;
 });
 function plainText(value:ReactNode):string{return Children.toArray(value).map(child=>isValidElement<{children?:ReactNode}>(child)?plainText(child.props.children):String(child??'')).join('');}
-export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void;onCreate?:(query:string)=>void;createLabel?:string;openOnFocus?:boolean}>(function SearchableSelect({children,onSearchEnter,onCreate,createLabel='إضافة مادة جديدة',openOnFocus=true,...props},ref){
+export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<HTMLSelectElement>&{onSearchEnter?:(value?:string)=>void;onCreate?:(query:string)=>void;createLabel?:string;openOnFocus?:boolean;includeEmptyOption?:boolean}>(function SearchableSelect({children,onSearchEnter,onCreate,createLabel='إضافة مادة جديدة',openOnFocus=true,includeEmptyOption=false,...props},ref){
  const select=useRef<HTMLSelectElement>(null),search=useRef<HTMLInputElement>(null),list=useRef<HTMLDivElement>(null);
  const {id,message,context,check}=useFeedback(select,undefined,search),inputId=props.id??id+'-input';
  const [query,setQuery]=useState<string|null>(null),[open,setOpen]=useState(false),[active,setActive]=useState(-1),[uncontrolled,setUncontrolled]=useState(String(props.defaultValue??''));
@@ -65,7 +65,7 @@ export const SearchableSelect=forwardRef<HTMLSelectElement,SelectHTMLAttributes<
   return collect(child.props.children,disabled||!!child.props.disabled);
  });}
  const options=collect(children),value=String(props.value??uncontrolled),selected=options.find(option=>option.value===value);
- const matches=options.filter(option=>option.value&&matchesSearch(option.label,query??''));
+ const matches=options.filter(option=>(includeEmptyOption||option.value)&&matchesSearch(option.label,query??''));
  const expanded=open&&!props.disabled,invalid=message?true:props['aria-invalid'];
  const described=[props['aria-describedby'],message?id+'-error':undefined,props.required?id+'-required':undefined,expanded?id+'-results':undefined].filter(Boolean).join(' ')||undefined;
  function placePopup(){

@@ -1,3 +1,9 @@
+# Filter clarity — 19 October 2026
+
+Inventory and shared operational lists use a compact search/filter toolbar. Category, supplier and kitchen lists are searchable; type then use arrows/Enter, or select All. Other longer lists also use search. Applied selections stay visible as removable chips; «مسح الكل» resets search, filters, date range and ordering. Sorting alone also exposes reset. On phones, «الفلاتر» expands secondary controls; collapsing keeps selections and scope visible. Filtering starts at page one. Result counts retain the original record total when inventory is filtered upstream. Empty results provide the same complete reset.
+
+Dated lists offer today, inclusive last 7 days, month-to-date and inclusive last 30 days using Cairo business dates. Invalid ranges show an error. These controls cover only the loaded snapshot/outboxes; use Reports for complete accepted history. Inventory cards cover the whole selected location while the list count covers matching materials. Stock labels distinguish inactive, zero, below minimum and positive available balances. «متوفر برصيد» includes active positive balances even below minimum; «رصيد صفر» includes all zero-balance materials and inactive materials retain their inactive badge.
+
 # List controls and responsive workflows
 
 Delivered 11 October 2026. The shared `Collection` component filters and sorts before pagination. Pages contain 10, 25, 50 or 100 rows; changing search, filters, ordering or page size starts at page one. Arabic search tolerates common alef variants and diacritics. Empty results show a way to clear filters. Each list has named controls, a result count and previous/next/page buttons when needed.

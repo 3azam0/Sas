@@ -16,3 +16,4 @@ export default function Layout({children}:{children:React.ReactNode}){return <ht
 import './reports.css';
 import './printing.css';
 import './auth.css';
+import './filters.css';
