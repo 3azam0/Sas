@@ -8,8 +8,9 @@ Operational dated lists and reports share inclusive Cairo-date presets. Reports 
 
 ## Release
 
-- Branch: feat/filter-clarity; source checkpoint pending.
-- Hosted build: 0d49168fd10bf5f5; deployment pending.
+- Branch: feat/filter-clarity; source checkpoint 9835f65664a39ef2108bf7beaa5598055551be24.
+- Hosted build: 0d49168fd10bf5f5; Cloudflare version 80: e37ef7df-017c-4112-9976-f00c18819a89.
+- Deployment 404f1f3f-20d0-4b51-8837-5ef8c6dbbc19 routes 100% to version 80, confirmed by API readback and the public health response. Existing bindings and sales stock/shortage policies remain unchanged.
 - Supabase API remains 15; Windows printing helper remains 1.0.0. No schema, authorization, data-generation or offline storage-format changes.
 
 ## Verification
@@ -20,4 +21,6 @@ Browser verification used the actual compiled hosted frontend against an isolate
 
 [Inventory desktop](../../../Filter-UX-20261019/inventory-desktop.png) · [Inventory phone](../../../Filter-UX-20261019/inventory-mobile.png) · [Reports phone](../../../Filter-UX-20261019/reports-mobile.png).
 
-GitHub publication/remote CI remain pending after the earlier Windows Credential Manager restriction. Human client acceptance remains pending.
+The live page loaded the matching versioned JS asset. Its cached client catalog showed 287 zero-balance materials out of 338 with the new filter controls, count denominator and zero badges. The existing client session had expired and bootstrap could not refresh; hosted checks were read-only against its preserved cache, without credential entry or session reset. This does not claim a fresh authenticated backend report check. [Hosted inventory](../../../Filter-UX-20261019/hosted-inventory.png).
+
+GitHub publication/remote CI remain pending. The initial sandbox DNS restriction was resolved by granting network access; the retry then failed because Windows could not run Git Credential Manager (NtCreateDirectoryObject access denied), leaving terminal authentication unavailable. Human client acceptance remains pending.

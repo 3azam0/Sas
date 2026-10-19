@@ -1,3 +1,7 @@
+# Current filter clarity — 19 October 2026
+
+Shared compact inventory/history/report filters, removable active selections, reset including sort, searchable category/supplier/kitchen choices, quick periods and explicit zero-stock labels are delivered. Inventory location totals remain distinct from filtered rows. Build **0d49168fd10bf5f5**, Cloudflare version **80**, source **9835f65**, deployment **404f1f3f-20d0-4b51-8837-5ef8c6dbbc19** verified at 100%. API remains **15**, Windows helper **1.0.0**. All 373 tests, TypeScript and production/offline/hosted builds passed; isolated desktop/phone browser checks passed. Live UI matched the asset and preserved cached catalog; its existing expired session requires renewal for fresh data. No client transactions were posted/reset. See [release evidence](./releases/filter-clarity-2026-10-19.md).
+
 # Current authentication UI — 18 October 2026
 
 Responsive sign-in and in-place session renewal are delivered. Build **f2f4a5f166769ef3**, Cloudflare version **79**, API remains **15**, source **9721b92**. Password visibility, clear validation/service/connectivity feedback and administrator recovery guidance are included. Renewal preserves the current workspace and checks the expected organization before accepting data. All 367 tests, TypeScript and production/offline/hosted builds passed; browser UI verification used isolated test credentials. See [release evidence](./releases/auth-screen-ux-2026-10-18.md).
