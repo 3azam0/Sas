@@ -1,4 +1,5 @@
 import {hostedServiceWorker} from './hosted-service-worker.mjs';
+import {prepareWorkerDeployment} from './worker-deployment.mjs';
 import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
@@ -63,5 +64,6 @@ const publicKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||env.NEXT_PUBLI
 if(!publicKey)throw new Error('Set the public Supabase key before building a deployment payload.');
 config.vars.SUPABASE_PUBLISHABLE_KEY=publicKey;
 await writeFile('.cloud-build/wrangler.json',JSON.stringify({...config,main:'worker.js'},null,2));
+await prepareWorkerDeployment('.cloud-build/publish',await readFile('.cloud-build/worker.js'),config);
 await writeFile('.cloud-build/deploy.json',JSON.stringify({buildId,worker:await readFile('.cloud-build/worker.js','utf8'),backend:await readFile('.cloud-build/backend.js','utf8'),metadata:{main_module:'worker.js',compatibility_date:config.compatibility_date,bindings:Object.entries(config.vars).map(([name,text])=>({name,text,type:'plain_text'})),observability:config.observability}}));
 console.log(`Hosted build ${buildId}: ${js.length} JS bytes, ${css.length} CSS bytes. Deployment payload prepared.`);

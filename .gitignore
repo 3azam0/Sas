@@ -18,6 +18,7 @@ apps/web/public/precache.json
 backups/
 
 .cloud-build/
+.wrangler/
 cloud/generated-assets.ts
 apps/web/public/downloads/*.zip
 apps/web/public/downloads/foodo-print-windows.json
