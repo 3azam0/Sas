@@ -11,6 +11,7 @@ Technical acceptance uses isolated fixture data. The client workspace is inspect
 - [ ] Confirm inventory units, receiving packs and zero/known prices.
 - [ ] Receive several materials, supply the intended kitchen and verify source/destination values.
 - [ ] Confirm recipe portions, menu/POS mapping and selective deduction choices.
+- [ ] Configure real selling prices, take a cash counter/takeaway order, verify change, held-order recovery and the assigned kitchen stages; verify A4/80 mm output on actual printers.
 - [ ] Preview a real POS CSV; inspect duplicate, unknown-code and shortage handling.
 - [ ] Review partial refund/full cancellation and ingredient disposition with the client. Original preparation and shortage evidence remain.
 - [ ] Record representative operating expenses and review a linked reversal.
@@ -21,4 +22,4 @@ Technical acceptance uses isolated fixture data. The client workspace is inspect
 - [ ] Rehearse restoration in an isolated target and document support/recovery.
 - [ ] Obtain explicit authorization for trial cleanup; settle all device queues and establish real opening balances.
 
-Do not mark these client checks complete from automated test results. The Arabic in-app guide includes «مراجعة الجاهزية للتشغيل». Membership administration, billing, separate demos, native checkout and cashier shifts remain deferred.
+Do not mark these client checks complete from automated test results. The Arabic in-app guide includes «مراجعة الجاهزية للتشغيل». Membership administration, billing, separate demos, tables, payment providers and cashier shifts remain deferred.

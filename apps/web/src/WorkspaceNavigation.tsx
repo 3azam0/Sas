@@ -5,7 +5,7 @@ import {navigationGroups} from './navigation';
 import type {View} from './store';
 
 type Props={view:View;choose:(view:View)=>void;labels:Record<View,string>;icon:(view:View)=>ReactNode;pending:number;review:number};
-const quickViews:View[]=['overview','inventory','kitchenIssues','sales'];
+const quickViews:View[]=['overview','pos','kitchenDisplay','inventory'];
 function Group({group,view,children}:{group:(typeof navigationGroups)[number];view:View;children:ReactNode}){
  const active=group.views.includes(view),[open,setOpen]=useState(active);
  useEffect(()=>{if(active)setOpen(true);},[active,view]);

@@ -19,5 +19,5 @@ it('deduplicates category names while retaining the current saved value and norm
 it('preserves every workspace route exactly once in the reordered navigation',()=>{
  const routes=navigationGroups.flatMap(group=>group.views);
  expect(new Set(routes).size).toBe(routes.length);
- expect([...routes].sort()).toEqual(['finance','reports','overview','inventory','setup','suppliers','opening','purchasing','returns','transfers','counts','recipes','production','sales','kitchenIssues','activity','sync','guide'].sort());
+ expect([...routes].sort()).toEqual(['finance','reports','pos','kitchenDisplay','overview','inventory','setup','suppliers','opening','purchasing','returns','transfers','counts','recipes','production','sales','kitchenIssues','activity','sync','guide'].sort());
 });

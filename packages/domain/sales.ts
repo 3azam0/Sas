@@ -4,10 +4,10 @@ import {normalizeNumber,parseOpeningCSV} from './opening-import';
 import {salesStockOptions} from './recipes';
 export const salesCSV=parseOpeningCSV;
 export type SalesCSVMapping={transactionId:number;lineKey:number;code:number;businessDate:number;quantity:number;netAmount:number;status:number};
-export const salesSourceKey=(source:string,posId?:string)=>posId?JSON.stringify(['pos',posId,source]):source;
-export const saleKey=(source:string,locationId:string,l:Pick<SalesLine,'businessDate'|'transactionId'|'lineKey'>,posId?:string)=>JSON.stringify([salesSourceKey(source,posId),posId?'':locationId,l.businessDate,l.transactionId,l.lineKey]);
+export const salesSourceKey=(source:string,posId?:string,channel?:'foodo')=>channel==='foodo'?JSON.stringify(['foodo',posId,source]):posId?JSON.stringify(['pos',posId,source]):source;
+export const saleKey=(source:string,locationId:string,l:Pick<SalesLine,'businessDate'|'transactionId'|'lineKey'>,posId?:string,channel?:'foodo')=>JSON.stringify([salesSourceKey(source,posId,channel),posId?'':locationId,l.businessDate,l.transactionId,l.lineKey]);
 export const salePayload=(l:SalesLine)=>JSON.stringify([l.menuItemId,l.mappingRevision,l.versionId,decimal(l.outputPerSale).toFixed(6),decimal(l.quantity).toFixed(6),decimal(l.netAmount).toFixed(6)]);
-function acceptedSales(snapshot:Pick<Snapshot,'salesImports'>){const known=new Map<string,SalesLine>();for(const p of snapshot.salesImports??[])for(const l of p.document.lines)if(p.acceptedLineIds.includes(l.lineId))known.set(saleKey(p.document.source,p.document.locationId,l,p.document.posId),l);return known;}
+function acceptedSales(snapshot:Pick<Snapshot,'salesImports'>){const known=new Map<string,SalesLine>();for(const p of snapshot.salesImports??[])for(const l of p.document.lines)if(p.acceptedLineIds.includes(l.lineId))known.set(saleKey(p.document.source,p.document.locationId,l,p.document.posId,p.document.checkout?.channel),l);return known;}
 export function validateMenu(snapshot:Pick<Snapshot,'recipeVersions'|'kitchens'>,item:MenuItem|ReturnType<typeof menuItemSchema.parse>){if(!snapshot.recipeVersions?.some(v=>v.versionId===item.versionId))throw new BusinessError('INVALID_RECIPE','اختر إصدار وصفة منشوراً لهذه المؤسسة.');if(item.active&&item.kitchenIds&&item.kitchenIds.length===0)throw new BusinessError('KITCHEN_REQUIRED','حدد مطبخاً واحداً على الأقل للصنف النشط.');if(item.kitchenIds?.some(id=>!snapshot.kitchens?.some(k=>k.id===id&&k.locationId)))throw new BusinessError('INVALID_KITCHEN','اختر مطابخ مخزون لهذه المؤسسة.');}
 export function validateSale(snapshot:Pick<Snapshot,'recipeVersions'|'menuItems'>,source:string,line:SalesLine,active=true,kitchenId?:string){
  const menu=snapshot.menuItems?.find(m=>m.id===line.menuItemId&&m.source===source);if(!menu||active&&!menu.active)throw new BusinessError('INVALID_MENU','صنف البيع غير متاح أو غير نشط لهذا المصدر.');
@@ -34,7 +34,7 @@ export function mapSalesCSV(rows:string[][],mapping:SalesCSVMapping,snapshot:Sna
 }
 export function previewSales(snapshot:Pick<Snapshot,'salesImports'>,doc:SalesImportDocument){
  const known=acceptedSales(snapshot);
- const lines=doc.lines.map(l=>{const old=known.get(saleKey(doc.source,doc.locationId,l,doc.posId));return {line:l,state:old?salePayload(old)===salePayload(l)?'duplicate' as const:'conflict' as const:'new' as const};});
+ const lines=doc.lines.map(l=>{const old=known.get(saleKey(doc.source,doc.locationId,l,doc.posId,doc.checkout?.channel));return {line:l,state:old?salePayload(old)===salePayload(l)?'duplicate' as const:'conflict' as const:'new' as const};});
  return {lines,newCount:lines.filter(l=>l.state==='new').length,duplicateCount:lines.filter(l=>l.state==='duplicate').length,conflictCount:lines.filter(l=>l.state==='conflict').length,netAmount:lines.filter(l=>l.state==='new').reduce((sum,l)=>sum.add(l.line.netAmount),decimal('0')).toFixed(6)};
 }
 

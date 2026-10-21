@@ -1,6 +1,6 @@
 # FooDo — Modular Business Management SaaS Master Plan
 
-Updated: 19 October 2026. This is the main development roadmap and progress reference.
+Updated: 21 October 2026. This is the main development roadmap and progress reference.
 
 ## Current development progress
 
@@ -22,6 +22,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Kitchen stock and POS routing | Delivered | Kitchens hold stock under the main warehouse; each POS routes to one kitchen; a meal may be prepared independently in several kitchens. Kitchen supply transfers stock/value. |
 | Recipes and composition — 4A | Delivered | Versioned recipes/BOMs, nested definitions, item composition entry point, batch/portion estimates and food-cost percentages. Definitions alone do not move stock. |
 | Production and yield — 4B | Delivered | Actual inputs, usable stocked outputs, exact cost allocation, normal yield loss, abnormal waste and failed batches. |
+| Cashier POS and kitchen screen | Implemented/verified; frontend publication pending | Cash counter/takeaway, held/current carts, selling prices/categories, receipts/history; accepted paid-order stages and revision checks. API/schema rollout and Cloudflare publication are recorded separately in the release evidence. |
 | Menu mapping and sales import — 4C1 | Delivered | Pinned recipes/output ratios, completed-sale CSV preview and duplicate-safe accepted imports. Linked financial refunds/voids are delivered separately from completed-sale imports. |
 | Theoretical usage and selected deductions — 4C2 | Delivered | All recipe ingredients count toward theoretical usage; only selected ingredients deduct from the selling kitchen. Shortages are highlighted while otherwise valid imports succeed. |
 | BI reports and charts | Delivered | Overview and dedicated reports, Recharts, filters/sorting/server pagination, full-range aggregates, CSV and cached report queries; kitchen supply report included. |
@@ -31,11 +32,13 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Offline capture and recovery | Delivered operational foundation | Durable tenant-bound queues, dependency ordering, retries/review, bounded offline access and recovery formats. Production restore rehearsal remains a launch task. |
 | Sales financial corrections | Delivered | Linked partial refunds and full remaining voids, cumulative caps, explicit stock disposition, unchanged stock/preparation/shortages, dated revenue effects and audit. |
 | Restaurant expenses and profitability | Delivered basic scope | Categorized/location-dated expenses, single linked reversal, offline journal and financial reports. Result after recipe estimates/expenses is explicitly estimated; actual consumption still requires valid physical counts, and full accounting is deferred. |
-| Client usage guide | Delivered | **دليل الاستخدام** with 24 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
+| Client usage guide | Delivered | **دليل الاستخدام** with 26 Arabic task topics, normalized search and contextual **مساعدة** in screens/document headers. Help preserves form entries and reuses keyboard instructions. No guide downloads. See [operating guide](./runbooks/Client-Guide.md). |
 | Real-use launch readiness | Remaining | Trial acceptance, verified restore, controlled temporary-data removal, real opening balances and operating procedures before real use. |
 | GitHub publication of latest work | Pending publication | Source checkpoint 9835f65 and the hosted filter/authentication/Windows helper releases are verified. The latest push was blocked when Windows could not run Git Credential Manager (NtCreateDirectoryObject access denied); no new PR/remote CI/merge is claimed. |
 
 ### Remaining work in delivery order
+
+**Approved POS increment implemented and verified:** cash counter/takeaway checkout, current/held carts, configured menu prices/categories, history/receipts and a kitchen screen for accepted paid orders. Kitchen stages never deduct stock again. Migration is applied; frontend publication is pending Cloudflare authentication. See [scope](./Counter-POS-Plan.md), [operations](./runbooks/Counter-POS.md) and [release evidence](./releases/counter-pos-2026-10-21.md).
 
 1. **First-client acceptance:** install/pair the Windows print helper and verify actual A4/80 mm printers, review real receiving units/recipe quantities and selected deductions, validate an actual POS export, agree physical-count boundaries, and walk through expenses and corrections. See [acceptance checklist](./runbooks/Cost-Control-Acceptance.md). Technical tests do not establish client approval.
 2. **Launch and recovery checks:** rehearse restoration in an isolated target, verify offline/reconnect and A4/80 mm printing on actual client devices, document support/recovery, confirm access and external-POS fiscal responsibility, and complete GitHub publication/CI review.
@@ -48,10 +51,12 @@ The financial implementation is described in [cost-control completion](./Cost-Co
 - Membership/user administration, invitations, additional-client onboarding and granular permission management.
 - Subscription billing and enforced entitlements: base subscription for one branch, additional branches as paid capacity; kitchens/stock locations must not accidentally count as paid branches.
 - Dedicated client-demo environments. Continue with local development and the hosted first-client trial; a separate demo is not needed now.
-- Native POS/checkout, cashier shifts, tables, KDS, delivery and broader restaurant operations.
+- Cashier shifts, tables, delivery and broader restaurant operations. Cash counter checkout and paid-order KDS are implemented; native desktop/mobile applications remain later work.
 - Independent Android browser printing helper, native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
 
 ### Latest verification and release evidence
+
+Counter POS/KDS: prepared build **378fa56fb59ab0e4**; migration **20261021165121** applied. All 383 distinct tests pass after correcting the navigation expected-route set, plus TypeScript and production/offline/hosted builds. Synthetic desktop/phone checkout, held/reload, receipt raster, kitchen routing/stages and price setup verified. Frontend publication remains pending Cloudflare login. See [release evidence](./releases/counter-pos-2026-10-21.md).
 
 Filter clarity: build **0d49168fd10bf5f5**, Cloudflare version **80**, API **15**, source **9835f65**. All 373 tests, TypeScript and production/offline/hosted builds passed, with desktop/phone browser verification and live cached-catalog checks. Inventory, operational lists and reports share compact immediate filters, active selection chips and reset including sort; mobile secondary controls collapse without hiding scope/selections. Inventory distinguishes whole-location cards, matching rows, zero balances and inactive materials. See [release evidence](./releases/filter-clarity-2026-10-19.md).
 

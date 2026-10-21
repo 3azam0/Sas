@@ -1,3 +1,6 @@
+import {kitchenDisplayTables} from '../packages/server/kitchen-display';
+// @ts-expect-error Administrative JavaScript module
+import {counterPOSMigrationSql} from '../scripts/counter-pos-migration.mjs';
 import {financeTables} from '../packages/server/finance';
 // @ts-expect-error Administrative JavaScript module
 import {financeMigrationSql} from '../scripts/finance-migration.mjs';
@@ -18,7 +21,7 @@ it('extends a previous private trial baseline safely and retains guarded cleanup
  const db=new PGlite(),run=randomUUID();try{
   await db.exec('CREATE SCHEMA fodo; SET search_path=fodo,pg_catalog; CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE fodo_api;');await db.exec(hostedBaselineSchema+organizationProfileMigration);await db.exec(tableSql+policySql);await db.exec("INSERT INTO organizations(id,name) VALUES('trial','Trial'),('other','Other');");
   // The backup was captured before the new table/column existed.
-  await db.exec(captureSql('trial',run).replaceAll("'finance_entries',",'').replaceAll("'kitchen_issues',",'').replaceAll("'kitchens',",'').replaceAll("'points_of_sale',",''));
+  await db.exec(captureSql('trial',run).replaceAll("'pos_kitchen_actions',",'').replaceAll("'finance_entries',",'').replaceAll("'kitchen_issues',",'').replaceAll("'kitchens',",'').replaceAll("'points_of_sale',",''));
   const sql=kitchenIssueMigrationSql(kitchenIssueMigration);
   await db.exec('ALTER TABLE items ADD COLUMN unreviewed text');await expect(db.exec(sql)).rejects.toThrow('differs');await db.exec('ALTER TABLE items DROP COLUMN unreviewed');await db.exec(sql);
   expect((await db.query<{count:number}>("SELECT jsonb_array_length(baseline->'kitchen_issues') AS count FROM sample_data_runs WHERE id=$1",[run])).rows[0].count).toBe(0);
@@ -30,6 +33,6 @@ it('extends a previous private trial baseline safely and retains guarded cleanup
   await db.exec("INSERT INTO kitchens VALUES('trial','k1','Kitchen',true,1);");
   await db.exec(kitchenInventoryMigrationSql(kitchenInventoryMigration));
   await db.exec(financeMigrationSql(financeTables));
-  await db.exec(cleanupSql('trial',run));expect((await db.query<{status:string}>('SELECT status FROM sample_data_runs WHERE id=$1',[run])).rows[0].status).toBe('cleaned');
+  await db.exec(counterPOSMigrationSql(kitchenDisplayTables));await db.exec(cleanupSql('trial',run));expect((await db.query<{status:string}>('SELECT status FROM sample_data_runs WHERE id=$1',[run])).rows[0].status).toBe('cleaned');
  }finally{await db.close();}
 });

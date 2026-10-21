@@ -11,7 +11,7 @@ export function salesReport(snapshot:Snapshot,locationId:string,from='',to='',ba
   if(imported.document.locationId!==locationId)continue;
   for(const sale of imported.document.lines){
    if(!imported.acceptedLineIds.includes(sale.lineId)||(from&&sale.businessDate<from)||(to&&sale.businessDate>to))continue;
-   const key=saleKey(imported.document.source,locationId,sale);if(seen.has(key))continue;seen.add(key);
+   const key=saleKey(imported.document.source,locationId,sale,imported.document.posId,imported.document.checkout?.channel);if(seen.has(key))continue;seen.add(key);
    count++;net=net.add(sale.netAmount);saleQuantity=saleQuantity.add(sale.quantity);
    const version=snapshot.recipeVersions?.find(v=>v.versionId===sale.versionId);
    if(!version){issues.push(`إصدار وصفة مفقود: ${sale.menuName}`);continue;}

@@ -97,4 +97,5 @@ END IF; END $$;
 `;
 export {kitchenInventoryMigration} from './kitchen-inventory-schema';
 import {financeTables} from './finance';
-export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables;
+import {kitchenDisplayTables} from './kitchen-display';
+export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables;

@@ -1,3 +1,7 @@
+# Cashier POS / kitchen release prepared — 21 October 2026
+
+Integrated cash counter/takeaway POS and accepted-paid-order KDS are implemented and verified. Build **378fa56fb59ab0e4** is prepared; database migration **20261021165121** is applied. Cloudflare publication is pending because its connector is unavailable and Wrangler OAuth has expired. The live frontend is still **0d49168fd10bf5f5 / version 80**. Do not describe the new screens as live until deployment verification is recorded. See [release evidence](./releases/counter-pos-2026-10-21.md) and [operating guide](./runbooks/Counter-POS.md).
+
 # Current filter clarity — 19 October 2026
 
 Shared compact inventory/history/report filters, removable active selections, reset including sort, searchable category/supplier/kitchen choices, quick periods and explicit zero-stock labels are delivered. Inventory location totals remain distinct from filtered rows. Build **0d49168fd10bf5f5**, Cloudflare version **80**, source **9835f65**, deployment **404f1f3f-20d0-4b51-8837-5ef8c6dbbc19** verified at 100%. API remains **15**, Windows helper **1.0.0**. All 373 tests, TypeScript and production/offline/hosted builds passed; isolated desktop/phone browser checks passed. Live UI matched the asset and preserved cached catalog; its existing expired session requires renewal for fresh data. No client transactions were posted/reset. See [release evidence](./releases/filter-clarity-2026-10-19.md).

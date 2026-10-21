@@ -1,6 +1,6 @@
 import {tables as currentTables} from './sample-data/admin.mjs';
 // Freeze this historical upgrade at its original schema stage.
-const tables=currentTables.filter(t=>t!=='finance_entries');
+const tables=currentTables.filter(t=>t!=='finance_entries'&&t!=='pos_kitchen_actions');
 // Preserve the existing trial backup across this explicitly reviewed additive
 // schema change. Abort first if its signature already differs for any other reason.
 export function kitchenIssueMigrationSql(schema){

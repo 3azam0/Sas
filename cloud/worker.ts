@@ -3,7 +3,7 @@
 export type Assets=Record<string,{data:string;type:string;cache:string}>;
 type Session={access_token:string;refresh_token:string;expires_in:number};
 const cookieName='__Host-fodo-session',deviceName='__Host-fodo-device';
-const allowed=new Set(['bootstrap','reports','commands','setup','openings','receipts','kitchen-issues','purchases','transfers','counts','recipes','production','menu','sales','finance']);
+const allowed=new Set(['bootstrap','reports','commands','setup','openings','receipts','kitchen-issues','purchases','transfers','counts','recipes','production','menu','sales','finance','kitchen-orders']);
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 const error=(status:number,message:string)=>json({code:status===401?'AUTH_REQUIRED':'REQUEST_REJECTED',message},status);
 function cookie(request:Request,name:string){return (request.headers.get('Cookie')??'').split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='))?.slice(name.length+1)??'';}

@@ -16,3 +16,5 @@ import '../apps/web/app/reports.css';
 import '../apps/web/app/printing.css';
 import '../apps/web/app/auth.css';
 import '../apps/web/app/filters.css';
+
+import '../apps/web/app/counter-pos.css';
