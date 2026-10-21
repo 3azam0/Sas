@@ -22,7 +22,7 @@ Read this summary for **what is done and what remains**. The dated checkpoints b
 | Kitchen stock and POS routing | Delivered | Kitchens hold stock under the main warehouse; each POS routes to one kitchen; a meal may be prepared independently in several kitchens. Kitchen supply transfers stock/value. |
 | Recipes and composition — 4A | Delivered | Versioned recipes/BOMs, nested definitions, item composition entry point, batch/portion estimates and food-cost percentages. Definitions alone do not move stock. |
 | Production and yield — 4B | Delivered | Actual inputs, usable stocked outputs, exact cost allocation, normal yield loss, abnormal waste and failed batches. |
-| Cashier POS and kitchen screen | Delivered | Cash counter/takeaway, held/current carts, selling prices/categories, receipts/history; accepted paid-order stages and revision checks. API 16, additive schema and Cloudflare version 83 are verified. Menu/POS source matching, kitchen availability and selling prices still need client configuration. |
+| Cashier POS and kitchen screen | Delivered | Cash counter/takeaway, held/current carts, selling prices/categories, receipts/history; accepted paid-order stages and revision checks. API 16, additive schema and Cloudflare version 83 are verified. Twelve priced POS samples are available in the trial. Real menu/POS setup and selling prices still need client confirmation. |
 | Menu mapping and sales import — 4C1 | Delivered | Pinned recipes/output ratios, completed-sale CSV preview and duplicate-safe accepted imports. Linked financial refunds/voids are delivered separately from completed-sale imports. |
 | Theoretical usage and selected deductions — 4C2 | Delivered | All recipe ingredients count toward theoretical usage; only selected ingredients deduct from the selling kitchen. Shortages are highlighted while otherwise valid imports succeed. |
 | BI reports and charts | Delivered | Overview and dedicated reports, Recharts, filters/sorting/server pagination, full-range aggregates, CSV and cached report queries; kitchen supply report included. |
@@ -55,6 +55,8 @@ The financial implementation is described in [cost-control completion](./Cost-Co
 - Independent Android browser printing helper, native mobile/desktop clients, other business modules, full accounting and country fiscal adapters. Arabic/Egypt-first foundations do not establish legal compliance in every Arab market.
 
 ### Latest verification and release evidence
+
+POS sample menu: 12 extra temporary mappings, five categories, existing fictional trial prices, both current terminals verified. Original 99 mappings and stock/sales/finance/kitchen records are unchanged; replay creates no duplicates. Live cart/cash preview passed and was cancelled. See [sample menu record](./releases/pos-sample-menu-2026-10-21.md).
 
 Counter POS/KDS: UI source **a4c1492**, packaging **505011a**, hosted build **378fa56fb59ab0e4**, Cloudflare **83**, API **16** and migration **20261021165121** verified. All 385 distinct tests pass across the full/focused runs, plus TypeScript and production/offline/hosted builds. Synthetic desktop/phone checkout, held/reload, receipt raster, kitchen routing/stages and price setup were verified; live session renewal and desktop/phone screens passed. Client menu/POS matching and prices still need configuration. See [release evidence](./releases/counter-pos-2026-10-21.md).
 

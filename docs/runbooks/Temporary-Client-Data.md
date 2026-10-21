@@ -1,3 +1,7 @@
+# POS sample menu extension — 21 October 2026
+
+The active trial now includes 12 additional source-POS cashier menu mappings with SAMPLE-WS-* codes, five categories and fictional prices copied from its existing trial recipes. Normal menu APIs created them without stock/sales posting. The private/local manifest records counterPOSSample; original 99 FODO mappings and trial generation remain. The existing full baseline restore includes these rows and command receipts. See [sample menu record](../releases/pos-sample-menu-2026-10-21.md).
+
 # Finance journal compatibility — 16 October 2026
 
 Additive migration `20261015172714_cost_control_finance.sql` verifies the previous trial signature, adds an empty finance baseline and updates that signature. It changes no trial transactions or generations. Regenerate cleanup with the current administrative script; finance is deleted before referenced sales and restored after its dependencies. Historical kitchen migration helpers freeze their original table lists. Cleanup remains subject to explicit user authorization and review of any real activity mixed into the trial.

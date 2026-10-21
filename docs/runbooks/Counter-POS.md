@@ -5,7 +5,7 @@
 1. In **المبيعات → إدارة نقاط البيع**, activate each POS and assign exactly one active kitchen with its stock location. Its source must match its menu mappings; source identifiers are fixed after creation, so create a suitable new terminal/mapping when a different source is required. Several POS terminals can use the same kitchen.
 2. In **أصناف البيع**, edit each menu item. Select its published recipe/output ratio and the kitchens that independently prepare the complete meal. Enter **سعر البيع ج.م** and optionally **فئة قائمة البيع**. A blank price prevents cashier selection; zero is an explicit valid price. Prices are never inferred from stock cost.
 3. Check the recipe's selected deduction materials. Only these deduct from the selling kitchen when the sale is accepted. All recipe materials remain part of estimated cost. Supply kitchen stock before service.
-4. Open **نقطة البيع** and choose the POS. Existing client menu prices are left unconfigured until the owner enters real selling prices. In this trial, the 99 menu mappings use FODO, while the existing two terminals use POS: configure compatible mappings/terminals and kitchen availability before expecting cashier catalog results.
+4. Open **نقطة البيع** and choose the POS. Existing client menu prices are left unconfigured until the owner enters real selling prices. The trial now includes 12 additional SAMPLE-WS-* menu mappings using source POS, both kitchen availability assignments and fictional trial prices, ready on the two current terminals. The original 99 FODO mappings remain unchanged and unpriced; configure real sources/kitchens/prices before live operation.
 
 ## Take a cash sale
 
