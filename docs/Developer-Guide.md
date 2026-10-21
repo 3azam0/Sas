@@ -1,6 +1,10 @@
 # Counter POS — current implementation scope, 21 October 2026
 
-Implemented and verified: integrated web cash counter/takeaway checkout and the accepted-order kitchen screen. POS reuses the existing sales/stock/report journal; kitchen status uses an append-only revision-checked journal and never deducts stock again. Explicit menu selling prices/categories, durable carts, cash/change, receipts, history and 26 guide topics are included. Dexie 13 / recovery 20 cover carts and kitchen commands without printer/auth secrets. Do not discard paid review records, guess prices or change shortage/refund behavior. Migration 20261021165121 is applied; frontend publication is pending Cloudflare authentication. See [scope](./Counter-POS-Plan.md), [operations](./runbooks/Counter-POS.md) and [release evidence](./releases/counter-pos-2026-10-21.md). Cashier shifts and fiscal/payment adapters remain deferred.
+Implemented and verified: integrated web cash counter/takeaway checkout and the accepted-order kitchen screen. POS reuses the existing sales/stock/report journal; kitchen status uses an append-only revision-checked journal and never deducts stock again. Explicit menu selling prices/categories, durable carts, cash/change, receipts, history and 26 guide topics are included. Dexie 13 / recovery 20 cover carts and kitchen commands without printer/auth secrets. Do not discard paid review records, guess prices or change shortage/refund behavior. Migration 20261021165121 and API 16 are deployed; frontend build 378fa56fb59ab0e4 / Cloudflare version 83 is verified live. See [scope](./Counter-POS-Plan.md), [operations](./runbooks/Counter-POS.md) and [release evidence](./releases/counter-pos-2026-10-21.md). Cashier shifts and fiscal/payment adapters remain deferred.
+
+# Deployment packaging
+
+Build with scripts/build-cloud.mjs; publish only through .cloud-build/publish/wrangler.json. That isolated directory contains the verified worker and config, rejects unexpected files and disables additional-module discovery and preview URLs. Never run no-bundle deployment from the mixed .cloud-build administrative directory. CLI authentication remains in ignored .cache/cloudflare-auth; preserve the existing account and worker. See the POS release record for verified deployment and the corrected unused upload.
 
 # Current filter usability — 19 October 2026
 
@@ -38,7 +42,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.56 — 21 October 2026
+Version 2.57 — 21 October 2026
 
 Current form placement: additional-details toggles and supplier/reference/notes summaries belong in the body directly below receiving/kitchen headers. Dates and the kitchen selector remain in the header. Keep the toggle and controlled fields in the same keyboard/validation form, preserve existing values and reveal invalid optional fields. See [placement correction](./releases/additional-details-placement-2026-10-15.md).
 

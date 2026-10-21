@@ -23,3 +23,7 @@ Implement a web cashier module in the existing tenant application. Each POS uses
 ## Kitchen screen amendment
 
 User approved paid-order kitchen display: New → Preparing → Ready → Collected. Orders are scoped to the resolved kitchen, update through append-only revision-checked commands and never deduct stock again. Only server-accepted sales are shared across devices; unsynced cash sales remain visible in cashier history. Keep local status pending explicit and reuse the existing connected-workspace refresh loop; do not add a second always-running poller. Recovery, generation reset and trial cleanup include fulfillment actions.
+
+## Verified release
+
+Delivered 21 October 2026: hosted build 378fa56fb59ab0e4, Cloudflare 83, API 16, migration 20261021165121. See the release record and operating guide for verification, configuration and remaining acceptance. Git publication and real-use approval remain pending.

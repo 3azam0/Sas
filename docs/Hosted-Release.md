@@ -1,6 +1,6 @@
-# Cashier POS / kitchen release prepared — 21 October 2026
+# Cashier POS and kitchen display — 21 October 2026
 
-Integrated cash counter/takeaway POS and accepted-paid-order KDS are implemented and verified. Build **378fa56fb59ab0e4** is prepared; database migration **20261021165121** is applied and API **16** is active with authenticated workspace loading verified. Cloudflare publication is pending because its connector is unavailable and Wrangler OAuth has expired. The live frontend is still **0d49168fd10bf5f5 / version 80**. Do not describe the new screens as live until deployment verification is recorded. See [release evidence](./releases/counter-pos-2026-10-21.md) and [operating guide](./runbooks/Counter-POS.md).
+Delivered at [FooDo](https://fodo.am-agent2026.workers.dev/?release=378fa56fb59ab0e4): cash counter/takeaway, durable current/held carts, menu prices/categories, cash/change, receipts/history and accepted paid-order kitchen stages. Build **378fa56fb59ab0e4**, Cloudflare **83**, version **58864303-918b-4a1c-a63c-0f90099751cc**, deployment **7b14aebe-0c70-4a94-a7b5-317f89cadc94** at 100%; API **16**, migration **20261021165121**. UI source **a4c1492**, packaging **505011a**. All 385 distinct tests and relevant builds pass; live sign-in renewal and desktop/phone screens are verified. The 99 FODO menu entries have no selling prices, while existing terminals use POS: configure compatible menu/POS mapping, kitchen availability and prices before first checkout. Physical/client acceptance and Git publication remain pending. See [release evidence](./releases/counter-pos-2026-10-21.md) and [operating guide](./runbooks/Counter-POS.md).
 
 # Current filter clarity — 19 October 2026
 
