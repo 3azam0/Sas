@@ -17,7 +17,7 @@ Applied migration **20261021165121_counter_pos_kitchen_display** to the existing
 
 Remote verification: RLS and FORCE RLS true; API SELECT/INSERT true, UPDATE false; anon SELECT false; status journal count zero; active trial baseline includes the table. Post-migration security advisor found no new database issue. Its existing Auth leaked-password-protection warning remains; see [Supabase remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). No Auth setting or access plan was changed.
 
-Backend deployment: pending final source checkpoint. Preserve the function's existing verify_jwt=false configuration because its body verifies Supabase Auth before tenant database access.
+Backend **fodo-api version 16** is active, bundle hash **d9c4c6a3baffba67bc9ed3dfd4d6e4340f004f196b52b7562e726b04df81f9d1**, source **a4c1492**. Its existing verify_jwt=false setting is preserved because its body validates Supabase Auth before tenant access. The first deployment attempt retained an obsolete absolute import-map path; explicitly selecting deno.json resolved it. Live unauthenticated bootstrap returns 401 AUTH_REQUIRED; the existing owner signs in through Cloudflare and downloads the workspace with counterPOS/kitchenDisplay capabilities, 99 menu mappings, two active POS and zero kitchen status actions. No client stock/sale was posted. The temporary verification session was signed out.
 
 ## Verification
 
@@ -31,6 +31,6 @@ Screenshots are local, synthetic evidence under outputs/POS-UX-20261021, includi
 
 ## Publication and remaining acceptance
 
-Cloudflare connector tools are absent and Wrangler reports an expired OAuth login. The prepared frontend has not been published. No production traffic shift or new Cloudflare resource was created. Git publication/CI and client/physical printer acceptance must be recorded separately from local checks.
+Cloudflare connector tools are absent and Wrangler reports an expired OAuth login. The prepared frontend has not been published. No production traffic shift or new Cloudflare resource was created. Git push of feat/counter-pos failed because Windows Git Credential Manager could not start (NtCreateDirectoryObject access denied). The connector can read the repository but the local commit has not been pushed; no new PR, CI result or merge is claimed. Client/physical printer acceptance remains separate from local checks. Connect-FooDo-Cloudflare.cmd renews the existing CLI login in a normal user window; it neither deploys nor asks for credentials in chat.
 
 Cash only; no shifts, tables, split bills, delivery/payment-provider/fiscal adapters, Android helper or new cashier permission system. Existing client menu selling prices are not guessed or seeded. The client must configure actual prices and approve routing/recipes, shortages, offline service and physical printing before real use. See [operations](../runbooks/Counter-POS.md) and [client acceptance](../runbooks/Cost-Control-Acceptance.md).

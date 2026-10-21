@@ -1,6 +1,6 @@
 # Cashier POS / kitchen release prepared — 21 October 2026
 
-Integrated cash counter/takeaway POS and accepted-paid-order KDS are implemented and verified. Build **378fa56fb59ab0e4** is prepared; database migration **20261021165121** is applied. Cloudflare publication is pending because its connector is unavailable and Wrangler OAuth has expired. The live frontend is still **0d49168fd10bf5f5 / version 80**. Do not describe the new screens as live until deployment verification is recorded. See [release evidence](./releases/counter-pos-2026-10-21.md) and [operating guide](./runbooks/Counter-POS.md).
+Integrated cash counter/takeaway POS and accepted-paid-order KDS are implemented and verified. Build **378fa56fb59ab0e4** is prepared; database migration **20261021165121** is applied and API **16** is active with authenticated workspace loading verified. Cloudflare publication is pending because its connector is unavailable and Wrangler OAuth has expired. The live frontend is still **0d49168fd10bf5f5 / version 80**. Do not describe the new screens as live until deployment verification is recorded. See [release evidence](./releases/counter-pos-2026-10-21.md) and [operating guide](./runbooks/Counter-POS.md).
 
 # Current filter clarity — 19 October 2026
 
