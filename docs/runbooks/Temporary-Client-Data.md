@@ -1,3 +1,7 @@
+# Qibli stock extension — 22 October 2026
+
+The active trial now includes one separately approved 6.2 kg chicken receipt (EGP 992) and a 16-material main-warehouse → Qibli transfer (EGP 2,303.666), sized from two servings of each existing sample POS meal. Normal APIs and conserved transfer quantity/value were verified; sales and setup are unchanged. Private/local manifests track qibliPOSReplenishment and qibliPOSStock, and existing guarded cleanup includes both documents. No cleanup is authorized by this stock extension. See [stock evidence](../releases/qibli-trial-stock-2026-10-22.md).
+
 # POS sample menu extension — 21 October 2026
 
 The active trial now includes 12 additional source-POS cashier menu mappings with SAMPLE-WS-* codes, five categories and fictional prices copied from its existing trial recipes. Normal menu APIs created them without stock/sales posting. The private/local manifest records counterPOSSample; original 99 FODO mappings and trial generation remain. The existing full baseline restore includes these rows and command receipts. See [sample menu record](../releases/pos-sample-menu-2026-10-21.md).

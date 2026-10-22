@@ -1,3 +1,7 @@
+# Qibli trial inventory — 22 October 2026
+
+The approved trial now includes a 16-material Qibli transfer and a separately approved temporary chicken receipt. Use the guarded preparation/apply/verification helper; never replace balance rows or treat a timeout as a failed posting. Register additions in the existing private trial manifest and preserve cleanup protections. See [stock evidence](./releases/qibli-trial-stock-2026-10-22.md).
+
 # POS device context and acceptance — 22 October 2026
 
 Remember explicit POS/KDS selection per device, organization and generation; do not silently replace an unavailable saved selection. Keep preferences separate from recovery/auth. Empty drafts can follow a corrected POS through revision-checked save; filled drafts and paid outboxes retain historical routing. Reject concurrent stale saves. Hosted Qibli routing is now client-approved and corrected. See [acceptance evidence](./releases/pos-workflow-acceptance-2026-10-22.md).
@@ -54,7 +58,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.60 — 22 October 2026
+Version 2.61 — 22 October 2026
 
 Current form placement: additional-details toggles and supplier/reference/notes summaries belong in the body directly below receiving/kitchen headers. Dates and the kitchen selector remain in the header. Keep the toggle and controlled fields in the same keyboard/validation form, preserve existing values and reveal invalid optional fields. See [placement correction](./releases/additional-details-placement-2026-10-15.md).
 

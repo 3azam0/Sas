@@ -9,7 +9,7 @@
 
 ## Current client routing — 22 October 2026
 
-The owner approved بحري → المطبخ البحري and قبلي → المطبخ القبلي. The Qibli kitchen needs stock supply before service. This device remembers the chosen POS and KDS kitchen across navigation/reload. After routing changes, empty carts can align automatically; filled drafts require review and remain unchanged until the cashier acts.
+The owner approved بحري → المطبخ البحري and قبلي → المطبخ القبلي. The Qibli kitchen now has 16 temporary trial ingredients, including 7.2 kg chicken, sized from two servings of each sample meal. This is fictional trial stock; agree real stock levels before service. This device remembers the chosen POS and KDS kitchen across navigation/reload. After routing changes, empty carts can align automatically; filled drafts require review and remain unchanged until the cashier acts.
 
 ## Take a cash sale
 

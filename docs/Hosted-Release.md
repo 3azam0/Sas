@@ -1,3 +1,7 @@
+# Qibli trial inventory ready — 22 October 2026
+
+المطبخ القبلي now has 16 temporary ingredients covering the planned two servings per sample POS meal; stock value EGP 2,303.67. A separately approved chicken test receipt supplied the 6.2 kg shortage before the normal warehouse transfer. Replay, stock/value conservation, unchanged sales/configuration and live inventory are verified; the existing trial cleanup manifest includes both documents. No sale was posted. Build 297b007f4aece661 / Cloudflare 85 / API 16 are unchanged. See [evidence](./releases/qibli-trial-stock-2026-10-22.md).
+
 # POS workflow verified — 22 October 2026
 
 The owner-approved routing now matches each counter to its kitchen: بحري → المطبخ البحري; قبلي → المطبخ القبلي. The device remembers POS/KDS choices; empty drafts can follow corrected routing, while filled drafts and paid records retain their historical context for review. Build **297b007f4aece661** / Cloudflare **85**, source **b47f841**, deployment **0518429a-2143-4590-b8be-8299b8febb13** at 100%; API **16** unchanged. All 390 tests pass across the main run and one worker-startup retry; production/offline/hosted builds and isolated cash → kitchen → refund/receipt checks pass. Live configuration/draft checks posted no client sales. Qibli stock supply, real menu approval and physical printer/client acceptance remain. See [acceptance evidence](./releases/pos-workflow-acceptance-2026-10-22.md).
