@@ -1,3 +1,7 @@
+# Collapsible side menu — 22 October 2026
+
+The top-bar menu button now hides/reopens the desktop sidebar, remembers its setting and gives the page full width when closed. Mobile uses an accessible side panel with close, Escape, backdrop and selection dismissal. Current workspace drafts remain mounted. Build **bf792914b39e3536**, Cloudflare **84**, source **b3d6c60**, deployment **d897358a-b081-4197-89ce-845171e0f231** at 100%; API **16** unchanged. TypeScript, 9 focused tests, production/offline/hosted builds and desktop/tablet/phone checks pass, including live verification. See [release evidence](./releases/collapsible-sidebar-2026-10-22.md).
+
 # POS samples ready — 21 October 2026
 
 **12 priced sample meals/sides** now appear in **نقطة البيع** at both current terminals, using five categories and existing fictional trial recipe prices. Original catalog, balances and sales remain; the sample mappings are tracked for later guarded trial cleanup. Build **378fa56fb59ab0e4**, Cloudflare **83**, API **16** are unchanged. Live item selection and cash preview passed without posting a sale. See [sample menu evidence](./releases/pos-sample-menu-2026-10-21.md).

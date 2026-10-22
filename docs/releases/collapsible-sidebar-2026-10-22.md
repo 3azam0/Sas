@@ -9,6 +9,6 @@
 
 ## Verification
 
-TypeScript and 9 targeted navigation/workflow/guide tests passed. Production build passed. Isolated real-component browser checks passed at desktop 1280 px, phone 390 px and short phone 320 px: full-width desktop content (1021 to 1265 px), refresh persistence, Enter toggle, POS draft retention, mobile focus, Escape, backdrop, selection and no document horizontal overflow. The synthetic unpaid cart was removed without posting a sale.
+TypeScript and 9 targeted navigation/workflow/guide tests passed. Production/offline and hosted builds passed. Isolated real-component browser checks passed at desktop 1280 px, tablet 820 px, phone 390 px and short phone 320 px: full-width desktop content (1021 to 1265 px), refresh persistence, Enter toggle, POS draft retention, mobile focus, Escape, backdrop, selection and no document horizontal overflow. The synthetic unpaid cart was removed without posting a sale.
 
-Hosted publication and live verification pending.
+Hosted at [FooDo](https://fodo.am-agent2026.workers.dev/?release=bf792914b39e3536): build **bf792914b39e3536**, Cloudflare version **84** (**050e56bf-1e5a-43ef-a01e-fb10c692d7b4**), deployment **d897358a-b081-4197-89ce-845171e0f231** at **100%**. Source **b3d6c60**, branch **feat/collapsible-sidebar**. API **16** is unchanged. Live desktop open/close and phone drawer/focus checks passed; hosted health matches the build. Desktop and phone screenshots are saved in outputs/Sidebar-20261022. No client business transactions were posted. Git publication remains pending the existing Windows credential-manager restriction.
