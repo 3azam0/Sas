@@ -1,8 +1,10 @@
 # FooDo — Modular Business Management SaaS Master Plan
 
-Updated: 21 October 2026. This is the main development roadmap and progress reference.
+Updated: 22 October 2026. This is the main development roadmap and progress reference.
 
 ## Current development progress
+
+Workspace navigation now supports a remembered desktop sidebar toggle and an accessible mobile side panel, while retaining quick navigation and current drafts. See [verification](./releases/collapsible-sidebar-2026-10-22.md).
 
 Read this summary for **what is done and what remains**. The dated checkpoints below describe earlier releases; their old statements about pending hosting, sales deductions or reports do not override this summary. See the [developer guide](./Developer-Guide.md) for implementation rules and [hosted release](./Hosted-Release.md) for operational behavior.
 

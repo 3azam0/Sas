@@ -19,3 +19,4 @@ import './auth.css';
 import './filters.css';
 
 import './counter-pos.css';
+import './workspace-navigation.css';
