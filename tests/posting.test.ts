@@ -6,8 +6,8 @@ import type {Access,Command} from '@saas/contracts';
 let db:PGlite;
 const access:Access={organizationId:'grills',userId:'test-owner',deviceId:randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()};
 function command(type:Command['type'],quantity:string,overrides:Partial<Command>={}):Command{return{operationId:randomUUID(),organizationId:'grills',locationId:'central',itemId:'beef',type,quantity,unitCost:type==='receipt.post'?'100':undefined,reason:'test reference',businessDate:'2026-10-09',capturedAt:new Date().toISOString(),schemaVersion:1,...overrides};}
-beforeAll(async()=>{db=await createDatabase();await seed(db);});
-beforeEach(async()=>{await db.exec("TRUNCATE audit_events, layer_allocations, command_receipts, stock_entries, cost_layers, stock_balances RESTART IDENTITY;");});
+beforeAll(async()=>{db=await createDatabase();await seed(db,'fifo');});
+beforeEach(async()=>{await db.exec("TRUNCATE count_finalizations,count_revisions,stock_counts,transfer_allocations,transfer_segments,transfer_actions,transfers,supplier_return_lines, supplier_returns, audit_events, layer_allocations, command_receipts, stock_entries, cost_layers, stock_balances RESTART IDENTITY;");});
 afterAll(async()=>{await db.close();});
 describe('authoritative PostgreSQL posting',()=>{
  it('allocates FIFO independently of current purchase price',async()=>{

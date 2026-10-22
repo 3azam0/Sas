@@ -1,0 +1,73 @@
+import 'fake-indexeddb/auto';
+import {beforeEach,afterEach,it,expect,vi} from 'vitest';
+import {local,acceptSnapshot,saveSetup,projectSetup,saveReceipt,resolveReceipt,saveCommand,saveTransfer,sync,recoveryArchive,restoreRecovery,projectedReceiptCommands} from '../apps/web/src/offline';
+import {projectedQuantity} from '@saas/domain';
+import {setupCommandSchema,type ReceiptDocument,type Snapshot} from '@saas/contracts';
+const now=()=>new Date().toISOString();const generation=crypto.randomUUID();
+const snapshot:Snapshot={generation,organizationId:'grills',organizationName:'Fixture',currency:'EGP',access:{organizationId:'grills',userId:'owner',deviceId:crypto.randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()},locations:[{id:'central',name:'Central',kind:'مطعم'},{id:'other',name:'Other',kind:'مطعم'}],items:['rice','beef'].map(id=>({id,name:id,unitId:'kg',unit:'kg',sku:id,minimum:'0',category:'Food'})),balances:[],layers:[],entries:[],acceptedOperationIds:[],fetchedAt:now()};
+const receipt=(capturedAt=now()):ReceiptDocument=>({generation,operationId:crypto.randomUUID(),organizationId:'grills',locationId:'central',type:'receipt.document',businessDate:'2026-10-09',reason:'Receipt test',capturedAt,schemaVersion:1,currency:'EGP',lines:['rice','beef'].map(itemId=>({lineId:crypto.randomUUID(),itemId,unitId:'kg',quantity:'10',unitCost:'20'}))});
+const clear=async()=>{for(const table of local.tables)await table.clear();};beforeEach(clear);afterEach(async()=>{vi.unstubAllGlobals();await clear();});
+it('creates a zero-stock material offline and restores its blank-reference receipt before syncing setup first',async()=>{
+ const base={...snapshot,units:[{id:'kg',name:'kg',revision:1}]};await acceptSnapshot(base);
+ const setup=setupCommandSchema.parse({generation,operationId:crypto.randomUUID(),organizationId:'grills',type:'item.save',expectedRevision:0,capturedAt:now(),schemaVersion:1,record:{id:'new-rice',name:'New rice',sku:'NEW-RICE',category:'Food',unitId:'kg',minimum:'0',active:true,purchaseUnits:[]}});
+ await saveSetup(setup);const projected=projectSetup(base,await local.setups.toArray());expect(projected.items.find(item=>item.id==='new-rice')).toMatchObject({unitId:'kg',unit:'kg'});expect(projected.balances).toEqual([]);expect(projected.entries).toEqual([]);
+ const d={...receipt(),reason:'',lines:[{...receipt().lines[0],itemId:'new-rice'}]};await saveReceipt(d);
+ const archive=await recoveryArchive('grills');await local.setups.clear();await local.receipts.clear();expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(2);
+ local.close();await local.open();expect((await local.receipts.get(d.operationId))?.document.reason).toBe('');
+ const posts:string[]=[],accepted:string[]=[];vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{
+  if(options?.body){const command=JSON.parse(options.body);posts.push(url);if(url==='/api/v1/receipts'){expect(accepted).toContain(setup.operationId);expect(command.reason).toBe('');}accepted.push(command.operationId);return Response.json({operationId:command.operationId,outcome:'accepted'});}
+  return Response.json({...(accepted.includes(setup.operationId)?projected:base),acceptedOperationIds:accepted});
+ }));await sync('grills');expect(posts).toEqual(['/api/v1/setup','/api/v1/receipts']);expect((await local.receipts.get(d.operationId))?.status).toBe('accepted');
+});
+it('does not submit a receipt whose newly created material was rejected during sync',async()=>{
+ const base={...snapshot,units:[{id:'kg',name:'kg',revision:1}]};await acceptSnapshot(base);
+ const setup=setupCommandSchema.parse({generation,operationId:crypto.randomUUID(),organizationId:'grills',type:'item.save',expectedRevision:0,capturedAt:now(),schemaVersion:1,record:{id:'new-rice',name:'New rice',sku:'NEW-RICE',category:'Food',unitId:'kg',minimum:'0',active:true,purchaseUnits:[]}});
+ await saveSetup(setup);const d={...receipt(),reason:'',lines:[{...receipt().lines[0],itemId:'new-rice'}]};await saveReceipt(d);
+ const posts:string[]=[];vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{
+  if(options?.body){posts.push(url);return Response.json({message:'Duplicate code'},{status:409});}return Response.json(base);
+ }));await sync('grills');expect(posts).toEqual(['/api/v1/setup']);expect((await local.setups.get(setup.operationId))?.status).toBe('needsReview');expect((await local.receipts.get(d.operationId))?.status).not.toBe('accepted');
+});
+it('keeps one whole receipt through reload with provisional quantities and unchanged confirmed balances',async()=>{
+ await acceptSnapshot(snapshot);const d=receipt();await saveReceipt(d);local.close();await local.open();expect((await local.receipts.get(d.operationId))?.document).toEqual(d);expect(projectedQuantity(snapshot,projectedReceiptCommands(snapshot,await local.receipts.toArray()),'central','rice')).toBe('10.000000');expect((await local.snapshots.get('grills'))?.balances).toEqual([]);
+ await expect(saveCommand({...d,...d.lines[0],operationId:d.lines[0].lineId,type:'receipt.post'})).rejects.toThrow('مستخدم');
+});
+it('orders receipts/legacy stock by capture time before transfer dispatch and reconciles IDs',async()=>{
+ await acceptSnapshot(snapshot);const d=receipt('2026-10-09T10:00:00Z');await saveReceipt(d);const c={...d,...d.lines[0],operationId:crypto.randomUUID(),type:'waste.post' as const,quantity:'1',capturedAt:'2026-10-09T10:01:00Z',unitCost:undefined};await saveCommand(c);const t={generation,operationId:crypto.randomUUID(),organizationId:'grills' as const,transferId:crypto.randomUUID(),expectedRevision:0,type:'transfer.dispatch' as const,sourceId:'central',destinationId:'other',businessDate:d.businessDate,reason:'Transfer',capturedAt:'2026-10-09T10:02:00Z',schemaVersion:1 as const,lines:[{movementId:crypto.randomUUID(),itemId:'rice',unitId:'kg',quantity:'2'}]};await saveTransfer(t);
+ const posts:string[]=[],accepted:string[]=[];vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{if(options?.body){const p=JSON.parse(options.body);posts.push(url);accepted.push(p.operationId);return Response.json({operationId:p.operationId,outcome:'accepted'});}return Response.json({...snapshot,acceptedOperationIds:accepted});}));await sync('grills');expect(posts).toEqual(['/api/v1/receipts','/api/v1/commands','/api/v1/transfers']);expect((await local.receipts.get(d.operationId))?.status).toBe('accepted');
+});
+it('leaves interrupted delivery pending; rejected receipts block dependent waste and transfer',async()=>{
+ await acceptSnapshot(snapshot);const d=receipt('2026-10-09T10:00:00Z');await saveReceipt(d);await saveCommand({...d,...d.lines[0],operationId:crypto.randomUUID(),type:'waste.post',quantity:'1',unitCost:undefined,capturedAt:'2026-10-09T10:01:00Z'});vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new Error('offline')));await expect(sync('grills')).rejects.toThrow('offline');expect((await local.receipts.get(d.operationId))?.status).toBe('pending');
+ const posts:string[]=[];vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{if(options?.body)posts.push(url);return url==='/api/v1/receipts'?Response.json({message:'Invalid item'},{status:409}):Response.json(snapshot);}));await sync('grills');expect(posts).toEqual(['/api/v1/receipts']);expect((await local.commands.toArray())[0].status).toBe('needsReview');
+});
+it('restores receipts and correction links in the current archive format atomically, rejects conflicts/scope, and reads old archives',async()=>{
+ await acceptSnapshot(snapshot);const d=receipt();await saveReceipt(d);await local.receipts.update(d.operationId,{status:'needsReview'});const corrected=receipt();await saveReceipt(corrected,d.operationId);const a=await recoveryArchive('grills');expect(a.version).toBe(20);await local.receipts.clear();expect((await restoreRecovery(JSON.stringify(a),'grills')).newCount).toBe(2);expect((await restoreRecovery(JSON.stringify(a),'grills')).duplicateCount).toBe(2);
+ const bad=structuredClone(a);bad.receipts[1].document.reason='Changed';await expect(restoreRecovery(JSON.stringify(bad),'grills')).rejects.toThrow('بيانات مختلفة');await expect(restoreRecovery(JSON.stringify(a),'bistro')).rejects.toThrow('مؤسسة أخرى');const cycle=structuredClone(a);cycle.receipts.find(row=>row.id===d.operationId)!.replacesId=corrected.operationId;await expect(restoreRecovery(JSON.stringify(cycle),'grills')).rejects.toThrow();
+ await expect(restoreRecovery(JSON.stringify({...a,version:9}),'grills')).rejects.toThrow('غير صالح');expect((await restoreRecovery(JSON.stringify({version:9,generation,organizationId:'grills',exportedAt:now(),commands:[]}),'grills')).newCount).toBe(0);
+});
+it('requires valid grant/references and fresh correction IDs; generation reset clears receipt queues',async()=>{
+ await acceptSnapshot(snapshot);const d=receipt();await saveReceipt(d);await expect(resolveReceipt('grills',d.operationId,'cancel')).rejects.toThrow();await local.receipts.update(d.operationId,{status:'needsReview'});await resolveReceipt('grills',d.operationId,'retry');expect((await local.receipts.get(d.operationId))?.status).toBe('pending');await local.receipts.update(d.operationId,{status:'needsReview'});await resolveReceipt('grills',d.operationId,'cancel');
+ await expect(saveReceipt({...receipt(),supplierId:'missing'})).rejects.toThrow('المورد');await expect(saveReceipt({...receipt(),businessDate:'2099-01-01'})).rejects.toThrow('المستقبل');await acceptSnapshot({...snapshot,access:{...snapshot.access,expiresAt:'2000-01-01T00:00:00Z'}});await expect(saveReceipt(receipt())).rejects.toThrow('انتهت');await acceptSnapshot({...snapshot,generation:crypto.randomUUID()});expect(await local.receipts.count()).toBe(0);await expect(restoreRecovery(JSON.stringify({version:10,generation,organizationId:'grills',exportedAt:now(),commands:[],receipts:[]}),'grills')).rejects.toThrow('نسخة سابقة');
+});
+const unitSnapshot:Snapshot={...snapshot,units:[{id:'kg',name:'kg',revision:1},{id:'grams',name:'جرام',revision:1},{id:'pieces',name:'عدد',revision:1}]};
+const convertedReceipt=():ReceiptDocument=>{const d=receipt();Object.assign(d.lines[0],{enteredQuantity:'2000',quantity:'2',receivingUnit:{unitId:'grams',name:'جرام',baseName:'kg',factor:'0.001'}});Object.assign(d.lines[1],{enteredQuantity:'2',quantity:'10',receivingUnit:{unitId:'pieces',name:'عدد',baseName:'kg',factor:'5'}});return d;};
+it('preserves catalog-unit conversions through offline reload, v14 recovery and delivery',async()=>{
+ await acceptSnapshot(unitSnapshot);const d=convertedReceipt();await saveReceipt(d);local.close();await local.open();expect((await local.receipts.get(d.operationId))?.document).toEqual(d);
+ expect(projectedQuantity(unitSnapshot,projectedReceiptCommands(unitSnapshot,await local.receipts.toArray()),'central','rice')).toBe('2.000000');
+ const archive=await recoveryArchive('grills');expect(archive.version).toBe(20);
+ await local.receipts.clear();await expect(restoreRecovery(JSON.stringify({...archive,version:13}),'grills')).rejects.toThrow('إصداره غير مدعوم');
+ expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(1);expect((await restoreRecovery(JSON.stringify(archive),'grills')).duplicateCount).toBe(1);
+ const delivered:ReceiptDocument[]=[];vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{
+  if(options?.body){delivered.push(JSON.parse(options.body));return Response.json({operationId:d.operationId,outcome:'accepted'});}
+  return Response.json({...unitSnapshot,acceptedOperationIds:delivered.length?[d.operationId,...d.lines.map(l=>l.lineId)]:[]});
+ }));await sync('grills');await sync('grills');expect(delivered).toEqual([d]);expect((await local.receipts.get(d.operationId))?.status).toBe('accepted');
+});
+it('rejects invalid unit calculations atomically and preserves captured names in historical recovery',async()=>{
+ await acceptSnapshot(unitSnapshot);const d=convertedReceipt();
+ await expect(saveReceipt({...d,lines:[{...d.lines[0],quantity:'3'},d.lines[1]]})).rejects.toThrow('كمية');
+ await expect(saveReceipt({...d,lines:[d.lines[0],{...d.lines[1],receivingUnit:{...d.lines[1].receivingUnit!,unitId:'foreign'}}]})).rejects.toThrow('المؤسسة');expect(await local.receipts.count()).toBe(0);
+ await saveReceipt(d);const archive=await recoveryArchive('grills');await local.receipts.clear();
+ await acceptSnapshot({...unitSnapshot,units:unitSnapshot.units!.map(u=>u.id==='grams'?{...u,name:'جرام جديد',revision:2}:u)});
+ expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(1);expect((await local.receipts.get(d.operationId))?.document.lines[0].receivingUnit?.name).toBe('جرام');
+ await expect(saveReceipt(convertedReceipt())).rejects.toThrow('تغيّر');
+ await local.receipts.clear();const legacy=receipt();await saveReceipt(legacy);const old=await recoveryArchive('grills');await local.receipts.clear();expect((await restoreRecovery(JSON.stringify({...old,version:13}),'grills')).newCount).toBe(1);
+});

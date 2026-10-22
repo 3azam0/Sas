@@ -1,3 +1,5 @@
+import type {ReportFilters} from '@saas/contracts';
+import {initialReportFilters} from '../../../packages/domain/reporting';
 import {create} from 'zustand';
-export type View='overview'|'inventory'|'activity'|'sync';
-export const useUI=create<{view:View;location:string;search:string;setView:(v:View)=>void;setLocation:(v:string)=>void;setSearch:(v:string)=>void}>(set=>({view:'overview',location:'central',search:'',setView:view=>set({view}),setLocation:location=>set({location}),setSearch:search=>set({search})}));
+export type View='pos'|'kitchenDisplay'|'finance'|'overview'|'inventory'|'setup'|'suppliers'|'opening'|'purchasing'|'returns'|'transfers'|'counts'|'recipes'|'production'|'sales'|'kitchenIssues'|'activity'|'sync'|'reports'|'guide';
+export const useUI=create<{reportFilters:ReportFilters;reportScope:string;setReportFilters:(v:ReportFilters)=>void;ensureReportScope:(scope:string)=>void;view:View;location:string;search:string;setView:(v:View)=>void;setLocation:(v:string)=>void;setSearch:(v:string)=>void}>(set=>({reportFilters:initialReportFilters(),reportScope:'',setReportFilters:reportFilters=>set({reportFilters}),ensureReportScope:reportScope=>set(state=>state.reportScope===reportScope?{}:{reportScope,reportFilters:initialReportFilters()}),view:'overview',location:'central',search:'',setView:view=>set({view}),setLocation:location=>set({location}),setSearch:search=>set({search})}));

@@ -5,7 +5,7 @@ const port=process.env.TEST_PORT || '3101';
 const origin=`http://127.0.0.1:${port}`;
 const dataDir=process.env.TEST_DATA_DIR || '.data-browser-test';
 const build=JSON.parse(readFileSync('apps/web/.next/fodo-build.json','utf8'));
-const server=spawn(process.execPath,[resolve('node_modules/next/dist/bin/next'),'start','--hostname','127.0.0.1','--port',port],{cwd:resolve('apps/web'),env:{...process.env,FODO_BUILD_LABEL:build.buildVersion,SAAS_DEMO_MODE:'1',SAAS_APP_ORIGIN:origin,SAAS_DATA_DIR:resolve(dataDir)},stdio:'inherit'});
+const server=spawn(process.execPath,[resolve('node_modules/next/dist/bin/next'),'start','--hostname','127.0.0.1','--port',port],{cwd:resolve('apps/web'),env:{...process.env,FODO_BUILD_LABEL:build.buildVersion,SAAS_DEMO_MODE:'1',SAAS_INITIAL_COSTING_METHOD:process.env.TEST_COSTING_METHOD||'fifo',SAAS_SEED_FIXTURES:process.env.TEST_EMPTY_WORKSPACE==='1'?'0':'1',SAAS_APP_ORIGIN:origin,SAAS_DATA_DIR:resolve(dataDir)},stdio:'inherit'});
 let result=1;
 try {
   let ready=false;
@@ -16,10 +16,18 @@ try {
   for(let i=0;i<30;i++) {try{const response=await fetch(origin+'/',{signal:AbortSignal.timeout(1000)});if(response.ok){ready=true;break;}lastError=`HTTP ${response.status}`;}catch(error){lastError=error?.message||String(error);}await new Promise(r=>setTimeout(r,250));}
   if(!ready)console.error(`Readiness probe failed for ${origin}: ${lastError}`);
   if(!ready)throw new Error('Local server was not reachable from the test runner');
-  const tests=spawn(process.execPath,[resolve('node_modules/@playwright/test/cli.js'),'test'],{stdio:'inherit',env:{...process.env,TEST_ORIGIN:origin}});
+  const tests=spawn(process.execPath,[resolve('node_modules/@playwright/test/cli.js'),'test',...(process.env.TEST_GREP?['--grep',process.env.TEST_GREP]:[])],{stdio:'inherit',env:{...process.env,TEST_ORIGIN:origin}});
   result=await new Promise(r=>tests.on('exit',code=>r(code??1)));
 } finally {
-  if(process.platform==='win32')await new Promise(r=>{const cleanup=spawn('taskkill',['/pid',String(server.pid),'/t','/f'],{stdio:'ignore'});cleanup.on('exit',r);});
-  else server.kill('SIGTERM');
+  if(process.platform==='win32'){
+    const killCode=await new Promise(r=>{const cleanup=spawn('taskkill',['/pid',String(server.pid),'/t','/f'],{stdio:'ignore'});cleanup.once('error',()=>r(1));cleanup.once('exit',code=>r(code??1));});
+    // Restricted Windows sessions can deny taskkill even though this parent
+    // owns a process handle that can terminate its direct test-server child.
+    if(killCode!==0&&server.exitCode===null&&server.signalCode===null)server.kill('SIGTERM');
+  }else server.kill('SIGTERM');
+  if(server.exitCode===null&&server.signalCode===null){
+    const exited=await new Promise(r=>{const timer=setTimeout(()=>{server.removeListener('exit',onExit);r(false);},3000);function onExit(){clearTimeout(timer);r(true);}server.once('exit',onExit);});
+    if(!exited){console.error('The owned browser-test server did not stop; browser checks are incomplete.');server.unref();result=1;}
+  }
 }
 process.exitCode=result;

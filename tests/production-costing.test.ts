@@ -1,0 +1,5 @@
+import {it,expect} from 'vitest';
+import {decimal} from '@saas/domain';
+import {exactOutputLayers,productionWasteValue} from '../packages/domain/production';
+it('conserves exact quantity and amount with bounded adjacent FIFO prices including zero',()=>{for(const [q,a] of [['3','1'],['0.000003','0.000000000001'],['1.234567','123.123456789123'],['1','0'],['999999999.999999','280']]){const p=exactOutputLayers(q,a);expect(p.reduce((s,l)=>s.add(l.quantity),decimal('0')).eq(q)).toBe(true);expect(p.reduce((s,l)=>s.add(decimal(l.quantity).mul(l.unitCost)),decimal('0')).eq(a)).toBe(true);expect(p).toHaveLength(decimal(a).mul('1000000000000').mod(decimal(q).mul('1000000')).eq(0)?1:2);}});
+it('values abnormal waste proportionally and avoids zero-output division',()=>{expect(productionWasteValue('70','3','0.6',false)).toBe('14.000000000000');expect(productionWasteValue('70','3','0',true)).toBe('70.000000000000');expect(productionWasteValue('0','0','0',false)).toBe('0');expect(()=>exactOutputLayers('0','1')).toThrow();});

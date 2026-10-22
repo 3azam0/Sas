@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { BusinessError, type Layer, type Command, type Snapshot } from '@saas/contracts';
+import { BusinessError, type Layer, type Command, type Snapshot,type OpeningDocument } from '@saas/contracts';
 Decimal.set({precision:40,rounding:Decimal.ROUND_HALF_UP});
 export const decimal = (value:string) => new Decimal(value);
 export function allocateFIFO(layers:Layer[], quantity:string) {
@@ -14,9 +14,10 @@ export function allocateFIFO(layers:Layer[], quantity:string) {
   if(needed.gt(0)) throw new BusinessError('INSUFFICIENT_STOCK','الرصيد المتاح لا يكفي');
   return {allocations,amount:total.toFixed(12)};
 }
-export function projectedQuantity(snapshot:Snapshot, commands:Command[], locationId:string,itemId:string) {
+export function projectedQuantity(snapshot:Snapshot, commands:Command[], locationId:string,itemId:string,openings:OpeningDocument[]=[]) {
   let value=decimal(snapshot.balances.find(b=>b.locationId===locationId&&b.itemId===itemId)?.quantity || '0');
   const accepted=new Set(snapshot.acceptedOperationIds);
+  for(const doc of openings)if(doc.organizationId===snapshot.organizationId&&doc.locationId===locationId&&!accepted.has(doc.operationId))for(const line of doc.lines)if(line.itemId===itemId)value=value.add(line.quantity);
   for(const c of commands) if(c.locationId===locationId&&c.itemId===itemId&&!accepted.has(c.operationId)) value=value.add(decimal(c.quantity).mul(c.type==='receipt.post'?1:-1));
   return value.toFixed(6);
 }

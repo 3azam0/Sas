@@ -1,17 +1,35 @@
-# Fodo — modular restaurant SaaS foundation
+# Fodo — inventory and cost control
 
-This is a working local development slice of the master plan, with Arabic RTL screens and Egyptian demo data. It is not the complete restaurant release or a production deployment.
+Hosted client workspace: https://fodo.am-agent2026.workers.dev. See [Hosted release](docs/Hosted-Release.md) for the current scope, cloud architecture and verification. Sales calculate theoretical consumption and estimated cost without deducting inventory. Local development and client cloud storage are separate.
+
+
+Fodo supports Arabic RTL screens, EGP costing, offline inventory workflows and a hosted first-client workspace. The local launcher remains available for development. Full POS, fiscal integrations, billing and account self-service are later releases.
 
 ## What works
 
-- Separate organizations, shared item catalog, and stock per location: Cairo, Alexandria, and a combined central warehouse/preparation kitchen.
-- Material receipts and waste capture, movement history, stock quantity/value, and inspectable FIFO layers.
+- Direct **الموردون** menu: add/edit supplier details, search, deactivate and synchronize offline changes, sharing records with inventory setup and purchasing.
+- Separate organizations, a shared item catalog within each organization, and stock per configured restaurant, warehouse or preparation location.
+- Multi-item direct receipt documents (up to 200 items, optional supplier, pack conversion, totals and atomic offline posting) and waste capture, movement history, stock quantity/value, and inspectable source layers and moving-average/FIFO costing.
 - IndexedDB outbox, provisional local quantities, automatic reconnect sync, and server acceptance without duplicate stock effects.
 - Offline reopening after the application shell and initial data have downloaded.
-- Atomic PostgreSQL posting: command receipt, stock movement, FIFO allocation, balance, and audit record commit together. Insufficient stock rolls back and remains visible for review.
+- Atomic PostgreSQL posting: command receipt, stock movement, selected-policy allocation, balance, and audit record commit together. Insufficient stock rolls back and remains visible for review.
 - Responsive web interface and a downloadable JSON recovery archive with preview, validation, and idempotent import.
 - Review queue for rejected offline operations, including retry, correction, and cancellation with linked history.
 - Stable local origin, single-process database ownership, startup health checks, and verified local backup/restore helpers.
+- Inventory setup: create/edit items, units, suppliers and restaurant/warehouse/preparation locations; deactivate records while preserving their history.
+- Durable offline setup changes, revision-conflict review, supplier-linked receiving and item-specific purchase packs with server-validated base quantities.
+- Opening stock documents: multi-material base quantities/costs, bounded CSV mapping/preview, all-or-nothing acceptance, FIFO layers and immutable review history.
+- Offline opening documents synchronize before dependent stock operations. Format-10 recovery includes receipt/count/transfer/return/purchase/opening/setup/stock records and linked recount/corrections; formats 1–9 are parseable, but pre-reset generations cannot restore into a new ledger.
+
+- Transfers: atomic selected-policy dispatch, in-transit quantities/value, partial receiving at original costs, explicit transit loss, offline capture/review/correction and recovery.
+- Supplier returns: source-layer availability, original-cost deductions, atomic multi-line posting, duplicate protection and durable offline review/correction. Gross received order quantities remain unchanged.
+- Purchase orders: offline drafts and submitted revisions, partial pack-based receiving, immutable costs/source links, outstanding quantities, cancellation and full-receipt reversal against untouched original layers.
+
+- Stock counts: partial physical quantities, reviewed atomic selected-policy shortages and explicit-cost surpluses, strict stale-sequence checks, independent reconciliation and linked offline recount/recovery.
+
+Normal startup contains no sample catalog or stock. The authorized one-time development reset removes old setup and transaction data; later restarts preserve your entries. Browser synchronization replaces old snapshots and queues with the current generation. Automated fixture data is isolated and requires SAAS_SEED_FIXTURES=1.
+
+Open **إعداد المخزون** to configure your data, then **الرصيد الافتتاحي** to establish starting quantities/costs in a pristine item/location. See the [inventory setup walkthrough](docs/runbooks/Inventory-Setup.md) and [opening stock walkthrough](docs/runbooks/Opening-Stock.md). Use **استلام مواد → إضافة مادة أخرى** for direct multi-item receiving; see [direct receiving](docs/runbooks/Direct-Receiving.md). Open **المشتريات** for purchase documents and partial receiving; see the [purchasing walkthrough](docs/runbooks/Purchasing.md). Open **مرتجعات الموردين** for source-linked returns against accepted purchase receipts; see the [supplier returns walkthrough](docs/runbooks/Supplier-Returns.md). Open **التحويلات** for dispatch, partial receiving and explicit transit loss; see the [transfers walkthrough](docs/runbooks/Transfers.md). Use **الجرد والتسوية** for physical counts and reconciliation; see the [stock counts walkthrough](docs/runbooks/Stock-Counts.md). Open **الوصفات والتكاليف** for versioned recipes, pinned sub-recipes, batch/portion costs and food-cost estimates; see [Recipes and costing](docs/runbooks/Recipes.md). Open **الإنتاج والتحضير** to post pinned-version preparation batches, actual ingredient usage, usable output and separate abnormal waste; see [Production and yield](docs/runbooks/Production.md). Open **المبيعات** for POS menu-code mapping, completed-sales CSV preview, offline capture, duplicate detection, import history and **الاستهلاك النظري** estimates. See [Sales import](docs/runbooks/Sales-Import.md). Sales do not deduct stock. Period consumption comparisons, membership administration and dedicated demo infrastructure are deferred.
 
 ## Run on this Windows machine
 
@@ -27,7 +45,7 @@ Open PowerShell in this directory. Dependencies are already installed in this wo
 
 Open the `READY` address printed by the launcher (normally **http://127.0.0.1:3108**) and select “فتح مجموعة المشاوي”. Keep this hostname and port: the server validates the configured origin and browser offline data is scoped to it. Stop the server with Ctrl+C.
 
-`pnpm start`, `run.ps1 start`, and `Start-Fodo.cmd` all use this launcher and `.data-local`. `pnpm dev` uses port 3109 and `.data-dev` to keep development fixtures separate. Older `.data` directories are retained. The workspace footer and `/api/v1/health` show the build version. A verified instance serving an older build is refused with instructions to stop its console and restart at the same URL.
+`pnpm start`, `run.ps1 start`, and `Start-Fodo.cmd` all use this launcher and `.data-local`. `pnpm dev` uses port 3109 and `.data-dev` to keep development data separate. Older `.data` directories are retained. The workspace footer and `/api/v1/health` show the build version. A verified instance serving an older build is refused with instructions to stop its console and restart at the same URL.
 
 `-SandboxCompat` enables a narrowly scoped filesystem fallback needed by this Codex Windows sandbox. On a normal workstation, try the same commands without that switch. It handles EPERM from native asynchronous path resolution by retrying standard synchronous filesystem calls; access errors still propagate. The build uses webpack and Babel because the native SWC path resolver failed in this sandbox.
 
@@ -45,7 +63,7 @@ On a fresh workstation: install Node.js 24 and pnpm 11.25.0, then run `pnpm inst
 
 ## Try offline behavior
 
-1. Enter the demo online and wait for “التطبيق جاهز للفتح دون اتصال”.
+1. Enter online, add your location/unit/material and initial stock, then wait for “التطبيق جاهز للفتح دون اتصال”.
 2. Disconnect the browser using DevTools Network → Offline. Record one unit of waste.
 3. The confirmed quantity stays unchanged; the provisional quantity decreases. Reload while offline: the operation remains in the sync center.
 4. Reconnect. Sync accepts the movement and updates confirmed quantity/value once.
@@ -78,12 +96,18 @@ The selected Supabase project is `bkkxrptgwbrwredauopq`. Its public URL and publ
 
 ## Next implementation stages
 
-1. Production Supabase authentication, memberships, permissions, RLS, managed PostgreSQL migrations, and integration checks.
-2. Production sync adapter (PowerSync as planned), incremental data distribution, schema upgrades, and permission changes.
-3. Suppliers, purchase orders, receiving documents, unit conversions, stock counts, and transfers with shipment/receipt reconciliation.
-4. Separate location capabilities for warehouse and preparation kitchen; recipes, batch production, yield/waste, ingredient costing, and actual versus theoretical consumption.
-5. Sales integration/POS, profitability, subscription/module entitlements, and country-specific fiscal adapters.
+1. Inventory consumption from captured sales, refund/void handling, actual versus theoretical consumption, food cost and profitability (Phase 4C2–4C3).
+2. Real authentication, managed database/access controls and isolated production configuration before live operation.
+3. Later: production sync scaling, POS, memberships, subscription/module entitlements and country adapters. Dedicated demo infrastructure remains deferred.
 
 Egyptian e-invoicing/e-receipts, other Arab country tax integrations, multi-currency accounting, production authorization, and SaaS billing are not implemented here. Tax settings must remain country adapters in the master plan. This local demo does not establish compliance.
 
 See [the environment report](docs/Environment-Setup.md), [the master plan](docs/Master-Plan.md), and [the developer guide](docs/Developer-Guide.md).
+
+## GitHub checks and releases
+
+Task branches use PRs into `main`. The prepared GitHub workflow runs type checking, unit/integration tests, production build, all offline/recovery/launcher browser scenarios and full-history secret scanning. `CI gate` requires both quality and secret jobs to pass. Version tags matching `package.json`, reviewed main history and committed release notes prepare a GitHub draft release with a source manifest; they do not deploy the application.
+
+The owner published main at 8085bdf and chore/github-workflow at 42d8edf. [PR #1](https://github.com/3azam0/Sas/pull/1) exists, and branch and PR CI gates passed. The latest setup report verified squash merging, branch cleanup, immutable release tags, staging and client-demo registrations, and production approval/release-tag policy. Only main protection remains pending: GitHub rejected the helper request with HTTP 422 because it sent both contexts and checks. The helper now sends checks only, preserves existing requirements, and has 22 regression checks passing in both PowerShell versions. Publication and remote verification of this final payload fix remain pending. Codex cannot access the Windows credential store from its restricted process. See [GitHub setup and release runbook](docs/runbooks/GitHub-Setup.md) for the retry procedure. Hosted services and environment secrets remain pending.
+
+Inventory costing now defaults to moving weighted average per material/location. FIFO can be selected in inventory setup using an explicit development sample reset. Setup is retained; old transaction queues/archives are invalidated by generation. See [Costing methods](docs/runbooks/Costing-Methods.md).

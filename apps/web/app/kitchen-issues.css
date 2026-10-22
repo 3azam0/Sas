@@ -1,0 +1,169 @@
+.kitchen-intro{display:flex;align-items:center;justify-content:space-between;gap:20px}.kitchen-intro p{max-width:700px}.kitchen-metrics{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:20px 0}.kitchen-metrics strong{display:block;font-size:26px;margin-top:8px}.kitchen-document-meta{display:flex;flex-wrap:wrap;gap:14px;margin-block:16px}.kitchen-number{overflow-wrap:anywhere;font-size:12px}.kitchen-issue-modal{width:min(1040px,calc(100vw - 32px))}.keyboard-help{padding:12px 16px;background:#f5f7fb;border-radius:12px;font-size:12px;line-height:2;margin-bottom:20px}.keyboard-help kbd{direction:ltr;display:inline-block;background:white;border:1px solid #dce2ea;border-radius:5px;padding:0 5px}.kitchen-lines{display:grid;gap:16px}.kitchen-line{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto;gap:16px;align-items:start;border:1px solid #e2e6ed;border-radius:14px;padding:16px;min-width:0}.kitchen-line[hidden]{display:none}.kitchen-line legend{padding-inline:6px;font-weight:700}.kitchen-line>.text-button{margin-top:30px}.kitchen-estimate{display:flex;flex-direction:column;gap:8px;padding:16px;background:#f8f9fc;border-radius:12px}.kitchen-print-modal{width:min(900px,calc(100vw - 32px))}.kitchen-print-sheet{padding:28px;background:white;color:#172a40;overflow-x:auto}.kitchen-print-sheet header{display:flex;gap:20px;align-items:center}.kitchen-print-sheet header img{width:88px;height:88px;object-fit:contain}.kitchen-print-info,.kitchen-signatures{display:grid;grid-template-columns:1fr 1fr;gap:12px}.kitchen-print-sheet table{width:100%;margin-block:20px}.kitchen-print-sheet th,.kitchen-print-sheet td{padding:12px;border-bottom:1px solid #dce2ea;text-align:start}.kitchen-print-pending{padding:12px;border:1px solid #ce9d36;background:#fff9e9}.kitchen-print-total{font-size:20px}.kitchen-print-sheet footer{margin-top:24px;font-size:11px;color:#5e6c7d}
+@media(max-width:760px){.kitchen-intro{align-items:stretch;flex-direction:column}.kitchen-metrics{gap:10px}.kitchen-line{grid-template-columns:1fr}.kitchen-line>.text-button{margin-top:0;justify-self:start}.kitchen-print-sheet{padding:16px}.kitchen-print-info,.kitchen-signatures{grid-template-columns:1fr}}
+@media print{body:has(.kitchen-print-sheet) .shell,body:has(.kitchen-print-sheet) .kitchen-no-print{display:none!important}.kitchen-print-modal{position:static!important;display:block!important;max-height:none!important;height:auto!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;box-shadow:none!important}.kitchen-print-sheet{padding:0!important;overflow:visible!important;font-size:11pt}.kitchen-print-sheet thead{display:table-header-group}.kitchen-print-sheet tr{break-inside:avoid}.kitchen-print-sheet th,.kitchen-print-sheet td{padding:8px}.kitchen-print-modal::backdrop{background:transparent}}
+.kitchen-directory-body{overflow:auto;padding:20px 24px;min-height:160px}.kitchen-directory-body .heading-actions{margin-block:14px}.kitchen-directory-body .workflow-form{margin-block:12px}.kitchen-intro .heading-actions{flex-wrap:wrap}
+.kitchen-directory-modal>.modal-actions{padding:16px 24px;border-top:1px solid #e2e6ed;display:flex;justify-content:flex-end}
+
+/* Stock issue entry: compact document details, readable rows and a persistent total. */
+.kitchen-issue-modal{width:min(1000px,calc(100vw - 32px));height:min(820px,calc(100dvh - 32px));max-height:calc(100dvh - 32px)}
+.kitchen-issue-modal .modal-header{padding:18px 24px;align-items:flex-start}
+.kitchen-issue-modal .modal-header h2{font-size:23px;line-height:1.5}
+.kitchen-issue-modal .modal-header p{font-size:12px;margin-top:5px;max-width:650px}
+.kitchen-issue-modal .eyebrow{font-size:11px;margin-bottom:4px}
+.kitchen-issue-modal .eyebrow strong{color:#475467;font-weight:600}
+.kitchen-issue-modal .kitchen-issue-form{flex:1;min-height:0;max-height:none;margin:0;padding:0 24px 18px}
+.kitchen-issue-form .workflow-body{padding:12px 3px 16px;scroll-padding:16px}
+.kitchen-issue-form .form-keyboard-help{font-size:10px;margin-bottom:12px;line-height:1.7}
+.kitchen-issue-form .kitchen-document-fields{display:grid;grid-template-columns:1fr .85fr 1.3fr;gap:16px;padding:16px;background:#f8fafc;border:1px solid #e6eaf0;border-radius:12px;margin-bottom:20px}
+.kitchen-issue-modal .kitchen-document-fields label,.kitchen-issue-modal .kitchen-line label{margin:0;min-width:0;gap:6px}
+.kitchen-issue-form .kitchen-document-fields .field-hint{font-size:10px;line-height:1.4}
+.kitchen-issue-form :is(.kitchen-document-fields,.kitchen-line-entry) .field-hint:has(>.field-required){display:none}
+.kitchen-issue-form .kitchen-document-fields input,.kitchen-issue-form .kitchen-document-fields select{min-width:0;width:100%;font-size:13px;min-height:44px;padding:10px}
+.kitchen-issue-form .kitchen-material-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.kitchen-material-heading h3{font-size:16px;display:flex;align-items:center;gap:10px}
+.kitchen-material-heading .pill{padding:3px 8px;font-size:10px}
+.kitchen-material-heading p{font-size:11px;margin-top:5px;line-height:1.7}
+.kitchen-material-heading kbd{direction:ltr;display:inline-block;background:#f4f6fa;border:1px solid #e2e6ed;border-radius:4px;padding:0 4px;font-size:10px}
+.kitchen-issue-form .collection-top{padding:0;margin-bottom:12px}
+.kitchen-issue-form .kitchen-short-document .collection-top{display:none}
+.kitchen-issue-form .collection-summary{font-size:11px;padding:0;min-height:0}
+.kitchen-issue-form .collection-summary label{font-size:10px;display:flex;align-items:center;gap:6px;margin:0}
+.kitchen-issue-form .collection-summary select{min-height:34px;width:auto;padding:4px 26px 4px 8px;font-size:11px}
+.kitchen-issue-form .kitchen-lines{gap:14px}
+.kitchen-issue-form .kitchen-line{display:block;padding:14px 16px 12px;border:1px solid #e1e6ef;border-radius:12px;min-width:0;background:#fff}
+.kitchen-issue-form .kitchen-line[hidden]{display:none}
+.kitchen-issue-form .kitchen-line legend{padding-inline:7px;color:#64748b;font-size:11px;font-weight:600}
+.kitchen-line-entry{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr) 54px;gap:14px;align-items:start}
+.kitchen-issue-modal .kitchen-quantity-field{display:block;font-size:12px}
+.kitchen-quantity-field>small{font-size:11px;font-weight:400}
+.kitchen-quantity-field>input{display:block;margin-top:6px}
+.kitchen-issue-form .kitchen-quantity-field>.field-hint{margin-top:7px}
+.kitchen-issue-form .catalog-select{gap:4px;min-width:0}
+.kitchen-issue-form .catalog-result-count:empty{min-height:0;display:none}
+.kitchen-issue-form .catalog-select .field-hint{font-size:10px;line-height:1.4}
+.kitchen-issue-form .kitchen-remove-line{margin-top:25px;min-height:44px;border:1px solid #e5e9f0;border-radius:9px;background:white;color:#8b5353;font-size:11px;padding:8px;transition:background .18s,border-color .18s}
+.kitchen-remove-line:hover{background:#fff2f0;border-color:#efccc7;color:#b42318}
+.kitchen-line-stock{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid #edf0f5}
+.kitchen-line-stock>span{font-size:10px;color:#64748b;line-height:1.8}
+.kitchen-line-stock strong{display:block;color:#334155;font-size:13px;font-weight:650;font-variant-numeric:tabular-nums}
+.kitchen-line-stock strong small{font-weight:400;font-size:10px}
+.kitchen-line-empty{font-size:11px;margin-top:8px;line-height:1.7;color:#64748b}
+.kitchen-issue-form .kitchen-line-shortage{border-color:#e6aaa3;background:#fffcfb}
+.kitchen-stock-warning{margin-top:12px;padding:9px 12px;border:1px solid #f0d4cf;background:#fff2ef;border-radius:8px;color:#a73122;font-size:11px;line-height:1.8}
+.kitchen-stock-warning strong{font-weight:700}
+.kitchen-issue-form .kitchen-add-line{margin-top:14px;width:100%;background:#fafbfc;border-style:dashed;font-size:12px}
+.kitchen-issue-form .kitchen-add-line:hover{background:#fff4ed}
+.kitchen-notes{margin-top:12px}
+.kitchen-notes>.text-button{font-size:12px;padding-inline:0;color:#536175;font-weight:550}
+.kitchen-notes>.text-button small{font-size:10px;font-weight:400;margin-inline-start:6px}
+.kitchen-issue-form .kitchen-notes label{margin:8px 0 0}
+.kitchen-issue-form .workflow-footer{padding:14px 3px 0}
+.kitchen-issue-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 24px;align-items:center}
+.kitchen-issue-total>div{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.kitchen-issue-total span{color:#64748b;font-size:11px}
+.kitchen-issue-total strong{color:#172a40;font-size:24px;line-height:1.5;font-variant-numeric:tabular-nums}
+.kitchen-issue-total>small{display:block;font-size:10px;line-height:1.7;margin-top:3px}
+.kitchen-issue-total .kitchen-shortage-count{display:inline-block;color:#a73122;font-size:11px;margin-top:4px}
+.kitchen-save-buttons{display:flex;gap:8px;align-items:center}
+.kitchen-issue-form .kitchen-save-buttons .primary{margin:0;min-width:155px}
+.kitchen-consumption-note{grid-column:1/-1;color:#64748b;font-size:10px;line-height:1.7}
+@media(max-width:760px){
+ .kitchen-issue-modal{height:calc(100dvh - 24px);max-height:calc(100dvh - 24px);width:calc(100vw - 24px)}
+ .kitchen-issue-modal .modal-header{padding:14px 16px}
+ .kitchen-issue-modal .modal-header h2{font-size:20px}
+ .kitchen-issue-modal .modal-header p{font-size:11px;line-height:1.7;margin-top:4px}
+ .kitchen-issue-modal .kitchen-issue-form{max-height:none;padding:0 14px 14px}
+ .kitchen-issue-form .workflow-body{padding-top:10px}
+ .kitchen-issue-form .form-keyboard-help{font-size:10px;margin-bottom:10px}
+ .kitchen-issue-form .kitchen-document-fields{grid-template-columns:1fr 1fr;gap:12px;padding:12px;margin-bottom:16px}
+ .kitchen-recipient-field{grid-column:1/-1}
+ .kitchen-issue-modal .kitchen-document-fields label{font-size:11px}
+ .kitchen-issue-form .kitchen-document-fields input,.kitchen-issue-form .kitchen-document-fields select{font-size:16px;padding:9px 7px}
+ .kitchen-material-heading h3{font-size:14px}
+ .kitchen-material-heading p{font-size:10px;line-height:1.8}
+ .kitchen-issue-form .kitchen-line{padding:12px}
+ .kitchen-line-entry{grid-template-columns:minmax(0,1fr) 52px;gap:12px 8px}
+ .kitchen-item-field{grid-column:1/-1}
+ .kitchen-issue-modal .kitchen-quantity-field{font-size:12px}
+ .kitchen-line-stock{gap:8px;grid-template-columns:1fr 1fr;margin-top:10px;padding-top:10px}
+ .kitchen-line-stock>span:last-child{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+ .kitchen-line-stock strong{font-size:12px}
+ .kitchen-stock-warning{padding:8px 10px;font-size:10px}
+ .kitchen-issue-form .workflow-footer{padding-top:12px}
+ .kitchen-issue-actions{grid-template-columns:1fr;gap:8px}
+ .kitchen-issue-total>div{justify-content:space-between;gap:8px}
+ .kitchen-issue-total strong{font-size:22px}
+ .kitchen-issue-total>small{font-size:9px}
+ .kitchen-save-buttons{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:8px}
+ .kitchen-save-buttons .primary,.kitchen-save-buttons .secondary{min-width:0;padding:10px}
+ .kitchen-consumption-note{font-size:9px;line-height:1.6}
+}
+
+/* Keep searchable kitchen names clear of the dropdown chevron at both breakpoints. */
+.kitchen-issue-form .kitchen-document-fields .catalog-search input{padding-inline-end:38px}
+
+/* One keyboard entry row above the newest-first receipt list. */
+.kitchen-entry-composer{padding:16px;border:1px solid #e3e8ef;border-radius:12px;background:#f8fafc;margin-bottom:20px}
+.kitchen-entry-editing{background:#fff7ee;border-color:#eac8a8}
+.kitchen-entry-composer .kitchen-material-heading{margin-bottom:12px}
+.kitchen-composer-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(120px,1fr) auto;gap:14px;align-items:start}
+.kitchen-issue-modal .kitchen-composer-row label{display:flex;flex-direction:column;min-width:0;margin:0;gap:6px;font-size:12px}
+.kitchen-composer-row .kitchen-quantity-field>input{margin:0}
+.kitchen-composer-row input{min-width:0;width:100%;min-height:44px;font-size:13px}
+.kitchen-issue-form .kitchen-composer-row .catalog-search input{padding-inline-end:38px}
+.kitchen-entry-add{margin-top:24px!important;min-height:44px;white-space:nowrap}
+.kitchen-entry-add kbd{font-size:13px;margin-inline-start:5px;opacity:.75}
+.kitchen-entry-preview{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin-top:10px;font-size:11px;color:#64748b;line-height:1.7}
+.kitchen-entry-preview strong{color:#344054;font-weight:650}
+.kitchen-entry-preview>.text-button{margin-inline-start:auto;padding:3px 0;font-size:11px}
+.kitchen-entry-preview .kitchen-entry-shortage,.kitchen-entry-preview .kitchen-entry-shortage strong{color:#b42318}
+.kitchen-entry-composer>.field-error{margin-top:8px;font-size:12px}
+.kitchen-entry-notice{font-size:11px;line-height:1.7;color:#31724c;margin-top:8px}
+.kitchen-entry-notice:empty{display:none}
+.kitchen-receipt-order{font-size:10px;color:#667085;white-space:nowrap}
+.kitchen-receipt-section .collection-filters{gap:10px}
+.kitchen-receipt-section .collection-filters label{font-size:10px}
+.kitchen-receipt-section .collection-filters input,.kitchen-receipt-section .collection-filters select{font-size:12px;min-height:36px}
+.kitchen-receipt-section .collection-summary{font-size:10px;min-height:24px}
+.kitchen-receipt-list{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.kitchen-receipt-line{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1.5fr) auto;align-items:center;gap:16px;padding:13px 14px;border:1px solid #e2e7ef;border-radius:10px;background:#fff;min-width:0}
+.kitchen-receipt-latest{border-color:#e8b99e;background:#fffcf9}
+.kitchen-receipt-item{display:flex;flex-direction:column;min-width:0;gap:4px;overflow-wrap:anywhere}
+.kitchen-receipt-item>strong{font-size:13px;color:#172a40}
+.kitchen-receipt-item>small{font-size:10px;color:#667085}
+.kitchen-receipt-item>span{font-size:10px;line-height:1.7;color:#64748b}
+.kitchen-receipt-details{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:0;min-width:0}
+.kitchen-receipt-details>div{min-width:0}
+.kitchen-receipt-details dt{font-size:10px;color:#667085;margin-bottom:6px}
+.kitchen-receipt-details dd{margin:0;font-size:12px;color:#344054;font-weight:600;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.kitchen-receipt-details .kitchen-receipt-quantity{font-size:15px;color:#172a40}
+.kitchen-receipt-quantity small{font-size:10px;font-weight:400}
+.kitchen-receipt-actions{display:flex;gap:12px;align-items:center;white-space:nowrap}
+.kitchen-receipt-actions .text-button{font-size:11px;padding:5px 0;color:#52647a}
+.kitchen-receipt-actions .kitchen-receipt-remove{color:#b54736}
+.kitchen-receipt-line .kitchen-stock-warning{grid-column:1/-1;margin:0}
+.kitchen-receipt-line.kitchen-line-shortage{border-color:#e6aaa3;background:#fffcfb}
+@media(max-width:760px){
+ .kitchen-entry-composer{padding:12px;margin-bottom:16px}
+ .kitchen-composer-row{grid-template-columns:minmax(0,1.6fr) minmax(90px,1fr);gap:10px}
+ .kitchen-composer-row .kitchen-item-field{grid-column:auto}
+ .kitchen-issue-modal .kitchen-composer-row label{font-size:11px}
+ .kitchen-composer-row input{font-size:16px}
+ .kitchen-entry-add{grid-column:1/-1;margin-top:0!important;width:100%;font-size:12px}
+ .kitchen-entry-composer .kitchen-material-heading h3{font-size:14px}
+ .kitchen-entry-preview{font-size:10px;gap:6px 12px}
+ .kitchen-entry-notice{font-size:10px}
+ .kitchen-receipt-order{font-size:9px}
+ .kitchen-receipt-section .collection-filters input,.kitchen-receipt-section .collection-filters select{font-size:16px}
+ .kitchen-receipt-line{grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px}
+ .kitchen-receipt-item{grid-column:1}
+ .kitchen-receipt-details{grid-column:1/-1;grid-row:2;gap:10px;padding-top:10px;border-top:1px solid #edf0f5}
+ .kitchen-receipt-actions{grid-column:2;grid-row:1;gap:10px}
+ .kitchen-receipt-details dd{font-size:11px}
+ .kitchen-receipt-details .kitchen-receipt-quantity{font-size:14px}
+}
+
+/* Short receipts show their lines directly; longer lists retain filters and pagination. */
+.kitchen-compact-receipt .collection-top{display:none}
+.kitchen-issue-form .kitchen-document-fields{padding:12px;margin-bottom:14px}
+.kitchen-entry-composer{padding:12px;margin-bottom:14px}

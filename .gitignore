@@ -16,3 +16,12 @@ apps/web/public/precache.json
 !.env.example
 .data*/
 backups/
+
+.cloud-build/
+.wrangler/
+cloud/generated-assets.ts
+apps/web/public/downloads/*.zip
+apps/web/public/downloads/foodo-print-windows.json
+
+# Supabase CLI local cache
+supabase/.temp/

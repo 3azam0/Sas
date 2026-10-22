@@ -1,0 +1,15 @@
+# Stock issue receipt entry — 13 October 2026
+
+The receiving kitchen remains at the top of the stock issue editor. One searchable material dropdown and an adjacent quantity input add complete lines to a newest-first receipt list. Clicking a material moves directly to quantity. Enter selects a material, moves to quantity, adds the line and returns to item search. The Add button and Alt+Insert share this behavior. Exact duplicate quantities merge into their existing line, retaining identity. Editing replaces quantity and moves the line to the top; cancelling preserves it. Removal also clears an edit of that line. Pending entry/edit data cannot be silently skipped during document Save.
+
+Receipt lines show item/code/category, quantity/unit, available/remaining stock, estimated unit cost and amount, and Edit/Remove actions. The footer totals all lines, including filtered or paged rows. Lists above ten materials expose search, sorting and pagination; mutations restore the default view and first page. Up to 200 distinct materials are allowed; existing lines can still be merged or edited at the limit. Quantity/shortage checks happen before adding, before Save and on the existing atomic server acceptance path. The reference stays optional.
+
+Hosted build: `a6f32b51479418ea`. Cloudflare version: `9bf2538e-98df-40a9-9128-858a51749151`, number 49. Deployment `138b086d-b447-4798-8d94-256068b96467`, verified at 100% traffic at `2026-10-13T08:31:28.901604Z` (11:31 Cairo). Bindings and observability were retained. Supabase API remains version 12; no backend, schema or recovery-format migration was needed.
+
+Verification: TypeScript check and local/hosted production builds passed. 31 relevant tests passed across eight files: five new entry tests cover Arabic normalization, exact merging, retained identity/newest order, combined shortages, replacement editing, stale edits, invalid/oversized quantities and the distinct-item limit; existing keyboard/dropdown, preview, offline and server kitchen tests passed.
+
+Live browser verification used unsaved entries only. It confirmed one item picker/quantity input, mouse selection and Enter focus, duplicate merge, edit/replace/cancel/remove, shortage preservation, unfinished-entry Save protection, eleven-line search/sort/pagination, default-order reset on addition and footer totals across pages. Desktop and 390px mobile dialogs had no horizontal overflow. A legacy mobile grid rule was scoped so item and quantity share the same top position on the final build. All verification documents were cancelled; no client stock was posted.
+
+The environment approval policy rejected starting an isolated local server. Local builds and automated server/offline tests succeeded; interaction checks used the hosted UI without submitting stock. Browser confirmation of an accepted new stock document was not performed against the client warehouse.
+
+Developer Guide 2.41 and the kitchen/form runbooks describe this flow. Source is committed on the existing feature branch; GitHub publication remains pending the previously reported credential-helper issue.

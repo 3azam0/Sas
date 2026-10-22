@@ -1,0 +1,227 @@
+/* The accepted stock-issue pattern shared by operational and setup editors. */
+.document-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:14px 16px;background:#f8fafc;border:1px solid #e6eaf0;border-radius:12px;margin-bottom:18px;min-width:0}
+.document-fields-2{grid-template-columns:repeat(2,minmax(0,1fr))}.document-fields-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.document-fields>label{display:grid;gap:6px;margin:0!important;min-width:0;align-content:start}.document-fields input,.document-fields select{width:100%;min-width:0}
+.form-label{display:flex;gap:5px;flex-wrap:wrap;align-items:baseline;font-weight:600;color:#334155;font-size:12px;line-height:1.7}
+.form-label .field-required{font-size:11px}.form-label small{font-weight:400;color:#64748b;font-size:10px}
+.workflow-form:has(.form-label) .field-hint:has(>.field-required),.modal-form:has(.form-label) .field-hint:has(>.field-required){display:none}
+.workflow-form .catalog-result-count:empty,.modal-form .catalog-result-count:empty{display:none;min-height:0}
+.workflow-form .catalog-select{gap:4px;min-width:0}.workflow-form .field-hint,.modal-form .field-hint{font-size:11px;line-height:1.6}
+.workflow-form .form-keyboard-help,.modal-form .form-keyboard-help{font-size:10px;margin-bottom:12px;line-height:1.7}
+.document-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 20px;align-items:center}
+.document-summary{min-width:0;display:grid;gap:3px}.document-summary>span{color:#64748b;font-size:11px}.document-summary>strong{font-size:23px;font-weight:700;color:var(--navy);line-height:1.5;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.document-summary>small{color:#64748b;font-size:10px;line-height:1.7}
+.document-buttons>.heading-actions,.document-buttons>.modal-actions{padding:0;border:0;margin:0;justify-content:flex-end}.document-buttons .primary{margin:0;min-width:155px}
+.document-lines-short>.collection>.collection-top{display:none}.document-lines .collection-top{padding:0;margin-bottom:10px}.document-lines .collection-summary{font-size:11px}.document-lines .collection-summary label{margin:0;display:flex;align-items:center;gap:6px;font-size:11px}.document-lines .collection-summary select{min-height:34px;width:auto;font-size:11px;padding-block:4px}
+.document-line-list{display:grid;gap:14px}.document-line{display:block;border:1px solid #e1e6ef;border-radius:12px;background:#fff;padding:14px 16px;min-width:0;margin:0}.document-line[hidden]{display:none}.document-line legend{font-size:11px;color:#64748b;padding-inline:7px;font-weight:600}.document-line-grid{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr)) 52px;gap:12px;align-items:start}.document-line-grid>label{display:grid;gap:6px;min-width:0;margin:0!important;align-content:start}.document-line-grid :is(input,select){width:100%;min-width:0}.document-line-grid .line-item{grid-column:span 2}.document-line-grid .line-remove{margin-top:26px;grid-column:-2;grid-row:1;min-height:44px;border:1px solid #e5e9f0;border-radius:9px;background:#fff;color:#8b5353;font-size:11px;padding:8px}.line-remove:hover{background:#fff2f0;border-color:#efccc7}
+.document-line-summary{display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;border-top:1px solid #edf0f5;padding-top:10px;margin-top:12px;color:#64748b;font-size:11px;line-height:1.8}.document-line-summary strong{color:#334155;font-size:13px;font-weight:650}.document-add{width:100%;margin-top:14px;background:#fafbfc;border-style:dashed;font-size:12px}.document-add:hover{background:#fff4ed}
+.form-explanation{border:1px solid #e6eaf0;border-radius:10px;background:#fafbfc;margin:14px 0;font-size:11px;color:#64748b;line-height:1.8}.form-explanation>summary{cursor:pointer;padding:10px 12px;font-weight:550;min-height:40px}.form-explanation>div{padding:0 12px 12px}.form-explanation p{margin:6px 0!important;font-size:11px!important;line-height:1.8!important}.form-explanation .form-note{background:none;border:0;padding:0}
+.entry-table{border:1px solid #e6eaf0;border-radius:12px;margin-top:12px}.entry-table table{width:100%;table-layout:auto}.entry-table th{font-size:11px;padding:12px}.entry-table td{padding:12px;vertical-align:top}.entry-table input{max-width:100%;min-width:80px}.entry-table .catalog-select{width:220px}.entry-table td>.field-hint:has(>.field-required){display:none}
+.workflow-form .workflow-body>.form-fields>p,.workflow-form .workflow-body>.receipt-fields>p{font-size:12px;line-height:1.8;color:#64748b}
+.modal:not(.kitchen-issue-modal):has(>.workflow-form){height:auto}.modal>.workflow-form{flex:1;min-height:0;max-height:none;margin:0;padding:0 20px 16px}.modal>.workflow-form>.workflow-body{padding-top:12px}
+.receipt-modal{width:min(1000px,calc(100vw - 32px));height:min(820px,calc(100dvh - 32px));max-height:calc(100dvh - 32px)}.receipt-modal .modal-header{padding:18px 24px}.receipt-modal .modal-body{padding:12px 24px 18px}.receipt-modal .receipt-document-section{padding:0;background:none;border:0;margin-bottom:18px}.receipt-document-section .document-fields{margin:0}.receipt-modal .receipt-items-section{padding:0;background:none;border:0}.receipt-modal .form-section-heading{margin-bottom:10px}.receipt-modal .form-section-heading p{font-size:11px}.receipt-modal .receipt-line{padding:14px 16px 12px;margin-bottom:0}.receipt-modal .receipt-lines{display:grid;gap:14px}.receipt-modal .receipt-line .form-row{gap:12px;margin-bottom:12px}.receipt-modal .receipt-line label{gap:6px}.receipt-modal .receipt-line-summary{gap:24px}.receipt-modal .receipt-summary-value{display:flex;gap:10px;align-items:center}.receipt-modal .receipt-line-footer{margin-top:0;padding-top:10px}.receipt-modal .receipt-line-footer .text-button{border:1px solid #e5e9f0;min-height:40px;color:#8b5353;font-size:11px}.receipt-modal .modal-footer{padding-top:14px}.receipt-modal .modal-footer .form-error-summary{margin:0 0 10px}
+.recipe-component{background:#fff;border:1px solid #e1e6ef;border-radius:12px;padding:14px 16px!important}.recipe-component>legend{font-size:11px!important;color:#64748b}.recipe-component .form-row{display:grid;grid-template-columns:.85fr 1.8fr .85fr 1fr;gap:12px}.recipe-component .form-row label{min-width:0;margin:0;gap:6px}.recipe-component .form-row :is(input,select){width:100%;min-width:0}.recipe-component .receipt-line-footer{font-size:11px;margin-top:12px;padding-top:10px}.recipe-component .text-button{border:1px solid #e5e9f0;border-radius:9px;color:#8b5353;font-size:11px}.recipe-components{gap:14px}.recipe-editor .sales-stock-selection{margin:16px 0;padding:14px}.recipe-editor .stock-checkbox-grid{max-height:220px;overflow:auto;overscroll-behavior:contain}
+.opening-import{margin:0 0 16px;padding:12px 16px;border:1px solid #e6eaf0;border-radius:12px;background:#fafbfc}.opening-import>summary{cursor:pointer;font-size:12px;font-weight:600;min-height:32px}.opening-import p{font-size:11px}.opening-import[open]>summary{margin-bottom:12px}
+.setup-modal .modal-header{padding:18px 22px}.setup-modal .modal-body{padding:14px 22px}.setup-modal .form-section{padding:14px;margin-bottom:14px}.setup-modal .form-section h3{font-size:14px;margin-bottom:12px}.setup-modal .form-note{font-size:11px}.setup-modal .pack-card{padding:12px}.setup-modal .pack-row{gap:12px}.setup-modal .pack-row label{font-size:12px}.setup-modal .modal-footer{padding-top:12px}.balance-edit-dialog .balance-edit-summary{font-size:12px;margin-bottom:16px}.balance-edit-dialog .balance-edit-summary strong{font-size:21px}.balance-edit-dialog .workflow-form label{margin-bottom:12px}.balance-edit-dialog .workflow-form p{font-size:11px}
+@media(max-width:1000px){.document-fields-4{grid-template-columns:repeat(2,minmax(0,1fr))}.recipe-component .form-row{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){
+ .document-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px;margin-bottom:16px}.document-fields-3>label:first-child{grid-column:1/-1}.document-fields label:has(.catalog-select){grid-column:1/-1}.document-fields>label{font-size:11px}.document-fields .form-label{font-size:11px}.document-fields input,.document-fields select{font-size:16px}
+ .document-actions{grid-template-columns:1fr;gap:8px}.document-summary{grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center}.document-summary>strong{font-size:21px}.document-summary>small{grid-column:1/-1;font-size:9px}.document-buttons>.heading-actions,.document-buttons>.modal-actions{display:flex;gap:8px;align-items:stretch}.document-buttons .primary{flex:1;min-width:0}.document-buttons .secondary{min-width:72px;font-size:12px}.document-buttons .primary:only-child{width:100%}
+ .document-line{padding:12px}.document-line-grid{grid-template-columns:minmax(0,1fr) 52px;gap:12px 8px}.document-line-grid>label{grid-column:1/-1}.document-line-grid .line-item{grid-column:1/-1}.document-line-grid .line-remove{grid-row:2;grid-column:2;margin-top:26px}.document-line-grid>label:nth-child(2){grid-column:1}.document-line-summary{gap:6px 12px;font-size:10px}.document-line-summary strong{font-size:12px}
+ .entry-table{overflow:visible;border:0;background:transparent}.entry-table table,.entry-table tbody{display:block;min-width:0;width:100%}.entry-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.entry-table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;border:1px solid #e1e6ef;border-radius:12px;padding:12px;background:#fff;margin-bottom:12px;min-width:0}.entry-table tr[hidden]{display:none}.entry-table td{display:block;border:0;padding:0;min-width:0;white-space:normal;font-size:12px;overflow-wrap:anywhere}.entry-table td::before{content:attr(data-label);display:block;font-size:10px;color:#64748b;line-height:1.6;margin-bottom:5px}.entry-table td:first-child{grid-column:1/-1;font-weight:650;color:#334155}.entry-table .catalog-select{width:100%;min-width:0}.entry-table input,.entry-table select{width:100%;min-width:0!important}.entry-table td>.field-error{max-width:none}.entry-table td .text-button{border:1px solid #e5e9f0;font-size:11px;min-height:40px}
+ .receipt-modal{width:calc(100vw - 24px);height:calc(100dvh - 24px);max-height:calc(100dvh - 24px)}.receipt-modal .modal-header{padding:14px 16px}.receipt-modal .modal-header h2{font-size:20px}.receipt-modal .modal-header p{font-size:11px}.receipt-modal .modal-body{padding:10px 14px 14px}.receipt-modal .receipt-line{padding:12px}.receipt-modal .receipt-line .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.receipt-modal .receipt-line .form-row:first-of-type>label:first-child{grid-column:1/-1}.receipt-modal .receipt-line .form-row:first-of-type>label:last-child{grid-column:1/-1}.receipt-modal .receipt-line-footer{align-items:flex-end;gap:10px}.receipt-modal .receipt-line-summary{display:grid;gap:6px}.receipt-modal .receipt-summary-value small{font-size:10px}.receipt-modal .receipt-summary-value strong{font-size:12px}.receipt-modal .modal-footer{padding:12px 16px 14px}
+ .recipe-component{padding:12px!important}.recipe-component .form-row{grid-template-columns:1fr 1fr}.recipe-component .form-row>label:nth-child(2){grid-column:1/-1;grid-row:1}.recipe-component .form-row>label:nth-child(1){grid-column:1/-1;grid-row:2}.recipe-editor .stock-checkbox-grid{max-height:180px}.workflow-form{max-height:calc(100dvh - 180px)}.workflow-footer{padding-top:12px}.modal>.workflow-form{max-height:none;padding:0 14px 14px}.workflow-body{scroll-padding:16px}.setup-modal .modal-header{padding:14px 16px}.setup-modal .modal-body{padding:12px 16px}.setup-modal .form-section{padding:12px}.setup-modal .modal-footer{padding:12px 16px 14px}
+}
+
+.document-editor{padding:0;width:min(1040px,calc(100vw - 32px));height:min(820px,calc(100dvh - 32px))!important;max-height:calc(100dvh - 32px);overflow:hidden}.document-editor>.modal-header{padding:16px 24px;flex-shrink:0}.document-editor>.modal-header h2{font-size:22px}.document-editor>.workflow-form{padding:0 22px 16px;max-height:none;flex:1;min-height:0}.document-editor .workflow-body{padding:12px 3px 16px}.document-editor .workflow-footer{padding:12px 3px 0}.document-editor .form-fields>label,.document-editor .receipt-fields>label{margin-bottom:12px}.document-editor .recipe-add-actions{margin-block:14px}.document-editor .recipe-add-actions>.secondary{flex:1;border-style:dashed;font-size:12px}.entry-limit-warning{display:block;font-size:11px;line-height:1.7;color:#a73122;margin-top:7px;white-space:normal}.entry-row-warning{background:#fff8f5!important}.entry-row-warning td:first-child{color:#a73122}.document-line-grid:has(>label:nth-child(3):last-of-type) .line-item{grid-column:span 1}.document-editor .production-metrics strong{font-size:20px}.document-editor .form-warning{font-size:11px}.document-editor .count-confirm{font-size:12px;line-height:1.8}.document-editor .document-filters{margin-block:12px;padding:10px}.document-editor .document-filters label{font-size:11px}.document-editor .document-filter-summary{font-size:11px}.document-editor .workflow-body>fieldset>.disabled-reason{margin-inline:0;font-size:11px}.document-editor .sales-mapping{grid-template-columns:repeat(2,minmax(0,1fr))}.document-editor .sales-mapping label{min-width:0}
+@media(max-width:760px){.document-editor{width:calc(100vw - 24px);height:calc(100dvh - 24px)!important;max-height:calc(100dvh - 24px);padding:0}.document-editor>.modal-header{padding:14px 16px}.document-editor>.modal-header h2{font-size:20px}.document-editor>.workflow-form{padding:0 14px 14px}.document-editor .workflow-body{padding-top:10px}.document-editor .document-fields{gap:10px;margin-bottom:16px}.document-editor .document-summary>small{font-size:9px}.document-editor .document-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px}.document-editor .document-filters label{min-width:0}.document-editor .document-filters label:first-child{grid-column:1/-1}.document-line-grid:has(>label:nth-child(3):last-of-type) .line-item{grid-column:1/-1}.document-editor .production-metrics{grid-template-columns:1fr 1fr;gap:10px}.document-editor .production-metrics strong{font-size:17px}.document-editor .production-metrics>div{padding:12px}.document-editor .sales-mapping{gap:10px}.document-editor .sales-mapping select{max-width:100%;font-size:13px}}
+.receiving-composer{padding:12px;border:1px solid #e3e8ef;border-radius:12px;background:#f8fafc;margin-bottom:14px}
+.receiving-composer-editing{background:#fff7ee;border-color:#eac8a8}
+.receiving-composer-main{display:grid;grid-template-columns:minmax(0,2fr) minmax(120px,1fr);gap:14px;margin-bottom:12px}
+.receiving-composer-details{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.receiving-composer-details>label{flex:1 1 180px}
+.receipt-modal .receiving-composer label{display:flex;flex-direction:column;min-width:0;margin:0;gap:6px;font-size:12px}
+.receiving-composer :is(input,select){width:100%;min-width:0;min-height:44px;margin:0;font-size:13px}
+.receiving-composer .catalog-search input{padding-inline-end:38px}
+.receiving-entry-add{margin-top:24px!important;min-height:44px;white-space:nowrap}
+.receiving-entry-add kbd{margin-inline-start:6px;opacity:.75}
+.receiving-entry-preview{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:11px;color:#64748b;line-height:1.7;margin-top:10px}
+.receiving-entry-preview strong{color:#344054}
+.receiving-entry-preview .text-button{margin-inline-start:auto;padding:4px 0;font-size:11px}
+.receiving-conversion{margin:8px 0 0;font-size:11px;color:#31724c}
+@media(max-width:760px){
+ .receiving-composer-main{grid-template-columns:minmax(0,1.6fr) minmax(90px,1fr);gap:10px}
+ .receipt-modal .receiving-composer label{font-size:11px}
+ .receiving-composer :is(input,select){font-size:16px}
+ .receiving-composer-details>label{flex-basis:120px}
+ .receiving-entry-add{width:100%;margin-top:0!important;font-size:12px}
+ .receiving-entry-preview{font-size:10px;gap:6px 12px}
+}
+
+/* Keep stock issue context compact while retaining legible keyboard and touch controls. */
+.kitchen-issue-modal .modal-header{padding:10px 18px;gap:12px}
+.kitchen-issue-modal .modal-header h2{font-size:18px;line-height:1.35;margin:0}
+.kitchen-issue-modal .modal-header p{font-size:10px;line-height:1.5;margin-top:3px}
+.kitchen-issue-modal .eyebrow{font-size:10px;line-height:1.4;margin-bottom:2px}
+.kitchen-issue-modal .modal-header .icon-button{width:36px;height:36px;min-height:36px;font-size:20px}
+.kitchen-issue-modal .kitchen-issue-form .workflow-body{padding-top:7px}
+.kitchen-issue-modal .kitchen-issue-form .form-keyboard-help{font-size:9px;line-height:1.5;margin-bottom:6px}
+.kitchen-issue-modal .kitchen-issue-form .form-keyboard-help kbd{font-size:9px;padding:0 3px}
+.kitchen-issue-modal .kitchen-issue-form .kitchen-document-fields{padding:8px 10px;gap:10px;margin-bottom:10px}
+.kitchen-issue-modal .kitchen-document-fields label{font-size:11px;gap:4px}
+.kitchen-issue-modal .kitchen-document-fields .field-hint{font-size:9px;line-height:1.4}
+.kitchen-issue-modal .kitchen-document-fields :is(input,select){min-height:38px;font-size:12px;padding-block:7px}
+.kitchen-issue-modal .kitchen-document-fields .catalog-result-count:empty{display:none}
+@media(max-width:760px){
+ .kitchen-issue-modal .modal-header{padding:9px 14px}
+ .kitchen-issue-modal .modal-header h2{font-size:17px}
+ .kitchen-issue-modal .kitchen-document-fields :is(input,select){font-size:16px;min-height:44px}
+ .kitchen-issue-modal .kitchen-issue-form .kitchen-document-fields{gap:8px}
+}
+
+/* Compact receiving context above the receipt-style entry area. */
+.receipt-modal .receipt-document-section{margin-bottom:10px}
+.receipt-modal :is(.receipt-document-section,.receiving-composer) .form-section-heading{margin-bottom:6px;gap:8px}
+.receipt-modal :is(.receipt-document-section,.receiving-composer) .form-section-heading h3{font-size:13px;line-height:1.35;margin:0}
+.receipt-modal .receipt-document-section .form-section-heading>small{font-size:9px;line-height:1.4}
+.receipt-modal .receipt-document-section .document-fields{padding:8px 10px;gap:10px}
+.receipt-modal .receipt-document-section .document-fields>label{gap:4px;font-size:11px}
+.receipt-modal .receipt-document-section .form-label{font-size:11px;line-height:1.4}
+.receipt-modal .receipt-document-section .form-label small{font-size:9px}
+.receipt-modal .receipt-document-section :is(input,select){min-height:38px;font-size:12px;padding-block:7px}
+.receipt-modal .receiving-composer .form-section-heading p{font-size:10px;line-height:1.4;margin:3px 0 0}
+.receipt-modal .modal-header{padding:10px 18px;gap:12px}
+.receipt-modal .modal-header>div{min-width:0}
+.receipt-modal .modal-header h2{font-size:18px;line-height:1.35;margin:0}
+.receipt-modal .modal-header p{font-size:10px;line-height:1.5;margin:3px 0 0}
+.receipt-modal .modal-header .eyebrow{font-size:9px;line-height:1.4}
+.receipt-modal .modal-header .form-keyboard-help{display:block;font-size:9px;line-height:1.6;margin:5px 0 0;white-space:normal}
+.receipt-modal .modal-header .form-keyboard-help kbd{font-size:9px;padding:0 3px;white-space:nowrap}
+.receipt-modal .modal-header .icon-button{width:36px;height:36px;min-height:36px;flex-shrink:0;font-size:20px}
+@media(max-width:760px){
+ .receipt-modal .modal-header{padding:9px 14px}
+ .receipt-modal .modal-header h2{font-size:17px}
+ .receipt-modal .receipt-document-section .document-fields{padding:8px;gap:8px}
+ .receipt-modal .receipt-document-section :is(input,select){min-height:44px;font-size:16px}
+}
+
+/* Keep receiving entry and receipt visible together. */
+.collapsible-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.collapsible-heading>div{min-width:0}
+.collapsible-heading>div:first-child{flex:1}
+.collapsible-heading h2,.collapsible-heading h3{min-width:0}
+.section-toggle{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:36px;flex-shrink:0;margin-inline-start:auto;padding:6px 9px;border:1px solid #e3e8ef;border-radius:8px;background:#fff;color:#526276;font-size:11px;line-height:1.3;white-space:nowrap}
+.section-toggle:hover{background:#fff4ec;border-color:#eac8a8;color:#af3b18}
+.collapsible-body{min-width:0}
+.collapsible-body[hidden]{display:none!important}
+.collapsible-section[data-section-open="false"]>.collapsible-heading{margin-bottom:0!important}
+.bi-chart-grid>.collapsible-section[data-section-open="false"],.recipe-layout>.collapsible-section[data-section-open="false"],.receiving-workspace>.collapsible-section[data-section-open="false"]{align-self:start;min-height:0}
+.bi-chart>.collapsible-heading{padding:0;margin-bottom:12px}
+.document-fields-section{margin-bottom:14px}
+.document-fields-section>.collapsible-heading,.document-lines>.collapsible-heading{margin-bottom:8px}
+.document-fields-section>.collapsible-heading h3,.document-lines>.collapsible-heading h3{font-size:13px;margin:0}
+.document-fields-section .document-fields{margin-bottom:0}
+.directory-list-section>.collapsible-heading,.kitchen-metadata-section>.collapsible-heading{margin-block:8px;font-size:12px}
+.directory-list-section>.collapsible-heading h3,.kitchen-metadata-section>.collapsible-heading h3{font-size:13px}
+.opening-intro>.collapsible-body>p{padding:0 24px 20px}
+.setup-panel>.collapsible-body>.setup-tabs,.setup-panel>.collapsible-body>.setup-search{padding-inline:24px}
+.receipt-modal .receiving-receipt-pane>.collapsible-body{display:flex;flex-direction:column;min-height:0;flex:1}
+.receiving-composer .section-toggle,.receiving-receipt-pane .section-toggle{min-height:32px;font-size:10px;padding:4px 7px}
+.receipt-modal .receiving-receipt-pane[data-section-open="false"]{flex:0}
+@media(max-width:760px){
+ .section-toggle{min-height:44px;padding:8px 10px}
+ .collapsible-heading{gap:8px}
+ .setup-panel>.collapsible-body>.setup-tabs,.setup-panel>.collapsible-body>.setup-search{padding-inline:18px}
+ .receiving-composer .section-toggle,.receiving-receipt-pane .section-toggle{min-height:44px}
+}
+@media print{.section-toggle{display:none!important}.collapsible-body[hidden]{display:block!important}}
+.receiving-details-toggle{display:flex;align-items:center;gap:8px;min-height:32px;padding:4px 0;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
+.receiving-details-toggle:focus-visible{outline:2px solid #d94b20;outline-offset:3px;border-radius:4px}
+.receiving-document-summary{max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.receipt-modal .receiving-document-heading{margin-bottom:4px}
+.receiving-workspace{min-width:0;min-height:0}
+.receipt-modal .receiving-receipt-pane{padding:10px 12px;border:1px solid #e3e8ef;border-radius:12px;background:#fff;margin:12px 0 0;min-width:0}
+.receiving-receipt-pane .form-section-heading{flex-wrap:wrap;gap:6px}
+.receiving-receipt-pane .form-section-heading h3{font-size:13px;margin:0}
+.receiving-list-scroll{min-width:0;min-height:0}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-line{grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;padding:7px 10px;align-items:start}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-item{gap:1px;line-height:1.35}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-item>strong{font-size:12px}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-item>small,:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-item>span{font-size:9px;line-height:1.4}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-item{grid-column:1;grid-row:1}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-actions{grid-column:2;grid-row:1}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-details{display:flex;flex-wrap:wrap;grid-column:1/-1;grid-row:2;gap:3px 12px;padding-top:5px;border-top:1px solid #edf0f5;line-height:1.45}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-details>div{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 4px;max-width:100%}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-details dt{font-size:10px;line-height:1.45;margin:0}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-details dt::after{content:':' }
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-details dd,:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-details .kitchen-receipt-quantity{font-size:11px;line-height:1.45}
+:is(.receiving-receipt-pane,.kitchen-issue-form) .kitchen-receipt-details .field-hint{flex-basis:100%;font-size:9px;line-height:1.4;margin:0}
+.receiving-receipt-pane .kitchen-receipt-latest{animation:receiving-added 1.8s ease-out;background:#fff}
+.receiving-show-list{display:none}
+@keyframes receiving-added{from{background:#fff0e2}to{background:#fff}}
+@media(prefers-reduced-motion:reduce){.receiving-receipt-pane .kitchen-receipt-latest{animation:none}}
+@media(min-width:900px){
+ .receipt-modal{width:min(1120px,calc(100vw - 32px))}
+ .receipt-modal .modal-body{display:flex;flex-direction:column;overflow:hidden}
+ .receipt-modal .receipt-fields{flex:1;min-height:0;display:flex;flex-direction:column}
+ .receipt-modal .receipt-document-section{flex-shrink:0}
+ .receiving-workspace{display:grid;grid-template-columns:minmax(330px,.9fr) minmax(0,1.1fr);gap:14px;flex:1;overflow:hidden}
+ .receipt-modal .receiving-workspace>.receiving-composer{overflow-y:auto;overscroll-behavior:contain;margin:0;padding:12px;scroll-padding:12px}
+ .receiving-workspace .receiving-composer-details>label{flex-basis:140px}
+ .receiving-workspace .receiving-entry-add{width:100%;margin-top:0!important}
+ .receipt-modal .receiving-receipt-pane{display:flex;flex-direction:column;min-height:0;margin:0}
+ .receiving-receipt-pane>.form-section-heading{flex-shrink:0}
+ .receiving-list-scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-inline:2px;scroll-padding:12px}
+}
+@media(max-width:899px){
+ .receiving-show-list{display:inline-flex;align-items:center;min-height:36px;padding:4px 0;font-size:10px;white-space:nowrap}
+ .receiving-workspace .receiving-composer{margin-bottom:10px}
+ .receiving-receipt-pane .form-section-heading{align-items:center}
+}
+
+@media(max-width:899px){
+ .receipt-modal .receiving-composer>.form-section-heading{flex-direction:row;align-items:flex-start}
+ .receiving-composer>.form-section-heading>div{min-width:0;flex:1}
+ .receipt-modal .receiving-composer-details .field-hint{font-size:10px;line-height:1.4}
+}
+
+.receipt-modal .receiving-header{display:grid;grid-template-columns:minmax(0,1fr) 160px auto;align-items:start;gap:10px 16px}
+.receipt-modal .receiving-header-details{grid-template-columns:minmax(0,1fr);gap:0;padding:0;align-items:start}
+.receipt-modal .receiving-header-details>label{margin:0;gap:3px;font-size:11px}
+.receipt-modal .receiving-header-details .form-label{font-size:10px;line-height:1.4}
+.receipt-modal .receiving-header-details input{min-height:36px;font-size:12px;padding:6px 9px}
+.receiving-body-details,.kitchen-details-control{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:8px;flex-shrink:0}
+.receipt-modal .receiving-body-details .receiving-details-toggle,.kitchen-details-control .text-button{font-size:11px;min-height:28px;padding:0;gap:5px;flex-shrink:0}
+.receiving-body-details .receiving-optional-summary,.kitchen-details-control .optional-summary{font-size:10px;line-height:1.4;min-width:0;overflow-wrap:anywhere}
+.receiving-header-actions{display:flex;align-items:center;gap:8px}
+.kitchen-issue-modal .kitchen-issue-form{padding:0}
+.kitchen-issue-modal .kitchen-issue-form .workflow-body{padding:10px 21px 14px}
+.kitchen-issue-modal .kitchen-issue-form .workflow-footer{padding:12px 24px 16px}
+.kitchen-issue-modal .kitchen-supply-header{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,400px) auto;gap:10px 16px}
+.kitchen-supply-title{min-width:0}
+.kitchen-issue-modal .kitchen-supply-title .form-keyboard-help{display:block;margin:5px 0 0;font-size:9px;line-height:1.6}
+.kitchen-supply-header-fields{display:grid;grid-template-columns:minmax(160px,1.3fr) minmax(125px,1fr);gap:10px;min-width:0;align-items:start}
+.kitchen-issue-modal .kitchen-supply-header-fields>label{margin:0;min-width:0;gap:3px;font-size:10px}
+.kitchen-issue-modal .kitchen-supply-header-fields input{min-height:36px;font-size:12px;padding:6px 9px}
+.kitchen-supply-header-fields .catalog-search input{padding-inline-end:34px}
+.kitchen-supply-header-fields .catalog-select{min-width:0}
+.kitchen-issue-modal .kitchen-supply-header-fields .field-hint,.kitchen-supply-header-fields .optional-summary{font-size:9px;line-height:1.4}
+.kitchen-supply-header-fields .field-hint:has(>.field-required){display:none}
+.kitchen-supply-header-actions{display:flex;align-items:center;gap:8px}
+.kitchen-issue-form .kitchen-optional-fields{padding-top:0;padding-bottom:12px}
+.kitchen-issue-form .kitchen-optional-fields label{margin:0}
+.receipt-modal .receipt-document-section[hidden]{display:none}
+@media(max-width:899px){
+ .receipt-modal .receiving-header{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px}
+ .receiving-header-title{grid-column:1;grid-row:1}
+ .receiving-header-actions{grid-column:2;grid-row:1}
+ .receipt-modal .receiving-header-details{grid-column:1/-1;grid-row:2;grid-template-columns:minmax(0,1fr);width:160px;max-width:100%;justify-self:end}
+ .receipt-modal .receiving-header-details input{min-height:44px;font-size:16px}
+ .receipt-modal .receiving-body-details .receiving-details-toggle,.kitchen-details-control .text-button{min-height:44px}
+ .kitchen-issue-modal .kitchen-issue-form .workflow-body{padding:10px 14px 12px}
+ .kitchen-issue-modal .kitchen-issue-form .workflow-footer{padding:12px 14px 14px}
+ .kitchen-issue-modal .kitchen-supply-header{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px}
+ .kitchen-supply-title{grid-column:1;grid-row:1}
+ .kitchen-supply-header-actions{grid-column:2;grid-row:1}
+ .kitchen-supply-header-fields{grid-column:1/-1;grid-row:2;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:6px 12px}
+ .kitchen-issue-modal .kitchen-supply-header-fields input{min-height:44px;font-size:16px}
+}

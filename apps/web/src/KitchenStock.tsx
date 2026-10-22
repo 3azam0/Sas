@@ -1,0 +1,19 @@
+'use client';
+import CollapsibleSection from './CollapsibleSection';
+import {useState} from 'react';
+import type {Command,OpeningDocument,Snapshot} from '@saas/contracts';
+import {decimal,projectedQuantity} from '@saas/domain';
+import {useUI} from './store';
+import Collection,{amountSorts} from './Collection';
+import {SearchableSelect} from './FormControls';
+const number=(v:string,d=6)=>new Intl.NumberFormat('ar-EG',{maximumFractionDigits:d}).format(Number(v));
+export default function KitchenStock({snapshot,commands,openings}:{snapshot:Snapshot;commands:Command[];openings:OpeningDocument[]}){
+ const {location,setLocation,setView}=useUI(),kitchens=(snapshot.kitchens??[]).filter(k=>k.locationId),[selected,setSelected]=useState(kitchens.find(k=>k.locationId===location)?.id??kitchens[0]?.id??''),kitchen=kitchens.find(k=>k.id===selected)??kitchens[0];
+ const rows=kitchen?snapshot.items.filter(i=>i.active!==false||snapshot.balances.some(b=>b.locationId===kitchen.locationId&&b.itemId===i.id&&decimal(b.quantity).gt(0))).map(i=>{const balance=snapshot.balances.find(b=>b.locationId===kitchen.locationId&&b.itemId===i.id);return {item:i,quantity:balance?.quantity??'0',value:balance?.value??'0',average:balance?.average??null,projected:projectedQuantity(snapshot,commands,kitchen.locationId!,i.id,openings)};}):[];
+ const total=rows.reduce((sum,r)=>sum.add(r.value),decimal('0')).toString();
+ return <CollapsibleSection className="panel"><div className="panel-heading"><div><h2>مخزون المطابخ</h2><p>المواد المنقولة تظل مخزوناً؛ الاستهلاك يحدث عند البيع أو تسجيل الهالك.</p></div>{kitchen&&<span className="pill">قيمة المخزون: {number(total,2)} ج.م</span>}</div>
+  {kitchen?<><div className="document-filters"><label>المطبخ<SearchableSelect aria-label="عرض مخزون المطبخ" value={kitchen.id} onChange={e=>setSelected(e.target.value)}>{kitchens.map(k=><option value={k.id} key={k.id}>{k.name}{!k.active?' · غير نشط':''}</option>)}</SearchableSelect></label><button type="button" className="secondary" onClick={()=>{setLocation(kitchen.locationId!);setView('inventory');}}>فتح مخزون المطبخ</button><button type="button" className="secondary" onClick={()=>{setLocation(kitchen.locationId!);setView('sales');}}>مبيعات المطبخ</button><button type="button" className="secondary" onClick={()=>{setLocation(kitchen.locationId!);setView('transfers');}}>تحويل / إرجاع مخزون</button></div><p className="field-hint">المخزن الرئيسي: {snapshot.locations.find(l=>l.id===kitchen.parentLocationId)?.name??'لم يحدد بعد'} · نقاط البيع النشطة: {(snapshot.pointsOfSale??[]).filter(p=>p.kitchenId===kitchen.id&&p.active).length}</p>
+   <Collection rows={rows} title="مواد مخزون المطبخ" resetKey={kitchen.id} searchText={r=>r.item.name+' '+r.item.sku} sortText={r=>r.item.name} filters={[{key:'category',label:'الفئة',value:r=>r.item.category,options:[...new Set(rows.map(r=>r.item.category))].sort((a,b)=>a.localeCompare(b,'ar')).map(value=>({value,label:value}))},{key:'balance',label:'الرصيد',value:r=>decimal(r.quantity).gt(0)?'stock':'zero',options:[{value:'stock',label:'برصيد'},{value:'zero',label:'رصيد صفر'}]}]} sorts={amountSorts<(typeof rows)[number]>('value','قيمة المخزون',r=>r.value)}>{page=><div className="table-scroll"><table><thead><tr><th>المادة</th><th>الفئة</th><th>الرصيد المؤكد</th><th>المتوقع محلياً</th><th>تكلفة الوحدة الفعلية</th><th>قيمة المخزون</th></tr></thead><tbody>{page.map(r=><tr key={r.item.id}><td>{r.item.name}<small className="setup-subline">{r.item.sku}</small></td><td>{r.item.category}</td><td>{number(r.quantity)} {r.item.unit}</td><td>{number(r.projected)} {r.item.unit}</td><td>{r.average===null?'—':number(r.average,4)+' ج.م / '+r.item.unit}</td><td>{number(r.value,2)} ج.م</td></tr>)}</tbody></table></div>}</Collection>
+  </>:<p className="empty-state">أضف أول مطبخ من إدارة المطابخ، ثم نقطة البيع، وانقل المواد إلى مخزونه.</p>}
+ </CollapsibleSection>;
+}

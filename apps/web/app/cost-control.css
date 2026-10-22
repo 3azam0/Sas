@@ -1,0 +1,93 @@
+/* Cost-control flows share the existing Fodo tokens and form controls. */
+.recipe-layout{grid-template-columns:minmax(250px,1fr) minmax(0,2.5fr);align-items:start}
+.recipe-directory{position:sticky;top:18px}
+.recipe-list{max-height:540px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.recipe-list-row{padding:12px 16px;align-items:flex-start}
+.recipe-list-row .text-button{flex:1;color:var(--ink)}
+.recipe-list-row.selected .text-button{color:var(--green)}
+.recipe-list-row .pill{font-size:10px;flex-shrink:0;margin-top:4px}
+.recipe-detail{scroll-margin-top:20px}
+.recipe-detail:focus{outline:none}
+.recipe-detail:focus-visible{outline:3px solid #e68156;outline-offset:3px}
+.stock-rules{margin:20px 24px 0;border:1px solid #b9dfcf;background:#f6fcf9;border-radius:14px;padding:18px}
+.stock-rules-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.stock-rules-heading>div:first-child{flex:1;min-width:150px}
+.stock-rules-heading .eyebrow{font-size:10px;color:#43765c}
+.stock-rules-heading h3{font-size:18px;margin:4px 0}
+.stock-rules-heading .secondary{font-size:12px;padding:8px 12px}
+.stock-rules>p,.stock-rules>small{font-size:12px;line-height:1.9;color:#526577}
+.stock-rules>small{display:block;margin-top:12px}
+.stock-rule-list{list-style:none;padding:0;margin:14px 0;display:grid;gap:8px}
+.stock-rule-list li{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #d6e9df;background:#fff;padding:12px 14px;border-radius:9px;font-size:13px}
+.stock-rule-list strong{flex:1;min-width:120px}
+.stock-rule-list li>span{font-variant-numeric:tabular-nums}
+.stock-rule-label{color:#24714e;font-size:11px}
+.stock-rules-empty{padding:12px;background:#fff;border-radius:8px}
+.cost-only-details{border-top:1px solid #d6e9df;margin-top:12px;padding-top:10px;font-size:12px}
+.cost-only-details summary{cursor:pointer;padding:8px 0;min-height:44px}
+.stock-cost-chips{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0}
+.stock-cost-chips>span{background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:6px;color:var(--muted)}
+.stock-select-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.stock-checkbox-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stock-checkbox{display:flex!important;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px;cursor:pointer;margin:0!important}
+.stock-checkbox.checked{border-color:#acd5bf;background:#f1faf5}
+.stock-checkbox input{width:24px!important;min-width:24px!important;height:24px;flex-shrink:0;padding:0;accent-color:#27815b}
+.stock-checkbox span{display:grid;gap:5px;min-width:0}
+.stock-checkbox strong{font-size:13px;overflow-wrap:anywhere}
+.stock-checkbox small{font-size:11px;color:var(--muted)}
+.stock-checkbox.checked small{color:#24714e}
+.sales-editor .stock-rules{margin:18px 0}
+.sales-tabs [role=tab]{min-width:130px}
+.sales-shortage-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;line-height:1.9}
+.sales-shortage-notice .text-button{flex-shrink:0;margin:0}
+.sales-history .document-filters{padding:0 24px 12px}
+.sales-history .filter-summary{padding:0 24px 18px;margin:0;color:var(--muted);font-size:12px}
+.sales-document{padding:18px 24px}
+.sales-document summary{display:flex;align-items:center;gap:14px;list-style:none;min-height:54px;border-radius:8px}
+.sales-document summary::-webkit-details-marker{display:none}
+.sales-document summary::before{content:'‹';display:inline-block;font-size:25px;color:var(--muted);width:16px;text-align:center;flex-shrink:0}
+.sales-document[open] summary::before{transform:rotate(-90deg)}
+.sales-document summary:focus-visible{outline:3px solid #e68156;outline-offset:5px}
+.sales-document-title{flex:1;min-width:0}
+.sales-document-title strong{display:block;font-size:14px;overflow-wrap:anywhere}
+.sales-document-title small,.sales-document-total small{display:block;color:var(--muted);font-size:11px;font-weight:400;line-height:1.8}
+.sales-document-total{text-align:end;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:15px}
+.sales-document summary .pill{margin:0;font-size:10px}
+.report-controls{padding:0 24px 20px;display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(210px,1.3fr);gap:14px;align-items:end}
+.report-controls label{display:grid;gap:8px;font-size:12px;min-width:0}
+.report-controls input,.report-controls select{border:1px solid var(--line);border-radius:9px;background:#fff;width:100%;min-width:0;color:var(--ink)}
+.report-controls>.text-button{justify-self:start}
+.report-metrics{padding:0 24px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.report-metrics small{color:var(--muted);line-height:1.7}
+.report-message{margin:0 24px 20px}
+.table-caption{text-align:start;padding:18px 24px;font-size:13px;font-weight:600;color:var(--ink)}
+.pill.neutral{background:#f1f3f7;color:#5c6678}
+@media(max-width:1100px){
+ .recipe-layout{grid-template-columns:1fr}
+ .recipe-directory{position:static}
+ .recipe-list{max-height:240px;grid-template-columns:1fr}
+ .recipe-list-row{min-height:76px}
+}
+@media(max-width:760px){
+ .stock-rules{margin:18px 18px 0;padding:14px}
+ .stock-rules-heading{gap:8px}
+ .stock-rules-heading h3{font-size:17px}
+ .stock-rules-heading .secondary{width:100%}
+ .stock-rule-list li{gap:8px;padding:11px}
+ .stock-rule-label{width:100%}
+ .stock-checkbox-grid{grid-template-columns:1fr}
+ .sales-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .sales-tabs [role=tab]{min-width:0;padding:10px 8px;font-size:12px}
+ .sales-shortage-notice{display:block}
+ .sales-shortage-notice .text-button{display:block;margin-top:8px;text-align:start}
+ .sales-history .document-filters,.sales-history .filter-summary{padding-inline:18px}
+ .sales-document{padding:16px 18px}
+ .sales-document summary{flex-wrap:wrap;gap:10px}
+ .sales-document-title{flex-basis:calc(100% - 30px)}
+ .sales-document-total{margin-inline-start:26px;text-align:start;flex:1}
+ .report-controls{grid-template-columns:1fr;padding-inline:18px}
+ .report-metrics{grid-template-columns:1fr;padding-inline:18px}
+ .report-message{margin-inline:18px}
+ .table-caption{padding-inline:18px}
+ .recipe-list{max-height:228px}
+}
