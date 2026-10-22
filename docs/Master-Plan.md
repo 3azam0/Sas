@@ -4,6 +4,8 @@ Updated: 22 October 2026. This is the main development roadmap and progress refe
 
 ## Current development progress
 
+POS trial workflow is verified through cash checkout, matching kitchen stages, refund totals and A4/80 mm previews in isolated data. Client-approved separate POS/kitchen routing is applied. Device selections persist; empty drafts safely follow corrected routing while filled drafts require review. Live build **297b007f4aece661** / Cloudflare **85**, API **16** unchanged; all 390 tests pass across the main run and worker-startup retry. Remaining client tasks: supply Qibli kitchen stock, approve actual menu prices/portions/deductions and test the physical printer. See [acceptance record](./releases/pos-workflow-acceptance-2026-10-22.md).
+
 Workspace navigation now supports a remembered desktop sidebar toggle and an accessible mobile side panel, while retaining quick navigation and current drafts. Hosted build **bf792914b39e3536** / Cloudflare **84** is verified; API **16** is unchanged. See [verification](./releases/collapsible-sidebar-2026-10-22.md).
 
 Read this summary for **what is done and what remains**. The dated checkpoints below describe earlier releases; their old statements about pending hosting, sales deductions or reports do not override this summary. See the [developer guide](./Developer-Guide.md) for implementation rules and [hosted release](./Hosted-Release.md) for operational behavior.

@@ -27,3 +27,7 @@ User approved paid-order kitchen display: New → Preparing → Ready → Collec
 ## Verified release
 
 Delivered 21 October 2026: hosted build 378fa56fb59ab0e4, Cloudflare 83, API 16, migration 20261021165121. See the release record and operating guide for verification, configuration and remaining acceptance. Git publication and real-use approval remain pending.
+
+## Acceptance checkpoint — 22 October 2026
+
+Technical cashier → kitchen → financial correction/receipt checks pass. The owner approved separate terminal routing and Qibli was corrected through the normal setup API. Device selection persistence and safe empty-draft alignment are hosted in build 297b007f4aece661 / Cloudflare 85; 390 tests pass across the main run and worker-startup retry. Physical printer, Qibli stock supply and human approval of actual menu configuration remain. See [evidence](./releases/pos-workflow-acceptance-2026-10-22.md).

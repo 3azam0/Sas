@@ -1,3 +1,7 @@
+# POS workflow verified — 22 October 2026
+
+The owner-approved routing now matches each counter to its kitchen: بحري → المطبخ البحري; قبلي → المطبخ القبلي. The device remembers POS/KDS choices; empty drafts can follow corrected routing, while filled drafts and paid records retain their historical context for review. Build **297b007f4aece661** / Cloudflare **85**, source **b47f841**, deployment **0518429a-2143-4590-b8be-8299b8febb13** at 100%; API **16** unchanged. All 390 tests pass across the main run and one worker-startup retry; production/offline/hosted builds and isolated cash → kitchen → refund/receipt checks pass. Live configuration/draft checks posted no client sales. Qibli stock supply, real menu approval and physical printer/client acceptance remain. See [acceptance evidence](./releases/pos-workflow-acceptance-2026-10-22.md).
+
 # Collapsible side menu — 22 October 2026
 
 The top-bar menu button now hides/reopens the desktop sidebar, remembers its setting and gives the page full width when closed. Mobile uses an accessible side panel with close, Escape, backdrop and selection dismissal. Current workspace drafts remain mounted. Build **bf792914b39e3536**, Cloudflare **84**, source **b3d6c60**, deployment **d897358a-b081-4197-89ce-845171e0f231** at 100%; API **16** unchanged. TypeScript, 9 focused tests, production/offline/hosted builds and desktop/tablet/phone checks pass, including live verification. See [release evidence](./releases/collapsible-sidebar-2026-10-22.md).
