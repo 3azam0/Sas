@@ -1,11 +1,19 @@
 import 'fake-indexeddb/auto';
 import {beforeAll,beforeEach,afterEach,afterAll,it,expect,vi} from 'vitest';
 import {counterPOSFixture} from './fixtures/counter-pos';
-import {checkoutCart} from '../packages/domain/pos';
+import {checkoutCart,refreshEmptyPOSCart} from '../packages/domain/pos';
 import {local,acceptSnapshot,savePOSCart,listPOSCarts,saveSales,recoveryArchive,restoreRecovery,sync,saveKitchenOrder,dismissKitchenOrder} from '../apps/web/src/offline';
 import {getSnapshot,postSalesImport,postKitchenOrder} from '@saas/server';
 import type {KitchenOrderCommand} from '@saas/contracts';
 let f:Awaited<ReturnType<typeof counterPOSFixture>>;
+it('does not overwrite another tab that filled an empty draft during a kitchen routing refresh',async()=>{
+ const empty=await savePOSCart({...f.cart(),lines:[]});
+ const changed={...f.snapshot,pointsOfSale:f.snapshot.pointsOfSale!.map(p=>p.id===empty.posId?{...p,kitchenId:'k2',revision:p.revision+1}:p)};
+ const refreshed=refreshEmptyPOSCart(changed,empty);
+ const filled=await savePOSCart({...empty,lines:f.cart().lines});
+ await expect(savePOSCart(refreshed)).rejects.toThrow('تغيرت السلة');
+ expect((await listPOSCarts(empty.organizationId,empty.generation)).find(c=>c.id===empty.id)).toEqual(filled);
+});
 beforeAll(async()=>{f=await counterPOSFixture();});beforeEach(async()=>{for(const t of local.tables)await t.clear();await acceptSnapshot(f.snapshot);});afterEach(async()=>{vi.unstubAllGlobals();for(const t of local.tables)await t.clear();});afterAll(async()=>{await f.db.close();});
 it('retains held carts after reload, checks concurrent edits and removes a cart atomically with a paid sale',async()=>{const c=await savePOSCart({...f.cart(),state:'held'});local.close();await local.open();expect((await listPOSCarts('grills',c.generation))[0]).toEqual(c);await expect(savePOSCart({...c,revision:0})).rejects.toThrow('نافذة');const current=await savePOSCart({...c,state:'current'}),d=checkoutCart(f.snapshot,current,'100');await saveSales(d,undefined,{id:current.id,revision:current.revision});expect(await listPOSCarts('grills',c.generation)).toEqual([]);expect(await local.sales.count()).toBe(1);await expect(saveSales(d,undefined,{id:current.id,revision:current.revision})).rejects.toThrow();expect(await local.sales.count()).toBe(1);expect((await local.snapshots.get('grills'))!.balances).toEqual(f.snapshot.balances);});
 it('keeps failed checkout carts and refuses old backend capabilities or expired offline access',async()=>{const c=await savePOSCart(f.cart());await expect(saveSales(checkoutCart(f.snapshot,c,'100'),undefined,{id:c.id,revision:c.revision+1})).rejects.toThrow('تغيرت');expect(await local.sales.count()).toBe(0);expect(await listPOSCarts('grills',c.generation)).toHaveLength(1);expect(()=>checkoutCart({...f.snapshot,capabilities:undefined},c,'100')).toThrow('تحديث');await acceptSnapshot({...f.snapshot,access:{...f.snapshot.access,expiresAt:'2000-01-01T00:00:00Z'}});await expect(savePOSCart(c)).rejects.toThrow('انتهت');expect(await listPOSCarts('grills',c.generation)).toHaveLength(1);});

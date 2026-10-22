@@ -1,3 +1,7 @@
+# POS device context and acceptance — 22 October 2026
+
+Remember explicit POS/KDS selection per device, organization and generation; do not silently replace an unavailable saved selection. Keep preferences separate from recovery/auth. Empty drafts can follow a corrected POS through revision-checked save; filled drafts and paid outboxes retain historical routing. Reject concurrent stale saves. Hosted Qibli routing is now client-approved and corrected. See [acceptance evidence](./releases/pos-workflow-acceptance-2026-10-22.md).
+
 # Collapsible workspace menu — 22 October 2026
 
 The top-bar menu button hides/reopens the desktop sidebar and persists only this device preference in localStorage. It preserves the mounted workspace and drafts. At 760 px and below, the button and bottom «القائمة» open the same native modal side panel. Selection, close, Escape and backdrop dismiss it; focus returns to the actual opener, page scrolling is restored and resizing closes the panel. Keep mobile state separate from the desktop preference, retain bottom shortcuts and expose accurate Arabic labels/aria-expanded/aria-controls. See [release checks](./releases/collapsible-sidebar-2026-10-22.md).
@@ -50,7 +54,7 @@ Shared keyboard behavior is delivered across document/setup forms: Enter moves f
 
 # FooDo SaaS Developer Guide
 
-Version 2.59 — 22 October 2026
+Version 2.60 — 22 October 2026
 
 Current form placement: additional-details toggles and supplier/reference/notes summaries belong in the body directly below receiving/kitchen headers. Dates and the kitchen selector remain in the header. Keep the toggle and controlled fields in the same keyboard/validation form, preserve existing values and reveal invalid optional fields. See [placement correction](./releases/additional-details-placement-2026-10-15.md).
 

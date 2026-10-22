@@ -24,3 +24,12 @@ export function refreshPOSCart(snapshot:Snapshot,cart:POSCart):POSCart{
  const pos=snapshot.pointsOfSale?.find(p=>p.id===cart.posId);if(!pos||pos.kitchenId!==cart.kitchenId||!snapshot.kitchens?.some(k=>k.id===cart.kitchenId&&k.locationId===cart.locationId))throw new BusinessError('POS_CHANGED','تغير مطبخ نقطة البيع؛ راجع السلة.');
  return {...cart,posRevision:pos.revision,lines:cart.lines.map(l=>{const menu=snapshot.menuItems?.find(m=>m.id===l.menuItemId&&m.active&&m.source===cart.source&&m.kitchenIds?.includes(cart.kitchenId));if(!menu||menu.sellingPrice===undefined)throw new BusinessError('INVALID_MENU','أحد الأصناف غير متاح أو بلا سعر.');return {...l,menuCode:menu.code,menuName:menu.name,mappingRevision:menu.revision,versionId:menu.versionId,outputPerSale:menu.outputPerSale,unitPrice:menu.sellingPrice};})};
 }
+// Empty drafts can follow a corrected terminal configuration. Filled drafts
+// keep their original routing and require an explicit cashier review.
+export function refreshEmptyPOSCart(snapshot:Snapshot,cart:POSCart):POSCart{
+ if(cart.lines.length)return cart;
+ if(cart.organizationId!==snapshot.organizationId||cart.generation!==snapshot.generation)throw new BusinessError('STALE_CART','السلة تخص مؤسسة أو نسخة بيانات أخرى.');
+ const context=createPOSCart(snapshot,cart.posId);
+ if(cart.posRevision===context.posRevision&&cart.kitchenId===context.kitchenId&&cart.locationId===context.locationId&&cart.source===context.source)return cart;
+ return {...cart,posRevision:context.posRevision,kitchenId:context.kitchenId,locationId:context.locationId,source:context.source};
+}

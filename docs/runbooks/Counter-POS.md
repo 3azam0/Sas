@@ -7,6 +7,10 @@
 3. Check the recipe's selected deduction materials. Only these deduct from the selling kitchen when the sale is accepted. All recipe materials remain part of estimated cost. Supply kitchen stock before service.
 4. Open **نقطة البيع** and choose the POS. Existing client menu prices are left unconfigured until the owner enters real selling prices. The trial now includes 12 additional SAMPLE-WS-* menu mappings using source POS, both kitchen availability assignments and fictional trial prices, ready on the two current terminals. The original 99 FODO mappings remain unchanged and unpriced; configure real sources/kitchens/prices before live operation.
 
+## Current client routing — 22 October 2026
+
+The owner approved بحري → المطبخ البحري and قبلي → المطبخ القبلي. The Qibli kitchen needs stock supply before service. This device remembers the chosen POS and KDS kitchen across navigation/reload. After routing changes, empty carts can align automatically; filled drafts require review and remain unchanged until the cashier acts.
+
 ## Take a cash sale
 
 Search/filter the menu and select items. Use +/− or **الكمية / ملاحظة** to adjust quantity and kitchen instructions. **تفاصيل الطلب** sets a label, order note and counter/takeaway service. On phones, **عرض الطلب** jumps to the cart. Every edit is saved on this browser/device; **تعليق الطلب** preserves an unpaid order without revenue or stock movement. Restore it from **طلبات معلقة**. Held orders are not shared across devices.

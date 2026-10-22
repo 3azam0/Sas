@@ -7,11 +7,14 @@ import {saveKitchenOrder,dismissKitchenOrder,type LocalKitchenOrder} from './off
 import Collection from './Collection';
 import {SearchableSelect} from './FormControls';
 import {HelpButton} from './ClientGuide';
+import {useDeviceSelection} from './useDeviceSelection';
 const n=(v:number|string)=>new Intl.NumberFormat('ar-EG',{maximumFractionDigits:6}).format(Number(v));
 const actionLabels={preparing:'بدء التجهيز',ready:'جاهز للتسليم',collected:'تأكيد الاستلام'};
 export default function KitchenDisplay({snapshot,rows,expired,online,synchronize}:{snapshot:Snapshot;rows:LocalKitchenOrder[];expired:boolean;online:boolean;synchronize:()=>Promise<void>}){
- const kitchens=(snapshot.kitchens??[]).filter(k=>k.active&&k.locationId),[kitchenId,setKitchen]=useState(kitchens[0]?.id??''),[stage,setStage]=useState<'active'|KitchenState>('active'),[busy,setBusy]=useState(false),working=useRef(false),[error,setError]=useState(''),[tick,setTick]=useState(Date.now());
- useEffect(()=>{const timer=setInterval(()=>setTick(Date.now()),30000);return()=>clearInterval(timer);},[]);useEffect(()=>{if(!kitchenId&&kitchens.length)setKitchen(kitchens[0].id);},[kitchenId,kitchens.length]);
+ const kitchens=(snapshot.kitchens??[]).filter(k=>k.active&&k.locationId);
+ const [kitchenId,setKitchen]=useDeviceSelection('kitchen',snapshot.organizationId,snapshot.generation,kitchens.map(k=>k.id));
+ const [stage,setStage]=useState<'active'|KitchenState>('active'),[busy,setBusy]=useState(false),working=useRef(false),[error,setError]=useState(''),[tick,setTick]=useState(Date.now());
+ useEffect(()=>{const timer=setInterval(()=>setTick(Date.now()),30000);return()=>clearInterval(timer);},[]);
  const all=(snapshot.salesImports??[]).filter(p=>p.document.checkout&&p.document.kitchenId===kitchenId&&p.acceptedLineIds.length).map(sale=>{const ticket=snapshot.kitchenTickets?.find(t=>t.saleId===sale.document.operationId),row=rows.find(r=>r.command.saleId===sale.document.operationId&&!snapshot.acceptedOperationIds.includes(r.id)&&['pending','acceptedAwaiting','needsReview'].includes(r.status)),state=row&&row.status!=='needsReview'?row.command.state:ticket?.state??'new';return {sale,ticket,row,state};}).sort((a,b)=>a.sale.document.capturedAt.localeCompare(b.sale.document.capturedAt));
  const selected=all.filter(t=>stage==='active'?t.state!=='collected':t.state===stage&&(stage!=='collected'||t.sale.document.lines[0].businessDate===egyptDate())),disabled=busy||expired||!snapshot.capabilities?.kitchenDisplay;
  async function advance(ticket:(typeof all)[number]){const state=nextKitchenState[ticket.state];if(disabled||ticket.row||!state||working.current)return;working.current=true;setBusy(true);setError('');try{await saveKitchenOrder({operationId:crypto.randomUUID(),organizationId:snapshot.organizationId,generation:snapshot.generation,type:'pos.kitchen',saleId:ticket.sale.document.operationId,kitchenId,expectedRevision:ticket.ticket?.revision??0,state:state as 'preparing'|'ready'|'collected',capturedAt:new Date().toISOString(),schemaVersion:1});if(navigator.onLine)void synchronize();}catch(e){setError(e instanceof Error?e.message:'تعذر حفظ التحديث.');}finally{working.current=false;setBusy(false);}}
