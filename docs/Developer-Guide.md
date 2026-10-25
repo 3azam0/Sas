@@ -1,3 +1,7 @@
+# Item creation shortcuts — 26 October 2026
+
+Inventory now opens the shared item editor directly from **إضافة مادة**. Receiving and kitchen supply expose **إضافة مادة جديدة** beside their material selectors; dropdown/F2 creation preserves the open document and returns to quantity after saving. Reuse setup persistence, tenant/generation validation and zero-stock creation. Kitchen supply still requires available source stock. See [implementation and verification](./releases/item-shortcuts-2026-10-26.md).
+
 # Qibli trial inventory — 22 October 2026
 
 The approved trial now includes a 16-material Qibli transfer and a separately approved temporary chicken receipt. Use the guarded preparation/apply/verification helper; never replace balance rows or treat a timeout as a failed posting. Register additions in the existing private trial manifest and preserve cleanup protections. See [stock evidence](./releases/qibli-trial-stock-2026-10-22.md).

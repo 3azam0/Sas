@@ -156,7 +156,9 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
   }catch(e){locked.current=false;setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع المواد والكميات وتكلفة وحدة المخزون.');}
   finally{setBusy(false);}
  }
- function returnToEntry(key:'itemId'|'enteredQuantity'){setNewMaterial(null);focusEntry(key);}
+ const focusAfterCreate=useRef<'itemId'|'enteredQuantity'|null>(null);
+ function returnToEntry(key:'itemId'|'enteredQuantity'){focusAfterCreate.current=key;setNewMaterial(null);}
+ useEffect(()=>{if(newMaterial||!focusAfterCreate.current)return;const key=focusAfterCreate.current;focusAfterCreate.current=null;focusEntry(key);},[newMaterial]);
  const choice=selected(entry),quantity=base(entry),item=choice.item;
  return <><dialog ref={dialog} className="modal receipt-modal" aria-labelledby="receipt-title" onCancel={e=>{e.preventDefault();if(!busy&&!newMaterial)close();}}>
   <KeyboardForm busy={busy||!!newMaterial} ref={form} className="modal-form" noValidate onKeyDown={keyboard} onSubmit={e=>void submit(e)}>
@@ -176,7 +178,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
     </section>
     <div className="receiving-workspace">
     <CollapsibleSection data-form-scroll key={entryVersion} className={'receiving-composer'+(editingId?' receiving-composer-editing':'')} aria-labelledby="receiving-entry-title">
-     <div className="form-section-heading"><div><h3 id="receiving-entry-title">{editingId?'تعديل المادة':'إضافة مادة'}</h3><p className="field-hint">المادة ← الكمية ← التكلفة ← Enter للإضافة.</p></div>{editingId&&<span className="pill warning">تعديل</span>}<button type="button" className="text-button receiving-show-list" onClick={()=>{listHeading.current?.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));listHeading.current?.focus({preventScroll:true});listHeading.current?.scrollIntoView({block:'start',behavior:'smooth'});}}>عرض القائمة ({number(lines.length)})</button></div>
+     <div className="form-section-heading"><div><h3 id="receiving-entry-title">{editingId?'تعديل المادة':'إضافة مادة'}</h3><p className="field-hint">المادة ← الكمية ← التكلفة ← Enter للإضافة.</p></div>{editingId&&<span className="pill warning">تعديل</span>}<button type="button" className="text-button" aria-label="إضافة مادة جديدة" disabled={busy||!!editingId} onClick={()=>setNewMaterial({name:''})}>＋ إضافة مادة جديدة</button><button type="button" className="text-button receiving-show-list" onClick={()=>{listHeading.current?.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));listHeading.current?.focus({preventScroll:true});listHeading.current?.scrollIntoView({block:'start',behavior:'smooth'});}}>عرض القائمة ({number(lines.length)})</button></div>
      <div className="receiving-composer-main">
       <label><span className="form-label">المادة <span className="field-required" aria-hidden="true">*</span></span><SearchableSelect aria-label="المادة" openOnFocus={!notice} value={entry.itemId} disabled={!!editingId} {...fieldProps(fieldKey(entry,'itemId'))} onCreate={name=>setNewMaterial({name})} onSearchEnter={()=>focusEntry('enteredQuantity')} onChange={e=>{change('itemId',e.target.value);focusEntry('enteredQuantity');}}>{items.map(i=><option key={i.id} value={i.id}>{i.name} · {i.sku} · {i.unit}</option>)}</SearchableSelect>{fieldError(fieldKey(entry,'itemId'))}</label>
       <label><span className="form-label">الكمية <span className="field-required" aria-hidden="true">*</span></span><input aria-label={'الكمية ('+(choice.name??'وحدة الاستلام')+')'} inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.enteredQuantity} {...fieldProps(fieldKey(entry,'enteredQuantity'))} onChange={e=>change('enteredQuantity',normalizeNumber(e.target.value))}/>{choice.name&&<small className="field-hint">{choice.name}</small>}{fieldError(fieldKey(entry,'enteredQuantity'))}</label>
@@ -213,7 +215,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
     <div className="document-actions"><DocumentSummary label="إجمالي الاستلام المتوقع" value={number(total.toString())+' ج.م'} detail={number(lines.length)+' مادة · يُحدّث الرصيد بعد قبول المستند بالمزامنة'}/><div className="document-buttons"><div className="modal-actions"><button type="submit" className="primary" disabled={busy||!!newMaterial}>{busy?'جارٍ الحفظ…':'حفظ الاستلام'}</button><button type="button" className="secondary" disabled={busy||!!newMaterial} onClick={close}>إلغاء</button></div></div></div>
    </div>
   </KeyboardForm>
- </dialog>{newMaterial&&<SetupEditor section="items" snapshot={snapshot} composeAvailable={false} saved={()=>{}} close={()=>returnToEntry('itemId')} quickCreate={{name:newMaterial.name,created:record=>{
+ </dialog>{newMaterial&&<SetupEditor section="items" snapshot={{...snapshot,items:catalog}} composeAvailable={false} saved={()=>{}} close={()=>returnToEntry('itemId')} quickCreate={{name:newMaterial.name,created:record=>{
   setCreatedItems(previous=>[...previous,{...record,unit:snapshot.units?.find(unit=>unit.id===record.unitId)?.name??''}]);
   change('itemId',record.id);returnToEntry('enteredQuantity');materialSaved?.();
  }}}/>}</>;

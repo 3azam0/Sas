@@ -1,3 +1,7 @@
+# Item creation shortcuts — 26 October 2026
+
+Inventory now offers **إضافة مادة** directly in the stock materials panel. Receiving and **صرف للمطبخ** expose **إضافة مادة جديدة** in their material entry sections, reusing the catalog editor/offline setup queue while preserving drafts and restoring quantity focus. New materials start at zero stock; kitchen shortages remain blocked. Next.js is patched to **16.4.1**. All 390 unit/integration tests, three new browser scenarios, production/offline/hosted builds and 18 native helper checks pass. Live build **f3bc9d66a9b189b0**, Cloudflare **87**, deployment **499ecd96-9e42-4331-8c3c-071a9c2dbe89** at 100%; existing backend/client data unchanged. Live bundle, access protections and desktop/mobile login verified. See [release evidence](./releases/item-shortcuts-2026-10-26.md).
+
 # Qibli trial inventory ready — 22 October 2026
 
 المطبخ القبلي now has 16 temporary ingredients covering the planned two servings per sample POS meal; stock value EGP 2,303.67. A separately approved chicken test receipt supplied the 6.2 kg shortage before the normal warehouse transfer. Replay, stock/value conservation, unchanged sales/configuration and live inventory are verified; the existing trial cleanup manifest includes both documents. No sale was posted. Build 297b007f4aece661 / Cloudflare 85 / API 16 are unchanged. See [evidence](./releases/qibli-trial-stock-2026-10-22.md).

@@ -1,5 +1,7 @@
 # Inventory setup — first-client development walkthrough
 
+26 October: **المخزون → مواد المخزون → إضافة مادة** opens the shared item editor without leaving inventory. Save creates a catalog material with zero stock and clears list filters; receiving adds its initial quantity. This works offline through the existing setup queue. Receiving and **صرف للمطبخ** also provide a visible **إضافة مادة جديدة** shortcut beside their material selectors, plus F2. Creation/cancellation preserves the current document.
+
 Delivered locally on 10 October 2026. This milestone uses the existing local organization/session and retains tenant scoping. Membership administration and hosted demos are deferred.
 
 ## Open the application

@@ -1,4 +1,6 @@
 # Kitchens, stock and POS
+
+26 October: create a missing material from **إضافة مادة جديدة** beside **المادة**, from the material dropdown, or with F2. Save selects it and focuses quantity while retaining the kitchen, date, reference, notes and existing lines. Cancel returns to item search without saving. The catalog material remains if you later cancel the supply document. New materials have zero stock: receive stock into the source location before supplying them; creation never bypasses shortage checks.
 Delivered 13 October 2026. **المطابخ** manages stock kitchens, POS and supply documents.
 
 Current placement, 15 October: kitchen and date remain in the header. **تفاصيل إضافية** and its reference/notes summary are in the form body immediately below it. This supersedes the additional-details header placement below; compact cards, validation and stock transfer rules are unchanged.

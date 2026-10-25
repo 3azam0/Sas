@@ -1,5 +1,6 @@
 'use client';
 import {HelpButton} from './ClientGuide';
+import {SetupEditor} from './InventorySetup';
 import PrintPreview,{PrintHeader,PrintTable} from './PrintPreview';
 import CollapsibleSection from './CollapsibleSection';
 import {useEffect,useRef,useState,type KeyboardEvent} from 'react';
@@ -64,7 +65,12 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,command
  const [kitchenId,setKitchenId]=useState(initial?.document.kitchenId??snapshot.kitchens?.find(k=>k.active&&k.name===initial?.document.kitchen)?.id??''),[businessDate,setDate]=useState(initial?.document.businessDate??today()),[reference,setReference]=useState(initial?.document.reference??''),[notes,setNotes]=useState(initial?.document.notes??''),[lines,setLines]=useState<Line[]>(initial?.document.lines.map(l=>({...l,lineId:crypto.randomUUID()}))??[]),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [entry,setEntry]=useState<IssueEntry>({itemId:'',quantity:''}),[editingId,setEditingId]=useState<string|null>(null),[entryError,setEntryError]=useState<{message:string;field:'item'|'quantity'}|null>(null),[notice,setNotice]=useState(''),[listVersion,setListVersion]=useState(0),[entryVersion,setEntryVersion]=useState(0),[lastChanged,setLastChanged]=useState(''),[showNotes,setShowNotes]=useState(!!initial?.document.notes||!!initial?.document.reference);
  useEffect(()=>{const modal=dialog.current;modal?.showModal();modal?.querySelector<HTMLInputElement>('input[role="combobox"][aria-label="المطبخ المستلم"]')?.focus({preventScroll:true});},[]);
- const items=snapshot.items.filter(i=>i.active!==false&&i.unitId),total=estimate(snapshot,lines,location),sourceName=snapshot.locations.find(l=>l.id===location)?.name??location;
+ const [createdItems,setCreatedItems]=useState<Snapshot['items']>([]),[newMaterial,setNewMaterial]=useState<{name:string}|null>(null);
+ const catalog=[...snapshot.items,...createdItems.filter(item=>!snapshot.items.some(current=>current.id===item.id))];
+ const focusAfterCreate=useRef<'item'|'quantity'|null>(null);
+ function returnToEntry(kind:'item'|'quantity'){focusAfterCreate.current=kind;setNewMaterial(null);}
+ useEffect(()=>{if(newMaterial||!focusAfterCreate.current)return;const kind=focusAfterCreate.current;focusAfterCreate.current=null;focusEntry(kind);},[newMaterial]);
+ const items=catalog.filter(i=>i.active!==false&&i.unitId),total=estimate(snapshot,lines,location),sourceName=snapshot.locations.find(l=>l.id===location)?.name??location;
  const available=(id:string)=>projectedQuantity(snapshot,commands,location,id,openings);
  const selectedItem=items.find(i=>i.id===entry.itemId),existing=!editingId?lines.find(l=>l.itemId===entry.itemId):undefined,parsedEntry=quantitySchema.safeParse(normalizeNumber(entry.quantity));
  const plannedQuantity=parsedEntry.success&&existing?decimal(existing.quantity).add(parsedEntry.data).toString():entry.quantity;
@@ -122,8 +128,8 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,command
   const doc=kitchenIssueSchema.parse({generation,operationId:operationId.current,organizationId:snapshot.organizationId,locationId:location,type:kitchen.locationId?'kitchen.transfer':'kitchen.issue',destinationLocationId:kitchen.locationId,kitchenId,kitchen:kitchen.name,businessDate,reference,notes,capturedAt:new Date().toISOString(),schemaVersion:1,currency:'EGP',lines:lines.map(l=>({...l,quantity:normalizeNumber(l.quantity),unitId:items.find(i=>i.id===l.itemId)!.unitId}))});
   await saveKitchenIssue(doc,initial?.id);saved(doc.operationId);
  }catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع بيانات المستند والكميات.');locked.current=false;}finally{setBusy(false);}}
- return <dialog ref={dialog} className="modal kitchen-issue-modal" aria-labelledby="kitchen-issue-title" onCancel={e=>{e.preventDefault();if(!busy)close();}}>
-  <WorkflowForm className="kitchen-issue-form" busy={busy} error={error} onEdit={()=>setError('')} onInvalid={()=>{if(reference.trim().length===1||reference.length>100||notes.length>300)setShowNotes(true);}} documentCheck={check} onKeyDown={keyboard} onSubmit={()=>void submit()} header={<div className="modal-header kitchen-supply-header">
+ return <><dialog ref={dialog} className="modal kitchen-issue-modal" aria-labelledby="kitchen-issue-title" onCancel={e=>{e.preventDefault();if(!busy&&!newMaterial)close();}}>
+  <WorkflowForm className="kitchen-issue-form" busy={busy||!!newMaterial} error={error} onEdit={()=>setError('')} onInvalid={()=>{if(reference.trim().length===1||reference.length>100||notes.length>300)setShowNotes(true);}} documentCheck={check} onKeyDown={keyboard} onSubmit={()=>void submit()} header={<div className="modal-header kitchen-supply-header">
    <div className="kitchen-supply-title"><span className="eyebrow">صرف داخلي من <strong>{sourceName}</strong></span><h2 id="kitchen-issue-title">{initial?'تصحيح صرف مطبخ':'صرف مواد للمطبخ'}</h2><p>اختر المطبخ وأضف المواد. تُنقل بعد الحفظ وقبول المزامنة.</p><FormKeyboardHelp/></div>
    <div className="kitchen-supply-header-fields" role="group" aria-label="بيانات مستند الصرف">
     <label><span>المطبخ المستلم <span className="field-required" aria-hidden="true">*</span></span><SearchableSelect aria-label="المطبخ المستلم" aria-describedby="kitchen-recipient-hint" required disabled={busy} value={kitchenId} onChange={e=>setKitchenId(e.target.value)}><option value="">اختر أو ابحث عن المطبخ</option>{(snapshot.kitchens??[]).filter(k=>(k.active&&k.locationId!==location)||k.id===kitchenId).map(k=><option key={k.id} value={k.id} disabled={!k.active||k.locationId===location}>{k.name}{!k.active?' (محذوف)':''}</option>)}</SearchableSelect><small className="field-hint" id="kitchen-recipient-hint">تُضاف المواد إلى مخزون هذا المطبخ.</small></label>
@@ -135,9 +141,9 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,command
    <div id="kitchen-issue-notes" className="kitchen-optional-fields" hidden={!showNotes}><label>مرجع الصرف <small>اختياري</small><FormInput aria-label="مرجع الصرف" minLength={2} maxLength={100} placeholder="مثال: وردية الغداء" value={reference} onChange={e=>setReference(e.target.value)}/></label><label>ملاحظات <small>اختياري</small><FormInput aria-label="ملاحظات صرف المطبخ" maxLength={300} placeholder="تفاصيل إضافية للمستلم…" value={notes} onChange={e=>setNotes(e.target.value)}/></label></div>
    <div className="kitchen-entry-workspace">
    <CollapsibleSection data-form-scroll className={'kitchen-entry-composer'+(editingId?' kitchen-entry-editing':'')} aria-labelledby="kitchen-entry-title">
-    <div className="kitchen-material-heading"><div><h3 id="kitchen-entry-title">{editingId?'تعديل كمية المادة':'إضافة مادة للصرف'}</h3><p><kbd>Enter</kbd> لاختيار المادة، ثم بعد الكمية لإضافتها للقائمة. يعود المؤشر إلى بحث المواد.</p></div></div>
+    <div className="kitchen-material-heading"><div><h3 id="kitchen-entry-title">{editingId?'تعديل كمية المادة':'إضافة مادة للصرف'}</h3><p><kbd>Enter</kbd> لاختيار المادة، ثم بعد الكمية لإضافتها للقائمة. يعود المؤشر إلى بحث المواد.</p></div><button type="button" className="text-button" aria-label="إضافة مادة جديدة" disabled={busy||!!editingId} onClick={()=>setNewMaterial({name:''})}>＋ إضافة مادة جديدة</button></div>
     <div className="kitchen-composer-row" key={editingId??entryVersion}>
-     <label className="kitchen-item-field"><span>المادة</span><SearchableSelect aria-label="مادة الصرف" openOnFocus={!notice} value={entry.itemId} required={!!entry.quantity} disabled={!!editingId} aria-invalid={entryError?.field==='item'||undefined} aria-describedby={entryError?.field==='item'?'kitchen-entry-error':undefined} onChange={e=>{updateEntry('itemId',e.target.value);focusEntry('quantity');}} onSearchEnter={value=>{if(value){updateEntry('itemId',value);focusEntry('quantity');}else focusEntry('item');}}><option value="">ابحث باسم المادة أو الكود</option>{items.map(i=><option value={i.id} key={i.id}>{i.name} · {i.sku} · {i.unit}</option>)}</SearchableSelect></label>
+     <label className="kitchen-item-field"><span>المادة</span><SearchableSelect aria-label="مادة الصرف" onCreate={name=>setNewMaterial({name})} openOnFocus={!notice} value={entry.itemId} required={!!entry.quantity} disabled={!!editingId} aria-invalid={entryError?.field==='item'||undefined} aria-describedby={entryError?.field==='item'?'kitchen-entry-error':undefined} onChange={e=>{updateEntry('itemId',e.target.value);focusEntry('quantity');}} onSearchEnter={value=>{if(value){updateEntry('itemId',value);focusEntry('quantity');}else focusEntry('item');}}><option value="">ابحث باسم المادة أو الكود</option>{items.map(i=><option value={i.id} key={i.id}>{i.name} · {i.sku} · {i.unit}</option>)}</SearchableSelect></label>
      <label className="kitchen-quantity-field"><span>الكمية {selectedItem&&<small>({selectedItem.unit})</small>}</span><FormInput aria-label="كمية الصرف" inputMode="decimal" dir="ltr" placeholder="0.00" validateAs="positive" required={!!entry.itemId} value={entry.quantity} aria-invalid={entryError?.field==='quantity'||entryPreview?.status==='shortage'||undefined} aria-describedby="kitchen-entry-preview" onChange={e=>updateEntry('quantity',e.target.value)}/></label>
      <button data-keyboard-add type="button" className="primary kitchen-entry-add" onClick={addEntry}>{editingId?'حفظ التعديل':'إضافة للقائمة'} <kbd>↵</kbd></button>
     </div>
@@ -164,7 +170,10 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,command
     <small className="kitchen-consumption-note">المواد تُنقل إلى مخزون المطبخ بقيمتها الحالية؛ الاستهلاك يحدث عند البيع أو الهالك.</small>
    </div>
   </WorkflowForm>
- </dialog>;
+ </dialog>{newMaterial&&<SetupEditor section="items" snapshot={{...snapshot,items:catalog}} composeAvailable={false} saved={()=>{}} close={()=>returnToEntry('item')} quickCreate={{name:newMaterial.name,context:'أضف المادة واخترها في سطر الصرف الحالي. بيانات المستند محفوظة. يبدأ رصيد المادة بصفر؛ سجّل استلامًا قبل صرفها.',created:record=>{
+  setCreatedItems(previous=>[...previous,{...record,unit:snapshot.units?.find(unit=>unit.id===record.unitId)?.name??''}]);
+  updateEntry('itemId',record.id);returnToEntry('quantity');setNotice('تم حفظ المادة برصيد صفر. سجّل استلامًا قبل صرفها للمطبخ.');
+ }}}/>}</>;
 }
 
 function KitchenIssuePrint({snapshot,row,close}:{snapshot:Snapshot;row:IssueRow;close:()=>void}){
