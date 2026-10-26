@@ -294,3 +294,6 @@
  .kitchen-issue-form .kitchen-composer-row input{min-height:36px;padding-block:6px;font-size:12px}
  .kitchen-issue-form .kitchen-entry-add{min-height:36px;margin-top:18px!important;padding:6px 10px;font-size:11px}
 }
+
+@media(min-width:900px){.kitchen-issue-form .kitchen-composer-row{grid-template-columns:minmax(0,2fr) minmax(100px,.7fr) minmax(150px,1fr) auto}}
+@media(max-width:899px){.kitchen-issue-form .kitchen-composer-row{grid-template-columns:minmax(0,1.6fr) minmax(90px,1fr)}.kitchen-composer-row .kitchen-price-field{grid-column:1/-1}}

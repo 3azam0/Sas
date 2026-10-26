@@ -84,7 +84,7 @@ export type PostedReceiptDocument={document:ReceiptDocument;amount:string;posted
 export const kitchenIssueSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:organizationIdSchema,locationId:recordId,type:z.enum(['kitchen.issue','kitchen.transfer']),destinationLocationId:recordId.optional(),
  kitchenId:recordId.optional(),kitchen:recordName,businessDate:z.iso.date(),reference:z.string().trim().max(100).refine(value=>!value||value.length>=2,'أدخل حرفين على الأقل أو اترك المرجع فارغاً').default(''),notes:z.string().trim().max(300),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),
- lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema})).min(1).max(200)
+ lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitPrice:nonNegative.optional()})).min(1).max(200)
 }).superRefine((d,ctx)=>{if(d.type==='kitchen.transfer'&&(!d.kitchenId||!d.destinationLocationId||d.destinationLocationId===d.locationId))ctx.addIssue({code:'custom',message:'اختر مطبخ مخزون مختلفاً عن المصدر'});if(new Set(d.lines.map(l=>l.itemId)).size!==d.lines.length||new Set([d.operationId,...d.lines.map(l=>l.lineId)]).size!==d.lines.length+1)ctx.addIssue({code:'custom',message:'المواد ومعرّفات السطور لا تتكرر'});});
 export type KitchenIssueDocument=z.infer<typeof kitchenIssueSchema>;
 export type PostedKitchenIssue={document:KitchenIssueDocument;amount:string;method:CostingMethod;lines:{lineId:string;itemId:string;name:string;sku:string;unit:string;quantity:string;amount:string}[];actor:string;postedAt:string};

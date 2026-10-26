@@ -1,3 +1,7 @@
+# Document prices — 26 October 2026
+
+Kitchen supply includes an editable **السعر** field, initially filled from the selected source item’s current average stock cost. Enter after quantity moves to price; Enter after price adds the line. Zero is valid. Repeated materials combine only at the same price; use Edit to change an existing line’s price. Saved prices appear in line values, document totals, history and printing and survive offline reload, sync and recovery version 21. They belong only to the kitchen document: warehouse and kitchen stock values continue to use the actual FIFO/average transfer cost. Stock reports and actual posted cost remain separate from document prices. Old documents without prices keep their historical cost display.
+
 # Kitchens, stock and POS
 
 26 October: create a missing material from **إضافة مادة جديدة** beside **المادة**, from the material dropdown, or with F2. Save selects it and focuses quantity while retaining the kitchen, date, reference, notes and existing lines. Cancel returns to item search without saving. The catalog material remains if you later cancel the supply document. New materials have zero stock: receive stock into the source location before supplying them; creation never bypasses shortage checks.

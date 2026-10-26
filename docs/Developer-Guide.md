@@ -1,3 +1,7 @@
+# Kitchen document prices — 26 October 2026
+
+Kitchen issue lines may carry an optional unitPrice for the supply document only. Preserve it in save/retry/correction, history, printing and recovery 21. Inventory valuation and posted amount remain actual FIFO/average cost. Old documents without a price preserve their existing meaning; no database schema or Dexie upgrade is needed. See [operating rules](./runbooks/Kitchen-Issues.md).
+
 # Item creation shortcuts — 26 October 2026
 
 Inventory now opens the shared item editor directly from **إضافة مادة**. Receiving and kitchen supply expose **إضافة مادة جديدة** beside their material selectors; dropdown/F2 creation preserves the open document and returns to quantity after saving. Reuse setup persistence, tenant/generation validation and zero-stock creation. Kitchen supply still requires available source stock. See [implementation and verification](./releases/item-shortcuts-2026-10-26.md).

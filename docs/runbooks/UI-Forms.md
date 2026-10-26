@@ -80,3 +80,5 @@ Receiving document details and entry headings also use compact typography and sp
 
 
 Long groups and page panels now share **طي / توسيع** buttons with `aria-expanded` and `aria-controls`. Required-field validation opens a collapsed group before focusing; linked documents and report drill-down also open their destination. Collapse retains mounted form controls, collection filters, sorting and pages. Read-only chart drawings remount when expanded to avoid measuring a hidden canvas. See [section behavior](./Collapsible-Sections.md). Receiving shortcut hints are in its fixed header; metadata, entry and added-item list can each collapse independently.
+
+Kitchen supply adds a document-only price beside quantity. Enter from quantity moves to price; Enter there adds the entry. Stock availability and transfer valuation remain unchanged. Recovery version 21 preserves the edited price; older archives remain supported.

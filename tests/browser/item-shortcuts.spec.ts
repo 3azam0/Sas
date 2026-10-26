@@ -61,11 +61,11 @@ test('kitchen quick-create preserves the draft and cannot issue a new zero-stock
  await page.getByRole('button',{name:'صرف للمطبخ',exact:true}).click();const supply=page.getByRole('dialog',{name:'صرف مواد للمطبخ',exact:true});
  await selectCatalog(page,supply.getByLabel('المطبخ المستلم',{exact:true}),kitchenId);
  await selectCatalog(page,supply.getByLabel('مادة الصرف',{exact:true}),'rice');await supply.getByLabel('كمية الصرف',{exact:true}).fill('1');
- await supply.getByRole('button',{name:'إضافة للقائمة',exact:false}).click();
+ expect(Number(await supply.getByLabel('سعر وحدة الصرف',{exact:true}).inputValue())).toBeGreaterThan(0);await supply.getByLabel('سعر وحدة الصرف',{exact:true}).fill('50');await supply.getByLabel('كمية الصرف',{exact:true}).press('Enter');await expect(supply.getByLabel('سعر وحدة الصرف',{exact:true})).toBeFocused();await supply.getByLabel('سعر وحدة الصرف',{exact:true}).press('Enter');
  await page.screenshot({path:'.cache/kitchen-compact-desktop.png'});
  expect(await supply.locator('.kitchen-entry-composer').evaluate(node=>node.getBoundingClientRect().height)).toBeLessThan(170);
  expect(await supply.evaluate(node=>node.querySelector('.kitchen-receipt-section')!.getBoundingClientRect().top>=node.querySelector('.kitchen-entry-composer')!.getBoundingClientRect().bottom)).toBe(true);
- const issueLine=supply.locator('.kitchen-receipt-line').first();expect(await issueLine.evaluate(node=>{const centers=['.kitchen-receipt-item','.kitchen-receipt-details','.kitchen-receipt-actions'].map(selector=>{const r=node.querySelector(selector)!.getBoundingClientRect();return r.top+r.height/2;});return Math.max(...centers)-Math.min(...centers)<2;})).toBe(true);
+ const issueLine=supply.locator('.kitchen-receipt-line').first();await expect(issueLine).toContainText('٥٠');expect(await issueLine.evaluate(node=>{const centers=['.kitchen-receipt-item','.kitchen-receipt-details','.kitchen-receipt-actions'].map(selector=>{const r=node.querySelector(selector)!.getBoundingClientRect();return r.top+r.height/2;});return Math.max(...centers)-Math.min(...centers)<2;})).toBe(true);
 
  await supply.getByRole('button',{name:'تفاصيل إضافية للصرف',exact:true}).click();await supply.getByLabel('مرجع الصرف',{exact:true}).fill('مرجع محفوظ');
  await supply.getByRole('button',{name:'ملء الشاشة',exact:true}).click();await expect(supply).toHaveClass(/form-expanded/);
@@ -82,5 +82,8 @@ test('kitchen quick-create preserves the draft and cannot issue a new zero-stock
  await supply.getByRole('button',{name:'ملء الشاشة',exact:true}).click();expect(await supply.evaluate(node=>{const r=node.getBoundingClientRect();return r.width===innerWidth&&r.height===innerHeight;})).toBe(true);await expect(supply.getByLabel('مرجع الصرف',{exact:true})).toHaveValue('مرجع محفوظ');
  await page.screenshot({path:'.cache/kitchen-layout-mobile.png'});
  expect(await supply.evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);expect(await issueLine.evaluate(node=>getComputedStyle(node).flexWrap)).toBe('nowrap');
- await supply.getByRole('button',{name:'إلغاء',exact:true}).click();
+ await supply.getByRole('button',{name:'مسح الإدخال',exact:true}).click();await supply.getByRole('button',{name:'حفظ صرف المطبخ',exact:true}).click();await expect(supply).not.toBeVisible();
+ const saved=()=>page.evaluate(()=>new Promise<any[]>((resolve,reject)=>{const request=indexedDB.open('restaurant-saas-v1');request.onerror=()=>reject(request.error);request.onsuccess=()=>{const db=request.result;const tx=db.transaction('kitchenIssues','readonly');const get=tx.objectStore('kitchenIssues').getAll();get.onerror=()=>reject(get.error);get.onsuccess=()=>{resolve(get.result);db.close();};};}));
+ expect((await saved())[0].document.lines[0].unitPrice).toBe('50');await page.reload();expect((await saved())[0].document.lines[0].unitPrice).toBe('50');
+ await page.setViewportSize({width:1280,height:900});await page.getByRole('button',{name:'المطابخ',exact:true}).click();const document=page.locator('.opening-document').filter({hasText:'مرجع محفوظ'});await document.locator('summary').click();await document.getByRole('button',{name:'عرض وطباعة المستند',exact:true}).click();await expect(page.locator('.document-print-total').filter({hasText:'قيمة مستند الصرف'})).toContainText('٥٠');
 });

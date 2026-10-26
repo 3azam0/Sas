@@ -31,3 +31,11 @@ it('limits distinct items to 200 while still permitting merges and edits at the 
  expect(commitIssueEntry(full,{itemId:'item-199',quantity:'1'},'10','new')).toMatchObject({ok:true,action:'merged',line:{lineId:'line-199',quantity:'2'}});
  expect(commitIssueEntry(full,{itemId:'item-199',quantity:'1'},'10','new','line-199')).toMatchObject({ok:true,action:'updated',line:{quantity:'1'}});
 });
+
+it('retains document prices, permits zero, blocks conflicting merges and validates price edits',()=>{
+ const priced=[{lineId:'rice-line',itemId:'rice',quantity:'2',unitPrice:'15'}];
+ expect(commitIssueEntry(priced,{itemId:'rice',quantity:'1',unitPrice:'١٥'},'10','unused')).toMatchObject({ok:true,line:{quantity:'3',unitPrice:'15'}});
+ expect(commitIssueEntry(priced,{itemId:'rice',quantity:'1',unitPrice:'20'},'10','unused')).toEqual({ok:false,reason:'price-conflict'});
+ expect(commitIssueEntry(priced,{itemId:'rice',quantity:'1',unitPrice:'0'},'10','unused','rice-line')).toMatchObject({ok:true,line:{quantity:'1',unitPrice:'0'}});
+ for(const unitPrice of ['', '-1', 'NaN', '0.0000001'])expect(commitIssueEntry([],{itemId:'rice',quantity:'1',unitPrice},'10','new')).toEqual({ok:false,reason:'invalid-price'});
+});

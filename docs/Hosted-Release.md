@@ -1,3 +1,7 @@
+# Kitchen document prices — 26 October 2026
+
+Kitchen supply now prefills an editable document-only price from the item's current stock cost. Saved totals, history and printing use the chosen price; warehouse/kitchen stock valuation remains actual FIFO/average cost. Recovery 21 retains prices. All 392 tests, both focused browser scenarios and production/hosted builds pass. Build **e33acad393d7e76f**, Cloudflare **91**, Supabase API **17**; deployment **18e146f9-6a82-4746-9e3b-e48c4e144b6b** at 100%. No schema migration or client test movements. See [release verification](./releases/kitchen-document-prices-2026-10-26.md).
+
 # Matching kitchen supply layout — 26 October 2026
 
 Receiving unit cost now precedes the receiving-unit selector. Kitchen supply matches receiving with a compact entry row above its horizontal material list. Production/hosted builds, two isolated browser scenarios, deployment dry run and live bundle/access/desktop/phone checks pass. Build **f790c0036b11bce5**, Cloudflare **90**, version **09295a02-ed84-4ec7-9459-8e1c4e6f935d**, deployment **bfcc01a1-4e17-4403-b6fb-3aad73d92571** at 100%. No valuation behavior changed in this release.
