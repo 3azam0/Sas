@@ -2,7 +2,7 @@
 import {HelpButton} from './ClientGuide';
 import PrintPreview,{PrintHeader,PrintTable} from './PrintPreview';
 import CollapsibleSection from './CollapsibleSection';
-import {DocumentFields,DocumentSummary} from './DocumentForm';
+import {DocumentFields,DocumentSummary,FormSizeButton} from './DocumentForm';
 import {focusControl,SearchableSelect,KeyboardForm,FormKeyboardHelp} from './FormControls';
 import Collection,{syncStatusOptions} from './Collection';
 import {operationLabels,OperationStatus,reviewFirst,DocumentLink} from './OperationStatus';
@@ -35,6 +35,7 @@ export function ReceiptPrintSheet({snapshot,row}:{snapshot:Snapshot;row:LocalRec
 
 type EditorLine=ReceivingLine;
 export default function ReceiptDialog({snapshot,location,itemId,initial,close,saved,materialSaved}:{snapshot:Snapshot;location:string;itemId?:string;initial?:LocalReceipt;close:()=>void;saved:(id:string)=>void;materialSaved?:()=>void}){
+ const [expanded,setExpanded]=useState(false);
  const dialog=useRef<HTMLDialogElement>(null),form=useRef<HTMLFormElement>(null),locked=useRef(false);
  const [createdItems,setCreatedItems]=useState<Snapshot['items']>([]);
  const catalog=[...snapshot.items,...createdItems.filter(item=>!snapshot.items.some(current=>current.id===item.id))];
@@ -160,13 +161,13 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
  function returnToEntry(key:'itemId'|'enteredQuantity'){focusAfterCreate.current=key;setNewMaterial(null);}
  useEffect(()=>{if(newMaterial||!focusAfterCreate.current)return;const key=focusAfterCreate.current;focusAfterCreate.current=null;focusEntry(key);},[newMaterial]);
  const choice=selected(entry),quantity=base(entry),item=choice.item;
- return <><dialog ref={dialog} className="modal receipt-modal" aria-labelledby="receipt-title" onCancel={e=>{e.preventDefault();if(!busy&&!newMaterial)close();}}>
+ return <><dialog ref={dialog} className={`modal receipt-modal${expanded?' form-expanded':''}`} aria-labelledby="receipt-title" onCancel={e=>{e.preventDefault();if(!busy&&!newMaterial)close();}}>
   <KeyboardForm busy={busy||!!newMaterial} ref={form} className="modal-form" noValidate onKeyDown={keyboard} onSubmit={e=>void submit(e)}>
-   <div className="modal-header receiving-header"><div className="receiving-header-title"><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2><p>أضف المواد إلى القائمة، ثم احفظ مستند الاستلام.</p><FormKeyboardHelp/></div>
+   <div className="modal-header receiving-header"><div className="receiving-header-title"><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2></div>
      <div className="receiving-document-essential receiving-header-details">
       <label><span className="form-label">تاريخ الاستلام <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تاريخ الاستلام" type="date" required disabled={busy||!!newMaterial} max={today()} value={businessDate} {...fieldProps('businessDate')} onChange={e=>{setDate(e.target.value);setError('');}}/>{fieldError('businessDate')}</label>
      </div>
-     <div className="receiving-header-actions"><HelpButton topic="receiving"/><button type="button" className="icon-button" disabled={busy||!!newMaterial} onClick={close} aria-label="إغلاق">×</button></div>
+     <div className="receiving-header-actions"><FormSizeButton expanded={expanded} toggle={()=>setExpanded(value=>!value)} disabled={busy||!!newMaterial}/><HelpButton topic="receiving"/><button type="button" className="icon-button" disabled={busy||!!newMaterial} onClick={close} aria-label="إغلاق">×</button></div><FormKeyboardHelp/>
    </div>
    <div className="modal-body"><fieldset disabled={busy||!!newMaterial} className="receipt-fields form-fields">
       <div className="receiving-body-details"><button type="button" className="receiving-details-toggle" disabled={busy||!!newMaterial} aria-label="تفاصيل إضافية للاستلام" aria-expanded={detailsOpen} aria-controls="receiving-document-fields" onClick={()=>setDetailsOpen(open=>!open)}>تفاصيل إضافية <small>اختياري</small><span aria-hidden="true">{detailsOpen?'⌃':'⌄'}</span></button><small className="receiving-optional-summary">{supplierId?(snapshot.suppliers?.find(s=>s.id===supplierId)?.name??'مورد محدد'):'بدون مورد محدد'}{reason&&' · '+reason}</small></div>
@@ -178,10 +179,10 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
     </section>
     <div className="receiving-workspace">
     <CollapsibleSection data-form-scroll key={entryVersion} className={'receiving-composer'+(editingId?' receiving-composer-editing':'')} aria-labelledby="receiving-entry-title">
-     <div className="form-section-heading"><div><h3 id="receiving-entry-title">{editingId?'تعديل المادة':'إضافة مادة'}</h3><p className="field-hint">المادة ← الكمية ← التكلفة ← Enter للإضافة.</p></div>{editingId&&<span className="pill warning">تعديل</span>}<button type="button" className="text-button" aria-label="إضافة مادة جديدة" disabled={busy||!!editingId} onClick={()=>setNewMaterial({name:''})}>＋ إضافة مادة جديدة</button><button type="button" className="text-button receiving-show-list" onClick={()=>{listHeading.current?.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));listHeading.current?.focus({preventScroll:true});listHeading.current?.scrollIntoView({block:'start',behavior:'smooth'});}}>عرض القائمة ({number(lines.length)})</button></div>
+     <div className="form-section-heading"><div><h3 id="receiving-entry-title">{editingId?'تعديل المادة':'إضافة مادة'}</h3></div>{editingId&&<span className="pill warning">تعديل</span>}<button type="button" className="text-button" aria-label="إضافة مادة جديدة" disabled={busy||!!editingId} onClick={()=>setNewMaterial({name:''})}>＋ إضافة مادة جديدة</button></div>
      <div className="receiving-composer-main">
       <label><span className="form-label">المادة <span className="field-required" aria-hidden="true">*</span></span><SearchableSelect aria-label="المادة" openOnFocus={!notice} value={entry.itemId} disabled={!!editingId} {...fieldProps(fieldKey(entry,'itemId'))} onCreate={name=>setNewMaterial({name})} onSearchEnter={()=>focusEntry('enteredQuantity')} onChange={e=>{change('itemId',e.target.value);focusEntry('enteredQuantity');}}>{items.map(i=><option key={i.id} value={i.id}>{i.name} · {i.sku} · {i.unit}</option>)}</SearchableSelect>{fieldError(fieldKey(entry,'itemId'))}</label>
-      <label><span className="form-label">الكمية <span className="field-required" aria-hidden="true">*</span></span><input aria-label={'الكمية ('+(choice.name??'وحدة الاستلام')+')'} inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.enteredQuantity} {...fieldProps(fieldKey(entry,'enteredQuantity'))} onChange={e=>change('enteredQuantity',normalizeNumber(e.target.value))}/>{choice.name&&<small className="field-hint">{choice.name}</small>}{fieldError(fieldKey(entry,'enteredQuantity'))}</label>
+      <label><span className="form-label">الكمية{choice.name&&` (${choice.name})`} <span className="field-required" aria-hidden="true">*</span></span><input aria-label={'الكمية ('+(choice.name??'وحدة الاستلام')+')'} inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.enteredQuantity} {...fieldProps(fieldKey(entry,'enteredQuantity'))} onChange={e=>change('enteredQuantity',normalizeNumber(e.target.value))}/>{fieldError(fieldKey(entry,'enteredQuantity'))}</label>
      </div>
      <div className="receiving-composer-details">
       <label><span className="form-label">وحدة الاستلام</span><select aria-label="وحدة الاستلام" disabled={!item} value={entry.selection} {...fieldProps(fieldKey(entry,'selection'))} onChange={e=>change('selection',e.target.value)}>
@@ -190,11 +191,11 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
        {!!item?.purchaseUnits?.length&&<optgroup label="عبوات شراء الصنف">{item.purchaseUnits.map(p=><option key={p.id} value={p.id}>{p.name} · {p.factor} {item.unit}</option>)}</optgroup>}
       </select>{fieldError(fieldKey(entry,'selection'))}</label>
       {choice.manual&&<label><span className="form-label">محتوى وحدة الاستلام ({item?.unit}) *</span><input aria-label="محتوى وحدة الاستلام" inputMode="decimal" dir="ltr" placeholder="مثال: ٥" value={entry.factor} {...fieldProps(fieldKey(entry,'factor'))} onChange={e=>change('factor',normalizeNumber(e.target.value))}/><small className="field-hint">١ {choice.name} = كم {item?.unit}؟</small>{fieldError(fieldKey(entry,'factor'))}</label>}
-      <label><span className="form-label">تكلفة الوحدة (ج.م) <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تكلفة الوحدة (ج.م)" inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.unitCost} {...fieldProps(fieldKey(entry,'unitCost'))} onChange={e=>change('unitCost',normalizeNumber(e.target.value))}/><small className="field-hint">لكل {item?.unit??'وحدة مخزون'}</small>{fieldError(fieldKey(entry,'unitCost'))}</label>
+      <label><span className="form-label">تكلفة الوحدة (ج.م / {item?.unit??'وحدة مخزون'}) <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تكلفة الوحدة (ج.م)" inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.unitCost} {...fieldProps(fieldKey(entry,'unitCost'))} onChange={e=>change('unitCost',normalizeNumber(e.target.value))}/>{fieldError(fieldKey(entry,'unitCost'))}</label>
       <button data-keyboard-add type="button" className="primary receiving-entry-add" onClick={addEntry}>{editingId?'حفظ تعديل المادة':'إضافة إلى القائمة'} <kbd aria-hidden="true">↵</kbd></button>
      </div>
-     {(choice.unit||choice.pack)&&!choice.manual&&<p className="field-hint receiving-conversion">تحويل تلقائي: ١ {choice.name} = {number(choice.factor)} {item?.unit}</p>}
-     <div className="receiving-entry-preview">{item&&<><span>إضافة للمخزون: <strong>{quantity?number(quantity.toString()):'—'} {item.unit}</strong></span><span>قيمة المادة: <strong>{quantity&&valid(entry.unitCost)?number(quantity.mul(entry.unitCost).toString())+' ج.م':'—'}</strong></span></>}{dirty&&<button type="button" className="text-button" onClick={clearEntry}>{editingId?'إلغاء تعديل المادة':'مسح الإدخال'}</button>}</div>
+
+     <div className="receiving-entry-preview">{(choice.unit||choice.pack)&&!choice.manual&&<span className="receiving-conversion">١ {choice.name} = {number(choice.factor)} {item?.unit}</span>}{item&&<><span>إضافة للمخزون: <strong>{quantity?number(quantity.toString()):'—'} {item.unit}</strong></span><span>قيمة المادة: <strong>{quantity&&valid(entry.unitCost)?number(quantity.mul(entry.unitCost).toString())+' ج.م':'—'}</strong></span></>}{dirty&&<button type="button" className="text-button" onClick={clearEntry}>{editingId?'إلغاء تعديل المادة':'مسح الإدخال'}</button>}</div>
      <p role="status" aria-live="polite" className="kitchen-entry-notice">{notice}</p>
     </CollapsibleSection>
     <CollapsibleSection className={'form-section receipt-items-section kitchen-receipt-section receiving-receipt-pane'+(lines.length<=10?' kitchen-compact-receipt':'')} aria-labelledby="receipt-items-title">

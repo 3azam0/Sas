@@ -4,6 +4,10 @@ import CollapsibleSection from './CollapsibleSection';
 import {HelpButton} from './ClientGuide';
 import type {GuideId} from './guide-content';
 
+export function FormSizeButton({expanded,toggle,disabled=false}:{expanded:boolean;toggle:()=>void;disabled?:boolean}){
+ return <button type="button" className="icon-button form-size-button" aria-label={expanded?'استعادة حجم النموذج':'ملء الشاشة'} title={expanded?'استعادة حجم النموذج':'ملء الشاشة'} aria-pressed={expanded} disabled={disabled} onClick={toggle}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">{expanded?<path d="M9 3v6H3m12-6v6h6M3 15h6v6m12-6h-6v6"/>:<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>}</svg></button>;
+}
+
 export function DocumentEditor({children,title,close,busy=false,className='',closeLabel='إغلاق النموذج',helpTopic,eyebrow='مستندات المخزون والتكاليف'}:{children:ReactNode;title:ReactNode;close:()=>void;busy?:boolean;className?:string;closeLabel?:string;helpTopic?:GuideId;eyebrow?:string}){
  const dialog=useRef<HTMLDialogElement>(null),id=useId();
  useEffect(()=>{dialog.current?.showModal();},[]);

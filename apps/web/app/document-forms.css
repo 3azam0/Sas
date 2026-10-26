@@ -225,3 +225,54 @@
  .kitchen-supply-header-fields{grid-column:1/-1;grid-row:2;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:6px 12px}
  .kitchen-issue-modal .kitchen-supply-header-fields input{min-height:44px;font-size:16px}
 }
+
+/* Compact editor headers and an optional viewport-sized editing area. */
+.modal:is(.receipt-modal,.kitchen-issue-modal).form-expanded{position:fixed;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0}
+.modal:is(.receipt-modal,.kitchen-issue-modal) .modal-header{padding:10px 16px;gap:6px 12px}
+.modal:is(.receipt-modal,.kitchen-issue-modal) .modal-header h2{font-size:18px;line-height:1.35;margin:0}
+.modal:is(.receipt-modal,.kitchen-issue-modal) .modal-header .eyebrow{font-size:10px;margin-bottom:2px}
+.modal:is(.receipt-modal,.kitchen-issue-modal) .modal-header p{font-size:10px;line-height:1.4;margin:2px 0}
+.modal:is(.receipt-modal,.kitchen-issue-modal) .modal-header .form-keyboard-help,.setup-modal .compact-form-guidance .form-keyboard-help{font-size:9px;line-height:1.5;margin:3px 0 0}
+.compact-form-guidance{font-size:9px;color:#64748b;line-height:1.5}
+.compact-form-guidance>small{font-size:inherit}
+.modal .form-size-button{flex-shrink:0}
+.receipt-modal .receiving-workspace{display:flex;flex-direction:column;overflow:visible;flex:none;gap:10px}
+.receipt-modal .receiving-workspace>.receiving-composer{overflow:visible;flex-shrink:0}
+.receipt-modal .receiving-receipt-pane{flex-shrink:0}
+.receipt-modal .receiving-list-scroll{overflow:visible;flex:none}
+.receipt-modal .modal-body{overflow-y:auto;display:block}
+.receipt-modal .receipt-fields{display:block}
+@media(min-width:900px){
+ .receiving-composer>.collapsible-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);column-gap:14px;align-items:start}
+ .receiving-composer .receiving-composer-main{margin-bottom:0}
+ .receiving-composer .receiving-entry-preview,.receiving-composer .kitchen-entry-notice,.receiving-composer .receiving-conversion{grid-column:1/-1}
+ .receipt-modal .receiving-workspace .receiving-entry-add{width:auto;margin-top:20px!important}
+}
+
+.modal:is(.receipt-modal,.kitchen-issue-modal) .modal-header>.form-keyboard-help{grid-column:1/-1;grid-row:3;margin:0;font-size:9px;line-height:1.5}
+@media(min-width:900px){.modal:is(.receipt-modal,.kitchen-issue-modal) .modal-header>.form-keyboard-help{grid-row:2}}
+
+/* Dense receiving entry and one horizontal record per received material. */
+.receipt-modal .receiving-workspace>.receiving-composer{padding:8px;margin:0}
+.receipt-modal .receiving-composer>.form-section-heading{margin-bottom:6px;gap:8px;align-items:center;flex-wrap:wrap}
+.receiving-composer>.form-section-heading>div{flex:1;min-width:80px}
+.receipt-modal .receiving-composer h3{font-size:12px;margin:0}
+.receipt-modal .receiving-composer label{gap:3px;font-size:11px}
+.receipt-modal .receiving-composer-main{gap:8px;margin-bottom:6px}
+.receipt-modal .receiving-composer-details{gap:8px}
+.receipt-modal .receiving-entry-preview{margin-top:5px;gap:4px 12px;font-size:10px;line-height:1.4}
+.receiving-entry-preview .receiving-conversion{margin:0;font-size:10px}
+.receiving-composer .kitchen-entry-notice:empty{display:none}
+.receipt-modal .receiving-list-scroll{overflow-x:auto}
+.receiving-receipt-pane .kitchen-receipt-line{display:flex;flex-wrap:nowrap;align-items:center;gap:14px;padding:5px 8px;min-width:max-content}
+.receiving-receipt-pane .kitchen-receipt-item{display:flex;flex-direction:row;align-items:baseline;gap:8px;white-space:nowrap}
+.receiving-receipt-pane .kitchen-receipt-details{display:flex;flex-wrap:nowrap;align-items:center;gap:14px;padding:0;border:0;margin:0;white-space:nowrap}
+.receiving-receipt-pane .kitchen-receipt-details>div{flex-wrap:nowrap;gap:4px}
+.receiving-receipt-pane .kitchen-receipt-details .field-hint{flex-basis:auto}
+.receiving-receipt-pane .kitchen-receipt-details dd{margin:0}
+.receiving-receipt-pane .kitchen-receipt-actions{margin-inline-start:auto;flex-shrink:0}
+@media(min-width:900px){
+ .receipt-modal .receiving-composer :is(input,select){min-height:36px;padding-block:6px;font-size:12px}
+ .receipt-modal .receiving-workspace .receiving-entry-add{min-height:36px;margin-top:18px!important;padding:6px 10px;font-size:11px}
+ .receipt-modal .receiving-composer-main{margin-bottom:0}
+}
