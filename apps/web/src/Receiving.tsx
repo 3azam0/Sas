@@ -185,13 +185,13 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
       <label><span className="form-label">الكمية{choice.name&&` (${choice.name})`} <span className="field-required" aria-hidden="true">*</span></span><input aria-label={'الكمية ('+(choice.name??'وحدة الاستلام')+')'} inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.enteredQuantity} {...fieldProps(fieldKey(entry,'enteredQuantity'))} onChange={e=>change('enteredQuantity',normalizeNumber(e.target.value))}/>{fieldError(fieldKey(entry,'enteredQuantity'))}</label>
      </div>
      <div className="receiving-composer-details">
+      <label><span className="form-label">تكلفة الوحدة (ج.م / {item?.unit??'وحدة مخزون'}) <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تكلفة الوحدة (ج.م)" inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.unitCost} {...fieldProps(fieldKey(entry,'unitCost'))} onChange={e=>change('unitCost',normalizeNumber(e.target.value))}/>{fieldError(fieldKey(entry,'unitCost'))}</label>
       <label><span className="form-label">وحدة الاستلام</span><select aria-label="وحدة الاستلام" disabled={!item} value={entry.selection} {...fieldProps(fieldKey(entry,'selection'))} onChange={e=>change('selection',e.target.value)}>
        <option value="">{item?.unit??'اختر المادة أولاً'} · وحدة المخزون</option>
        <optgroup label="وحدات المخزون">{snapshot.units?.filter(u=>u.id!==item?.unitId).map(u=><option key={u.id} value={'unit:'+u.id}>{u.name}</option>)}</optgroup>
        {!!item?.purchaseUnits?.length&&<optgroup label="عبوات شراء الصنف">{item.purchaseUnits.map(p=><option key={p.id} value={p.id}>{p.name} · {p.factor} {item.unit}</option>)}</optgroup>}
       </select>{fieldError(fieldKey(entry,'selection'))}</label>
       {choice.manual&&<label><span className="form-label">محتوى وحدة الاستلام ({item?.unit}) *</span><input aria-label="محتوى وحدة الاستلام" inputMode="decimal" dir="ltr" placeholder="مثال: ٥" value={entry.factor} {...fieldProps(fieldKey(entry,'factor'))} onChange={e=>change('factor',normalizeNumber(e.target.value))}/><small className="field-hint">١ {choice.name} = كم {item?.unit}؟</small>{fieldError(fieldKey(entry,'factor'))}</label>}
-      <label><span className="form-label">تكلفة الوحدة (ج.م / {item?.unit??'وحدة مخزون'}) <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تكلفة الوحدة (ج.م)" inputMode="decimal" dir="ltr" placeholder="0.00" value={entry.unitCost} {...fieldProps(fieldKey(entry,'unitCost'))} onChange={e=>change('unitCost',normalizeNumber(e.target.value))}/>{fieldError(fieldKey(entry,'unitCost'))}</label>
       <button data-keyboard-add type="button" className="primary receiving-entry-add" onClick={addEntry}>{editingId?'حفظ تعديل المادة':'إضافة إلى القائمة'} <kbd aria-hidden="true">↵</kbd></button>
      </div>
 

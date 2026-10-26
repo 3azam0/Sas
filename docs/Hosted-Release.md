@@ -1,3 +1,7 @@
+# Matching kitchen supply layout — 26 October 2026
+
+Receiving unit cost now precedes the receiving-unit selector. Kitchen supply matches receiving with a compact entry row above its horizontal material list. Production/hosted builds, two isolated browser scenarios, deployment dry run and live bundle/access/desktop/phone checks pass. Build **f790c0036b11bce5**, Cloudflare **90**, version **09295a02-ed84-4ec7-9459-8e1c4e6f935d**, deployment **bfcc01a1-4e17-4403-b6fb-3aad73d92571** at 100%. No valuation behavior changed in this release.
+
 # Compact document headers and full-screen forms — 26 October 2026
 
 Receiving and kitchen supply now expose **ملء الشاشة / استعادة حجم النموذج**, retaining drafts while changing size. Keyboard guidance uses a compact header row; setup required-field guidance moved into the header. The receiving list appears below compact entry controls, with each material on one horizontal row and contained horizontal scrolling on phones. Build **4c98a411be14da9c**, Cloudflare version **89** (`39febe5e-c38a-452d-868a-713a4a9c2ae1`), deployment **095883ce-59bf-443e-b78e-4dba8383b460** at 100%. Production/hosted builds, deployment dry run and all three isolated item-shortcut browser scenarios passed, including desktop/390px sizing, list placement, quick-create and retained drafts. Live health and JavaScript hash match the prepared bundle; desktop/phone login and access protections pass without posting client transactions. No backend or stock-policy changes. See [form operations](./runbooks/UI-Forms.md).

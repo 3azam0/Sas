@@ -30,6 +30,7 @@ test('receiving visible shortcut preserves quantity and cost and selects a new m
  await expect(page.getByText('التطبيق جاهز للفتح دون اتصال',{exact:false})).toBeVisible({timeout:30000});await page.getByRole('button',{name:'المخزون',exact:true}).click();await context.setOffline(true);
  await page.getByRole('button',{name:'استلام مواد',exact:true}).click();const receipt=page.getByRole('dialog',{name:'استلام مواد',exact:true});
  await selectCatalog(page,receipt.getByLabel('المادة',{exact:true}),'rice');await receipt.getByLabel('الكمية (كجم)',{exact:true}).fill('2');await receipt.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('20');
+ expect((await receipt.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).boundingBox())!.x).toBeGreaterThan((await receipt.getByLabel('وحدة الاستلام',{exact:true}).boundingBox())!.x);
  await receipt.getByRole('button',{name:'ملء الشاشة',exact:true}).click();await expect(receipt).toHaveClass(/form-expanded/);
  expect(await receipt.evaluate(node=>{const r=node.getBoundingClientRect();return r.width===innerWidth&&r.height===innerHeight;})).toBe(true);
  expect(await receipt.evaluate(node=>node.querySelector('.receiving-receipt-pane')!.getBoundingClientRect().top>=node.querySelector('.receiving-composer')!.getBoundingClientRect().bottom)).toBe(true);
@@ -61,6 +62,11 @@ test('kitchen quick-create preserves the draft and cannot issue a new zero-stock
  await selectCatalog(page,supply.getByLabel('المطبخ المستلم',{exact:true}),kitchenId);
  await selectCatalog(page,supply.getByLabel('مادة الصرف',{exact:true}),'rice');await supply.getByLabel('كمية الصرف',{exact:true}).fill('1');
  await supply.getByRole('button',{name:'إضافة للقائمة',exact:false}).click();
+ await page.screenshot({path:'.cache/kitchen-compact-desktop.png'});
+ expect(await supply.locator('.kitchen-entry-composer').evaluate(node=>node.getBoundingClientRect().height)).toBeLessThan(170);
+ expect(await supply.evaluate(node=>node.querySelector('.kitchen-receipt-section')!.getBoundingClientRect().top>=node.querySelector('.kitchen-entry-composer')!.getBoundingClientRect().bottom)).toBe(true);
+ const issueLine=supply.locator('.kitchen-receipt-line').first();expect(await issueLine.evaluate(node=>{const centers=['.kitchen-receipt-item','.kitchen-receipt-details','.kitchen-receipt-actions'].map(selector=>{const r=node.querySelector(selector)!.getBoundingClientRect();return r.top+r.height/2;});return Math.max(...centers)-Math.min(...centers)<2;})).toBe(true);
+
  await supply.getByRole('button',{name:'تفاصيل إضافية للصرف',exact:true}).click();await supply.getByLabel('مرجع الصرف',{exact:true}).fill('مرجع محفوظ');
  await supply.getByRole('button',{name:'ملء الشاشة',exact:true}).click();await expect(supply).toHaveClass(/form-expanded/);
  expect(await supply.evaluate(node=>{const r=node.getBoundingClientRect();return r.width===innerWidth&&r.height===innerHeight;})).toBe(true);
@@ -75,5 +81,6 @@ test('kitchen quick-create preserves the draft and cannot issue a new zero-stock
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await supply.getByRole('button',{name:'ملء الشاشة',exact:true}).click();expect(await supply.evaluate(node=>{const r=node.getBoundingClientRect();return r.width===innerWidth&&r.height===innerHeight;})).toBe(true);await expect(supply.getByLabel('مرجع الصرف',{exact:true})).toHaveValue('مرجع محفوظ');
  await page.screenshot({path:'.cache/kitchen-layout-mobile.png'});
+ expect(await supply.evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);expect(await issueLine.evaluate(node=>getComputedStyle(node).flexWrap)).toBe('nowrap');
  await supply.getByRole('button',{name:'إلغاء',exact:true}).click();
 });
