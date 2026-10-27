@@ -3,7 +3,7 @@ import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {receiptDocumentSchema,BusinessError,type Access,type CommandResult} from '@saas/contracts';
 import {decimal} from '@saas/domain';
-import {validateReceiptLineConversion} from '../domain/receiving';
+import {validateReceiptLineConversion,validateReceiptLivestock} from '../domain/receiving';
 import {addIncomingStock} from './incoming';
 
 export async function postReceiptDocument(db:Database,access:Access,input:unknown):Promise<CommandResult>{
@@ -27,6 +27,7 @@ export async function postReceiptDocument(db:Database,access:Access,input:unknow
   const collision=await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND operation_id=ANY($2::uuid[]) UNION ALL SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=ANY($2::uuid[])',[doc.organizationId,ids]);
   if(collision.rows.length)throw new BusinessError('PAYLOAD_CONFLICT','أحد معرّفات السطور مستخدم بالفعل.');
   const units=(await tx.query<import('@saas/contracts').Unit>('SELECT id,name,revision FROM units WHERE organization_id=$1',[doc.organizationId])).rows;
+  const catalog=(await tx.query<{item_id:string;meat_kind:import('../contracts/butchery').MeatKind}>('SELECT item_id,meat_kind FROM butchery_catalog WHERE organization_id=$1',[doc.organizationId])).rows;
   let total=decimal('0');
   for(const line of doc.lines){
    const item=(await tx.query<{active:boolean;unit_id:string;purchase_units: import('@saas/contracts').PurchaseUnit[]}>('SELECT active,unit_id,purchase_units FROM items WHERE organization_id=$1 AND id=$2',[doc.organizationId,line.itemId])).rows[0];
@@ -34,6 +35,7 @@ export async function postReceiptDocument(db:Database,access:Access,input:unknow
    if(!item.active)throw new BusinessError('INACTIVE_RECORD','إحدى المواد غير نشطة.');
    if(item.unit_id!==line.unitId)throw new BusinessError('INVALID_UNIT','وحدة أحد السطور لا تطابق وحدة المخزون الأساسية.');
    validateReceiptLineConversion(line,{unitId:item.unit_id,unit:units.find(u=>u.id===item.unit_id)?.name??'',purchaseUnits:item.purchase_units},units);
+   validateReceiptLivestock(line,units.find(u=>u.id===item.unit_id)?.name??'',catalog.find(c=>c.item_id===line.itemId)?.meat_kind,doc.schemaVersion);
    total=total.add(decimal(line.quantity).mul(line.unitCost));
   }
   const amount=total.toFixed(12);

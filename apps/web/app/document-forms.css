@@ -37,6 +37,8 @@
 .receiving-composer{padding:12px;border:1px solid #e3e8ef;border-radius:12px;background:#f8fafc;margin-bottom:14px}
 .receiving-composer-editing{background:#fff7ee;border-color:#eac8a8}
 .receiving-composer-main{display:grid;grid-template-columns:minmax(0,2fr) minmax(120px,1fr);gap:14px;margin-bottom:12px}
+.receiving-composer-main.receiving-composer-livestock{grid-template-columns:repeat(2,minmax(0,1fr))}
+.receiving-composer-livestock>label:first-child{grid-column:1/-1}
 .receiving-composer-details{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
 .receiving-composer-details>label{flex:1 1 180px}
 .receipt-modal .receiving-composer label{display:flex;flex-direction:column;min-width:0;margin:0;gap:6px;font-size:12px}

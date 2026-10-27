@@ -1,0 +1,33 @@
+import {test,expect} from '@playwright/test';
+import {selectCatalog} from './catalog-control';
+
+test('sheep receiving records heads and live kilograms through editing, offline reload, sync and printing',async({page,context,baseURL})=>{
+ test.setTimeout(240000);
+ const ready=await page.request.post('/api/v1/demo-session',{headers:{origin:baseURL!},data:{organizationId:'grills',deviceId:crypto.randomUUID()},timeout:120000});expect(ready.ok()).toBe(true);
+ const initial=await page.request.get('/api/v1/bootstrap',{timeout:120000});expect(initial.ok()).toBe(true);
+ await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible({timeout:30000});
+ const snapshot=await(await page.request.get('/api/v1/bootstrap')).json(),kg=snapshot.units.find((u:{name:string})=>['كجم','kg'].includes(u.name));expect(kg).toBeTruthy();
+ const id=crypto.randomUUID(),name='ضاني حي تجربة '+Date.now(),headers={origin:baseURL!,'X-Fodo-Generation':snapshot.generation};
+ const created=await page.request.post('/api/v1/butchery',{headers,data:{type:'product.create',operationId:crypto.randomUUID(),organizationId:snapshot.organizationId,generation:snapshot.generation,itemId:id,name,unitId:kg.id,meatKind:'sheep_live',businessDate:'2026-10-26',capturedAt:new Date().toISOString(),schemaVersion:1,reason:'اختبار استلام الضاني'}});expect(created.ok(),await created.text()).toBe(true);
+ await page.getByRole('button',{name:'مزامنة الآن',exact:true}).click();await page.getByLabel('الموقع',{exact:true}).selectOption('central');
+ await page.getByRole('region',{name:'العمل اليومي',exact:true}).getByRole('button',{name:/^استلام مواد/}).click();const dialog=page.getByRole('dialog',{name:'استلام مواد',exact:true});
+ await selectCatalog(page,dialog.getByLabel('المادة',{exact:true}),id);
+ await expect(dialog.getByLabel('عدد الرؤوس',{exact:true})).toBeFocused();
+ await dialog.getByLabel(/الوزن الحي الإجمالي/).fill('60');await dialog.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('150');
+ await dialog.getByRole('button',{name:'إضافة إلى القائمة',exact:true}).click();await expect(dialog.locator('[data-field$=":headCount"]')).toHaveAttribute('aria-invalid','true');
+ await dialog.getByLabel('عدد الرؤوس',{exact:true}).fill('١');await expect(dialog.locator('.receiving-entry-preview')).toContainText('متوسط الرأس: ٦٠ كجم');
+ await page.screenshot({path:'test-results/sheep-receiving-desktop.png',fullPage:true});
+ await page.setViewportSize({width:390,height:844});expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);await page.screenshot({path:'test-results/sheep-receiving-mobile.png',fullPage:true});
+ await dialog.getByRole('button',{name:'إضافة إلى القائمة',exact:true}).click();
+ await dialog.getByRole('button',{name:'تعديل '+name,exact:true}).click();await expect(dialog.getByLabel('عدد الرؤوس',{exact:true})).toHaveValue('1');
+ await dialog.getByLabel('عدد الرؤوس',{exact:true}).fill('2');await dialog.getByLabel(/الوزن الحي الإجمالي/).fill('120');await dialog.getByRole('button',{name:'حفظ تعديل المادة',exact:true}).click();
+ await selectCatalog(page,dialog.getByLabel('المادة',{exact:true}),'beef');await expect(dialog.getByLabel('عدد الرؤوس',{exact:true})).toHaveCount(0);await dialog.getByLabel(/^الكمية \(/).fill('10');await dialog.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('300');await dialog.getByRole('button',{name:'إضافة إلى القائمة',exact:true}).click();
+ await expect(dialog.locator('.document-summary strong')).toHaveText('٢١٬٠٠٠ ج.م');
+ const reference='استلام رؤوس '+Date.now();await dialog.getByRole('button',{name:'تفاصيل إضافية للاستلام',exact:true}).click();await dialog.getByLabel('مرجع الاستلام',{exact:true}).fill(reference);
+ await expect(page.getByText('التطبيق جاهز للفتح دون اتصال',{exact:false})).toBeVisible({timeout:30000});await context.setOffline(true);await dialog.getByRole('button',{name:'حفظ الاستلام',exact:true}).click();await expect(dialog).toHaveCount(0);
+ await page.reload();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();await page.setViewportSize({width:1280,height:900});await context.setOffline(false);await page.getByRole('button',{name:'مزامنة الآن',exact:true}).click();
+ await expect.poll(async()=>{const s=await(await page.request.get('/api/v1/bootstrap')).json();return s.receipts.find((r:any)=>r.document.reason===reference)?.document.lines.find((l:any)=>l.itemId===id)?.headCount;},{timeout:30000}).toBe(2);
+ await page.getByRole('button',{name:'مركز المزامنة',exact:true}).click();const history=page.locator('.opening-document').filter({hasText:reference});await history.locator('summary').click();await expect(history).toContainText('متوسط الرأس ٦٠ كجم');
+ await history.getByRole('button',{name:'عرض وطباعة مستند الاستلام',exact:true}).click();const print=page.getByRole('dialog').last();await expect(print).toContainText('متوسط الرأس ٦٠ كجم');await expect(print).toContainText('٢١٬٠٠٠');await page.screenshot({path:'test-results/sheep-receiving-print.png',fullPage:true});
+ const after=await(await page.request.get('/api/v1/bootstrap')).json();expect(after.receipts.filter((r:any)=>r.document.reason===reference)).toHaveLength(1);expect(after.receipts.find((r:any)=>r.document.reason===reference).document.schemaVersion).toBe(2);
+});

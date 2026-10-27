@@ -5,7 +5,7 @@ import {projectedQuantity} from '@saas/domain';
 import {setupCommandSchema,type ReceiptDocument,type Snapshot} from '@saas/contracts';
 const now=()=>new Date().toISOString();const generation=crypto.randomUUID();
 const snapshot:Snapshot={generation,organizationId:'grills',organizationName:'Fixture',currency:'EGP',access:{organizationId:'grills',userId:'owner',deviceId:crypto.randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()},locations:[{id:'central',name:'Central',kind:'مطعم'},{id:'other',name:'Other',kind:'مطعم'}],items:['rice','beef'].map(id=>({id,name:id,unitId:'kg',unit:'kg',sku:id,minimum:'0',category:'Food'})),balances:[],layers:[],entries:[],acceptedOperationIds:[],fetchedAt:now()};
-const receipt=(capturedAt=now()):ReceiptDocument=>({generation,operationId:crypto.randomUUID(),organizationId:'grills',locationId:'central',type:'receipt.document',businessDate:'2026-10-09',reason:'Receipt test',capturedAt,schemaVersion:1,currency:'EGP',lines:['rice','beef'].map(itemId=>({lineId:crypto.randomUUID(),itemId,unitId:'kg',quantity:'10',unitCost:'20'}))});
+const receipt=(capturedAt=now()):ReceiptDocument&{schemaVersion:1}=>({generation,operationId:crypto.randomUUID(),organizationId:'grills',locationId:'central',type:'receipt.document',businessDate:'2026-10-09',reason:'Receipt test',capturedAt,schemaVersion:1,currency:'EGP',lines:['rice','beef'].map(itemId=>({lineId:crypto.randomUUID(),itemId,unitId:'kg',quantity:'10',unitCost:'20'}))});
 const clear=async()=>{for(const table of local.tables)await table.clear();};beforeEach(clear);afterEach(async()=>{vi.unstubAllGlobals();await clear();});
 it('creates a zero-stock material offline and restores its blank-reference receipt before syncing setup first',async()=>{
  const base={...snapshot,units:[{id:'kg',name:'kg',revision:1}]};await acceptSnapshot(base);
@@ -50,6 +50,25 @@ it('requires valid grant/references and fresh correction IDs; generation reset c
 });
 const unitSnapshot:Snapshot={...snapshot,units:[{id:'kg',name:'kg',revision:1},{id:'grams',name:'جرام',revision:1},{id:'pieces',name:'عدد',revision:1}]};
 const convertedReceipt=():ReceiptDocument=>{const d=receipt();Object.assign(d.lines[0],{enteredQuantity:'2000',quantity:'2',receivingUnit:{unitId:'grams',name:'جرام',baseName:'kg',factor:'0.001'}});Object.assign(d.lines[1],{enteredQuantity:'2',quantity:'10',receivingUnit:{unitId:'pieces',name:'عدد',baseName:'kg',factor:'5'}});return d;};
+it('retains sheep counts through offline reload, guarded recovery and one-time sync while projecting only kilograms',async()=>{
+ const sheepSnapshot:Snapshot={...unitSnapshot,butcheryCatalog:[{itemId:'rice',meatKind:'sheep_live',unitId:'kg'}]};
+ await acceptSnapshot(sheepSnapshot);
+ const d:ReceiptDocument={...receipt(),schemaVersion:2,lines:[{...receipt().lines[0],headCount:2,quantity:'120',unitCost:'150'}]};
+ await saveReceipt(d);local.close();await local.open();
+ expect((await local.receipts.get(d.operationId))!.document).toEqual(d);
+ expect(projectedQuantity(sheepSnapshot,projectedReceiptCommands(sheepSnapshot,await local.receipts.toArray()),'central','rice')).toBe('120.000000');
+ const archive=await recoveryArchive('grills');expect(archive.version).toBe(23);await local.receipts.clear();
+ await expect(restoreRecovery(JSON.stringify({...archive,version:22}),'grills')).rejects.toThrow('غير مدعوم');
+ expect((await restoreRecovery(JSON.stringify(archive),'grills')).newCount).toBe(1);
+ const delivered:ReceiptDocument[]=[];vi.stubGlobal('navigator',{});vi.stubGlobal('fetch',vi.fn(async(_url:string,options?:{body?:string})=>{if(options?.body){delivered.push(JSON.parse(options.body));return Response.json({operationId:d.operationId,outcome:'accepted'});}return Response.json({...sheepSnapshot,acceptedOperationIds:delivered.length?[d.operationId,...d.lines.map(l=>l.lineId)]:[]});}));
+ await sync('grills');await sync('grills');expect(delivered).toEqual([d]);expect((await local.receipts.get(d.operationId))!.status).toBe('accepted');
+});
+it('rejects missing sheep counts and non-sheep counts before committing an offline receipt',async()=>{
+ await acceptSnapshot({...unitSnapshot,butcheryCatalog:[{itemId:'rice',meatKind:'sheep_live',unitId:'kg'}]});
+ await expect(saveReceipt({...receipt(),schemaVersion:2})).rejects.toThrow('عدد رؤوس');
+ await expect(saveReceipt({...receipt(),schemaVersion:2,lines:[{...receipt().lines[1],headCount:1}]})).rejects.toThrow('للضاني');
+ expect(await local.receipts.count()).toBe(0);
+});
 it('preserves catalog-unit conversions through offline reload, v14 recovery and delivery',async()=>{
  await acceptSnapshot(unitSnapshot);const d=convertedReceipt();await saveReceipt(d);local.close();await local.open();expect((await local.receipts.get(d.operationId))?.document).toEqual(d);
  expect(projectedQuantity(unitSnapshot,projectedReceiptCommands(unitSnapshot,await local.receipts.toArray()),'central','rice')).toBe('2.000000');

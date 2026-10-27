@@ -3,6 +3,16 @@ import {commitReceivingEntry,type ReceivingLine} from '../apps/web/src/receiving
 const line=(itemId='rice',quantity='1',cost='20',selection='',factor='1'):ReceivingLine=>({lineId:itemId+'-line',itemId,enteredQuantity:quantity,unitCost:cost,selection,factor});
 const factor=(entry:ReceivingLine)=>entry.factor;
 describe('receiving receipt entry',()=>{
+ it('adds head counts with live kilograms, edits counts explicitly and prevents losing unknown counts',()=>{
+  const original={...line('sheep','60','150'),headCount:'1'};
+  const result=commitReceivingEntry([original],{...line('sheep','120','150'),headCount:'٢'},factor);
+  expect(result).toMatchObject({ok:true,action:'merged',line:{headCount:'3',enteredQuantity:'180',unitCost:'150'}});
+  expect(original).toMatchObject({headCount:'1',enteredQuantity:'60'});
+  expect(commitReceivingEntry([original],{...original,headCount:'2',enteredQuantity:'110'},factor,original.lineId)).toMatchObject({ok:true,action:'updated',line:{headCount:'2',enteredQuantity:'110'}});
+  expect(commitReceivingEntry([line('sheep')],original,factor)).toEqual({ok:false,reason:'incompatible'});
+  for(const headCount of ['', '0','-1','1.5','100001'])expect(commitReceivingEntry([],{...original,headCount},factor)).toEqual({ok:false,reason:'heads'});
+  expect(commitReceivingEntry([{...original,headCount:'100000'}],original,factor)).toEqual({ok:false,reason:'heads'});
+ });
  it('adds newest first and merges compatible quantities exactly without mutating prior lines',()=>{
   const rows=[line('oil'),line('rice','0.1')];
   const result=commitReceivingEntry(rows,{...line('rice','٠٫٢','٢٠٫٠'),lineId:'new'},factor);

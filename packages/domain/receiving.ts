@@ -1,4 +1,5 @@
 import {BusinessError,type Item,type ReceiptDocument,type Unit} from '@saas/contracts';
+import {isKilogramUnit,type MeatKind} from '../contracts/butchery';
 import {decimal} from './index';
 
 const standardUnits:Record<string,{dimension:'mass'|'volume';scale:string}>={
@@ -7,6 +8,15 @@ const standardUnits:Record<string,{dimension:'mass'|'volume';scale:string}>={
  l:{dimension:'volume',scale:'1000'},'لتر':{dimension:'volume',scale:'1000'},
  ml:{dimension:'volume',scale:'1'},'مل':{dimension:'volume',scale:'1'},'ملليلتر':{dimension:'volume',scale:'1'}
 };
+
+/** Head count describes a receipt; stock quantity and valuation always use live kilograms. */
+export function validateReceiptLivestock(line:ReceiptDocument['lines'][number],unitName:string,kind:MeatKind|undefined,schemaVersion:ReceiptDocument['schemaVersion']){
+ if(line.headCount===undefined){
+  if(schemaVersion===2&&kind==='sheep_live')throw new BusinessError('INVALID_LIVESTOCK','أدخل عدد رؤوس الضاني المستلمة.');
+  return;
+ }
+ if(kind!=='sheep_live'||!isKilogramUnit(unitName))throw new BusinessError('INVALID_LIVESTOCK','عدد الرؤوس متاح للضاني الحي بوحدة مخزون كيلوجرام فقط.');
+}
 
 /** Undefined means the item's package contents must be supplied explicitly. */
 export function receivingUnitFactor(baseName:string,enteredName:string):string|undefined{

@@ -29,8 +29,13 @@ describe('A4 and 80 mm printing',()=>{
   expect(html.match(/data-label="كمية المخزون"/g)).toHaveLength(27);expect(html).toContain('شيكارة');expect(html).toContain(n(20));expect(html).toContain(n(12.5));expect(html).toContain(n(6750));expect(html).toContain('بدون مورد محدد');expect(html).toContain('غير مقبول بعد');expect(html).toContain('RICE-001');
   const accepted=render(ReceiptPrintSheet,{snapshot:{...snapshot,receipts:[{document,amount:'6750',postedAt:document.capturedAt}]},row:{...receipt,status:'accepted'}});expect(accepted).not.toContain('غير مقبول بعد');expect(accepted).toContain('إجمالي الاستلام');
  });
+ it('prints received sheep counts and average live kilograms without treating heads as stock quantity',()=>{
+  const sheepDocument:ReceiptDocument={...document,schemaVersion:2,lines:[{...document.lines[0],quantity:'120',unitCost:'150',headCount:2,purchaseUnitId:undefined,receivingUnit:undefined,enteredQuantity:undefined}]};
+  const html=render(ReceiptPrintSheet,{snapshot,row:{...receipt,document:sheepDocument}});
+  expect(html).toContain(n(2)+' رأس');expect(html).toContain('متوسط الرأس '+n(60)+' كجم');expect(html).toContain(n(120));expect(html).toContain(n(18000));
+ });
  it('keeps kitchen transfers distinct from consumption and never invents pending costs',()=>{
-  const d:KitchenIssueDocument={...document,type:'kitchen.transfer',reference:'',notes:'اختبار',kitchen:'مطبخ ١',kitchenId:'kitchen',lines:[{lineId:'line',itemId:'rice',unitId:'kg',quantity:'2'}]};
+  const d:KitchenIssueDocument={...document,type:'kitchen.transfer',schemaVersion:1,reference:'',notes:'اختبار',kitchen:'مطبخ ١',kitchenId:'kitchen',lines:[{lineId:'line',itemId:'rice',unitId:'kg',quantity:'2'}]};
   const row={id:'issue',scope:'grills',document:d,status:'pending' as const,createdAt:d.capturedAt};
   const pending=render(KitchenIssuePrintSheet,{snapshot,row});expect(pending).toContain('لا يحتسب استهلاكاً');expect(pending).toContain('تُثبت بعد قبول المزامنة');expect(pending).toContain('غير مقبول بعد');
   const posted={document:d,amount:'25',method:'moving_average' as const,actor:'owner',postedAt:d.capturedAt,lines:[{lineId:'line',itemId:'rice',name:'أرز عند القبول',sku:'RICE-001',unit:'كجم',quantity:'2',amount:'25'}]};

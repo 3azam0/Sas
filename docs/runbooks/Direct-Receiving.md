@@ -1,5 +1,17 @@
 # Direct multi-item receiving
 
+## Live sheep receiving
+
+Classify the kilogram item as **ضاني حي** under **الجزارة → تعريف أصناف الجزارة**, then sync its definition. Selecting that item in **استلام مواد** shows required **عدد الرؤوس** and **الوزن الحي الإجمالي** fields. Count is an integer from 1 to 100,000 per material line. Weight and cost remain in base kilograms; average live kilograms per head is calculated automatically. Beef and other items use ordinary quantity receiving.
+
+Compatible duplicate sheep entries add both counts and weights. Explicit editing replaces them. A receipt may contain sheep and purchased beef together. The count and average weight appear in the item list, accepted/local receipt history, and printed document. They do not create a separate head-count stock balance or animal identities.
+
+Sheep receipts containing counts use receipt payload version 2, so older backends reject them rather than silently discard counts. Legacy version-1 receipts retain their original meaning and may sync without a previously unrecorded count. Recovery exports containing version-2 receipts use format 23; other exports remain format 22. Formats 1–22 remain readable subject to existing feature guards. No database migration or historical receipt rewrite is needed: count is retained in the immutable receipt JSON payload.
+
+Deploy the updated Supabase `fodo-api` backend before the Cloudflare frontend.
+
+## General receiving
+
 Current placement, 15 October: only the date remains in the receiving header. **تفاصيل إضافية** and its supplier/reference summary are below the header, directly above the expandable supplier/reference fields. Compact item cards are unchanged. This supersedes the additional-details header placement below.
 
 Compact layout update, 15 October 2026: the date and **تفاصيل إضافية** control now sit on the left of the desktop form header and wrap beneath its title on phones. The optional supplier/reference still expand in the body and retain validation/focus behavior. Added-item cards use small inline quantity, cost and value pairs with content-driven height; edit/delete and purchase-unit conversion details remain visible. See [verified header/card release](../releases/receiving-header-cards-2026-10-15.md).
