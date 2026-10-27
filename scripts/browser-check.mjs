@@ -12,8 +12,8 @@ try {
   // Windows can report the child as ready before the listening socket is
   // reachable from this process. Give the production server a short, bounded
   // warm-up window before treating it as a failure.
-  let lastError='';
-  for(let i=0;i<30;i++) {try{const response=await fetch(origin+'/',{signal:AbortSignal.timeout(1000)});if(response.ok){ready=true;break;}lastError=`HTTP ${response.status}`;}catch(error){lastError=error?.message||String(error);}await new Promise(r=>setTimeout(r,250));}
+  let lastError='';const readinessDeadline=Date.now()+45000;
+  while(Date.now()<readinessDeadline) {try{const response=await fetch(origin+'/api/v1/health',{signal:AbortSignal.timeout(5000)});if(response.ok){const health=await response.json();if(health.service==='fodo'&&health.buildVersion===build.buildVersion){ready=true;break;}lastError='Health response did not match the prepared build';}else lastError=`HTTP ${response.status}`;}catch(error){lastError=error?.message||String(error);}await new Promise(r=>setTimeout(r,250));}
   if(!ready)console.error(`Readiness probe failed for ${origin}: ${lastError}`);
   if(!ready)throw new Error('Local server was not reachable from the test runner');
   const tests=spawn(process.execPath,[resolve('node_modules/@playwright/test/cli.js'),'test',...(process.env.TEST_GREP?['--grep',process.env.TEST_GREP]:[])],{stdio:'inherit',env:{...process.env,TEST_ORIGIN:origin}});
