@@ -1,6 +1,12 @@
 .topbar-start{display:flex;align-items:center;gap:12px;min-width:0}
 .navigation-toggle{flex-shrink:0;min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--navy)}
 .navigation-toggle:hover{background:var(--orange-soft);color:var(--green)}
+.desktop-navigation .nav-disclosure>summary{min-height:42px;padding:10px 12px;border-radius:8px;border-inline-start:2px solid transparent}
+.desktop-navigation .nav-disclosure[data-active=true]>summary{color:#b33e1c;background:#fff5ee;border-inline-start-color:#df4a1e}
+.desktop-navigation .nav-disclosure>summary:hover{background:#f5f7fa}
+.desktop-navigation .nav-disclosure[data-active=true]>summary:hover{background:#ffede2}
+.desktop-navigation .nav-group-title{margin-block:10px 6px}
+.more-navigation-body .more-nav-group h3{margin:14px 6px 6px}
 @media(min-width:761px){
  .shell.sidebar-collapsed>.sidebar{display:none}
  .shell.sidebar-collapsed>.main{margin-right:0;width:100%}

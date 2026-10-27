@@ -1,6 +1,6 @@
 # Butchery operations
 
-Open **التقارير والتحضير → الجزارة**. On a phone, open **القائمة → الجزارة**.
+Open **المطابخ والتحضير → الجزارة**. On a phone, open **القائمة → المطابخ والتحضير → الجزارة**.
 
 1. Select the stock location used for the central kitchen/butchery. Create a separate location through inventory setup if your operation needs a separate processing balance. This release does not automatically rename or create locations in the live organization.
 2. Under **تعريف أصناف الجزارة**, create products with your own names, or classify existing kilogram items. The four kinds are purchased beef, live sheep, beef kitchen product, and lamb kitchen product. Classification does not change stock. Sync definitions before selecting them in processing batches.

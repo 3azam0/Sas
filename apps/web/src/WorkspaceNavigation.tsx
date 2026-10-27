@@ -9,8 +9,8 @@ const quickViews:View[]=['overview','pos','kitchenDisplay','inventory'];
 function Group({group,view,children}:{group:(typeof navigationGroups)[number];view:View;children:ReactNode}){
  const active=group.views.includes(view),[open,setOpen]=useState(active);
  useEffect(()=>{if(active)setOpen(true);},[active,view]);
- if(!group.collapsible)return <div className="nav-group"><h2 className="nav-group-title">{group.title}</h2>{children}</div>;
- return <details className="nav-group nav-disclosure" open={open} onToggle={event=>setOpen(event.currentTarget.open)}><summary>{group.title}<span aria-hidden="true">⌄</span></summary>{children}</details>;
+ if(!group.collapsible)return <div className="nav-group" data-active={active||undefined}><h2 className="nav-group-title">{group.title}</h2>{children}</div>;
+ return <details className="nav-group nav-disclosure" data-active={active||undefined} open={open} onToggle={event=>setOpen(event.currentTarget.open)}><summary>{group.title}<span aria-hidden="true">⌄</span></summary>{children}</details>;
 }
 export default function WorkspaceNavigation(props:Props){
  const {view,choose,labels,icon,pending,review,mobileOpen,openMobile,closeMobile,mobileTrigger}=props;

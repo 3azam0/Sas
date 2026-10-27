@@ -1,3 +1,7 @@
+# Reports and arranged side menu — 28 October 2026
+
+Reports now use a compact grouped chooser, optional charts, direct details and accessible full-screen/restore. Kitchen supply exposes accepted document prices independently of actual stock cost, with explicit unpriced coverage in full-range totals, CSV and printing. The side menu separates daily shortcuts, stock operations, kitchens/preparation, sales/reports, settings and help. Preserve tenant/generation cache isolation, stock valuation, all routes, focus return and recovery23. See [release checks](./releases/reports-navigation-2026-10-28.md).
+
 # Compact purchase drafts — 27 October 2026
 
 PurchaseDraftEditor reuses receiving entry validation and the existing purchase.save/offline outbox. Supplier/date/reference, keyboard hints and full-screen controls stay in the header; a compact item entry adds to horizontal rows below. Preserve base-unit costs, fixed pack conversion, line/order identities, revision checks, stock-free drafts and existing partial receiving/reversal. Quick material creation retains the draft and returns to quantity. See [purchasing operations](./runbooks/Purchasing.md).

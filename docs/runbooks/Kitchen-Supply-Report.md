@@ -1,5 +1,13 @@
 # Kitchen stock issue report
 
+## Document prices — 28 October 2026
+
+Details, CSV and print preview show **سعر وحدة المستند**, **قيمة المستند**, actual stock cost and the difference between them. Prices come from the accepted document's matching line, never today's average. A saved zero remains zero. A historical line without a saved price remains **غير مسعّر**; its document amount/difference are unknown.
+
+**قيمة الصرف بسعر المستند** sums only priced lines across the entire filtered range, independently of the visible page. Its unpriced-line count identifies excluded lines. The difference subtracts actual stock cost of those same priced lines. Source and destination filters still include the outgoing side once, even with several incoming FIFO allocations. This read-only report does not change warehouse or kitchen stock valuation.
+
+The grouped report selector replaces the long tab strip. Details are shown first; charts are optional. Full-screen/restore keeps filters, downloaded data and pagination intact and supports Escape/focus return.
+
 Open **المطابخ → سجل صرف المطابخ → تقرير صرف المطابخ والرسوم**, or **التقارير والتحليلات → سجل صرف المطابخ**. This is the full accepted history, independent of the latest 100 operational documents. Pending/rejected local documents remain in the operational history and do not enter report totals.
 
 Choose the business-date period (up to 366 inclusive days), current location/all locations, receiving kitchen, category, material or search. Search accepts material names/codes, references and full KI document numbers. Selecting a source location includes its outgoing supplies; selecting a destination kitchen includes supplies received there. When a kitchen supplies another kitchen, ranking/filtering uses the receiving kitchen. Selecting all locations still counts a document once.

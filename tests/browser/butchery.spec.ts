@@ -15,7 +15,7 @@ test('butchery creates named products, assigns unequal costs and preserves offli
  const first=crypto.randomUUID(),second=crypto.randomUUID();for(const [itemId,name] of [[first,`منتج أول ${suffix}`],[second,`منتج ثان ${suffix}`]])await post({...base(),type:'product.create',itemId,name,meatKind:'beef_product',unitId:kg.id});
  const receipt=await page.request.post('/api/v1/commands',{headers,data:{...base(),type:'receipt.post',locationId:'central',itemId:'beef',quantity:'10',unitCost:'100'}});expect(receipt.ok(),await receipt.text()).toBe(true);
  await page.getByRole('button',{name:'مزامنة الآن',exact:true}).click();
- await page.getByRole('navigation',{name:'التنقل الرئيسي',exact:true}).locator('summary').filter({hasText:'التقارير والتحضير'}).click();await page.getByRole('button',{name:'الجزارة',exact:true}).click();
+ await page.getByRole('navigation',{name:'التنقل الرئيسي',exact:true}).locator('summary').filter({hasText:'المطابخ والتحضير'}).click();await page.getByRole('button',{name:'الجزارة',exact:true}).click();
  await expect(page.getByRole('heading',{name:'الجزارة والتجهيز',exact:true})).toBeVisible();await page.getByLabel('الموقع',{exact:true}).selectOption('central');
  await page.getByLabel('صنف المدخل',{exact:true}).selectOption('beef');await page.getByLabel('وزن اللحم المستخدم (كجم)',{exact:true}).fill('10');await page.getByLabel('تكاليف التجهيز الإضافية (ج.م)',{exact:true}).fill('100');
  await page.getByLabel('المنتج 1',{exact:true}).selectOption(first);await page.getByLabel('وزن المنتج 1 (كجم)',{exact:true}).fill('6');await page.getByLabel('نسبة التكلفة 1 (%)',{exact:true}).fill('80');await page.getByRole('button',{name:'إضافة منتج للدفعة',exact:true}).click();

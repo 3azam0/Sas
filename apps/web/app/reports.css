@@ -6,3 +6,54 @@
 .bi-shortages{border-color:#edccad;background:#fffdfa}.bi-shortages .bi-chart-grid{margin-top:16px}.bi-shortage-value{color:#b16a20}.bi-shortages .collection{margin-top:16px}.bi-shortages .panel-heading p{font-size:12px;line-height:1.8}
 
 .bi-shortage-alert{display:flex;justify-content:space-between;gap:16px;align-items:center;border:1px solid #e7c9a5;background:#fff7eb;color:#9f6520;padding:15px 18px;border-radius:12px;font:inherit;font-size:12px;text-align:start}.bi-shortage-alert:hover{background:#ffefd9}
+
+/* Dedicated reports keep the existing dashboard and its charts unchanged. */
+.reports-content .page-heading{margin-block:10px 12px;align-items:center;gap:12px}
+.reports-content .page-heading h1{font-size:23px;margin:0}
+.reports-content .page-heading p,.reports-content .page-heading .eyebrow{display:none}
+.reports-content .freshness{margin-block:8px 12px}
+.bi-report{gap:12px}
+.bi-report>.panel{margin-bottom:0}
+.bi-report-controls{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.bi-report-chooser{display:grid;gap:4px;min-width:240px;font-size:12px;color:var(--muted)}
+.bi-report-chooser select{font:inherit;font-size:14px;font-weight:650;min-height:42px;max-width:100%;padding:8px 12px;padding-inline-end:34px;border:1px solid #dce4ee;border-radius:9px;color:#173859;background:white}
+.bi-display-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bi-display-actions button{min-height:40px;font-size:12px}
+.bi-report .bi-filter-panel{padding:12px 16px}
+.bi-report .bi-filter-heading{flex-direction:row;align-items:center;gap:10px}
+.bi-report .bi-filter-heading h2{font-size:16px;margin:0}
+.bi-report .bi-filter-heading p,.bi-report .filter-apply-note{display:none}
+.bi-report .bi-actions{width:auto;gap:6px}
+.bi-report .bi-actions button{min-height:36px;font-size:11px;padding:6px 10px}
+.bi-report .report-date-shortcuts{margin-block:8px}
+.bi-report .bi-freshness{margin-top:8px}
+.bi-report .filter-toolbar{padding:10px}
+.bi-report .bi-filter-panel .filter-toolbar{margin:0}
+.bi-report .report-date-shortcuts{padding:0}
+.bi-report .filter-date-presets{margin-bottom:6px}
+.bi-report .bi-card{padding:12px 14px;gap:5px;border-radius:10px}
+.bi-report .bi-card>strong{font-size:23px}
+.bi-report .bi-cards{gap:10px}
+.bi-report .bi-detail-panel{padding:14px 16px;scroll-margin-top:12px}
+.bi-report .bi-detail-panel .panel-heading{margin-bottom:10px}
+.bi-report .bi-detail-panel .panel-heading h2{font-size:16px}
+.bi-report .bi-detail-panel .panel-heading p{font-size:11px;margin:3px 0}
+.bi-report .bi-table-controls{gap:10px;margin-bottom:10px}
+.bi-report .bi-table-controls label{gap:4px}
+.bi-report .bi-table th,.bi-report .bi-table td{padding:10px 12px;font-size:12px}
+.bi-report .bi-empty{padding:16px}
+.bi-report-charts{display:grid;gap:12px;min-width:0}
+.bi-fullscreen{position:fixed;inset:0;z-index:90;overflow:auto;overscroll-behavior:contain;background:#f5f7fb;padding:18px;align-content:start;grid-auto-rows:max-content}
+.bi-fullscreen>.bi-report-controls{position:sticky;top:-18px;z-index:4;background:#f5f7fb;padding-block:10px;border-bottom:1px solid #dce4ee}
+.bi-fullscreen:focus{outline:none}
+@media(max-width:760px){
+ .reports-content .page-heading{margin-block:6px 8px}.reports-content .page-heading h1{font-size:20px}
+ .bi-report-controls{gap:8px}.bi-report-chooser{min-width:0;width:100%}
+ .bi-display-actions{width:100%;gap:6px}.bi-display-actions>button{flex:1;padding:7px 9px}
+ .bi-report .bi-filter-heading{align-items:start;flex-wrap:wrap}.bi-report .bi-actions{width:100%}
+ .bi-report .bi-filter-panel,.bi-report .bi-detail-panel{padding:12px}
+ .bi-report .bi-card{padding:10px}.bi-report .bi-card>strong{font-size:20px}
+ .bi-report .bi-table table{min-width:680px}.bi-fullscreen{padding:12px}
+ .bi-fullscreen>.bi-report-controls{top:-12px}
+}
+@media print{.bi-report-controls{display:none!important}.bi-fullscreen{position:static;padding:0;overflow:visible}}

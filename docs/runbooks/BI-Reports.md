@@ -1,3 +1,11 @@
+# Compact report workspace — 28 October 2026
+
+Choose a report from the grouped **التقرير** selector. The dedicated workspace starts with details; **إظهار الرسوم** adds charts, and **عرض التفاصيل** returns focus to the table. **ملء الشاشة** expands the same report without resetting its filters, page or loaded data; Escape restores the previous size and opener focus. While expanded, the surrounding workspace is inert and keyboard focus stays in the report. The home analytics remain unchanged.
+
+The side menu now groups daily shortcuts, stock operations, kitchens/preparation, sales/reports, settings and help. Open **المبيعات والتقارير → التقارير والتحليلات**. Butchery, recipes and production are under **المطابخ والتحضير**. The active desktop group opens automatically; the mobile menu uses the same groups and still returns focus to its opener on dismissal. Collapsing the sidebar preserves the current report and filters.
+
+Kitchen supply includes document-only prices separately from actual transferred stock cost. Its priced-line total excludes lines whose historical payload has no price; **سطور غير مسعّرة** makes this limit explicit. Zero is a known price. The difference compares document value with actual cost of the same priced lines, not all stock costs and not profit. CSV and print preview retain separate columns. Older cached responses can still be read; refresh online to load their new price fields.
+
 # Financial reporting — 16 October 2026
 
 The **المصروفات والنتيجة التقديرية** report includes full-range dated sales corrections, net operating expenses, full recipe estimates and a clearly estimated operating result. Its details have server sorting/pagination/CSV/cache and expense-category chart drill-down. Corrections are booked on their own date and may relate to earlier sales; original consumption remains. Missing recipe prices are incomplete, not zero. See [expense rules](./Expenses.md) and [sales corrections](./Financial-Corrections.md).

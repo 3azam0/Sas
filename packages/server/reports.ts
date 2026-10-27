@@ -42,6 +42,7 @@ export async function getReport(db:Database,access:Access,input:unknown):Promise
  if(q.to>egyptDate())throw new BusinessError('INVALID_REPORT','اختر اليوم أو تاريخاً سابقاً.',400);
  // Supply reports count the source side once, but a destination location can also select the document.
  const movementSql=q.kind==='kitchenSupply'?movementCte
+  .replace('SELECT e.*,',`SELECT e.*,(SELECT (line->>'unitPrice')::numeric FROM jsonb_array_elements(CASE WHEN jsonb_typeof(k.payload->'lines')='array' THEN k.payload->'lines' ELSE '[]'::jsonb END) line WHERE lower(line->>'lineId')=e.operation_id::text AND line->>'itemId'=e.item_id LIMIT 1) AS document_unit_price,`)
   .replace("($4='' OR e.location_id=$4)","($4='' OR e.location_id=$4 OR k.payload->>'destinationLocationId'=$4)")
   .replaceAll("COALESCE(ki.id,k.kitchen_id,k.payload->>'kitchenId',k.payload->>'kitchen'", "COALESCE(k.kitchen_id,k.payload->>'kitchenId',k.payload->>'kitchen',ki.id")
   .replace("COALESCE(ki.name,k.payload->>'kitchen','')", "COALESCE(k.payload->>'kitchen',ki.name,'')")
@@ -77,6 +78,9 @@ export async function getReport(db:Database,access:Access,input:unknown):Promise
   async function metrics(from:string,to:string):Promise<PeriodMetrics>{
    const args=[...params];args[1]=from;args[2]=to;
    const r=(await tx.query<Omit<PeriodMetrics,'netReceived'|'sales'|'productionWaste'|'productionInput'|'estimatedSalesCost'|'estimatedMargin'|'foodCostPercent'>>(`WITH ${paramsCte},${movementSql} SELECT
+    ${q.kind==='kitchenSupply'?`COALESCE(sum(abs(quantity)*document_unit_price) FILTER(WHERE type IN ('kitchen.transfer.out','kitchen.issue')),0)::text AS "kitchenDocumentAmount",
+    COALESCE(sum(abs(amount)) FILTER(WHERE type IN ('kitchen.transfer.out','kitchen.issue') AND document_unit_price IS NOT NULL),0)::text AS "kitchenDocumentCost",
+    count(*) FILTER(WHERE type IN ('kitchen.transfer.out','kitchen.issue') AND document_unit_price IS NULL)::int AS "kitchenDocumentUnpriced",`:''}
     COALESCE(sum(amount) FILTER(WHERE type IN ('receipt.post','purchase.receive')),0)::text AS received,
     COALESCE(sum(abs(amount)) FILTER(WHERE type='purchase.reverse'),0)::text AS reversed,
     COALESCE(sum(abs(amount)) FILTER(WHERE type='purchase.return'),0)::text AS returned,
@@ -131,7 +135,7 @@ export async function getReport(db:Database,access:Access,input:unknown):Promise
   else if(q.kind==='finance')detail=`WITH ${paramsCte},${financeCte} SELECT operation_id::text AS id,business_date::text AS date,location_id AS "locationId",location_name AS "locationName",''::text AS "itemId",CASE WHEN type='sales.correct' THEN COALESCE(sale_payload->>'menuName','تصحيح بيع') ELSE expense_category END AS name,''::text AS sku,expense_category AS category,''::text AS unit,'0'::text AS quantity,CASE WHEN type IN ('sales.correct','expense.reverse') THEN -amount ELSE amount END::text AS amount,NULL::text AS "unitCost",type,payload->>'reference' AS reference,''::text AS "supplierId",''::text AS "supplierName",''::text AS "kitchenId",''::text AS "kitchenName" FROM f`;
   else if(q.kind==='production')detail=`WITH ${paramsCte},${productionCte} SELECT operation_id::text AS id,payload->>'businessDate' AS date,output_location_id AS "locationId",location_name AS "locationName",output_item_id AS "itemId",name,sku,category,unit,payload->>'actualOutput' AS quantity,result->>'inputAmount' AS amount,result->>'unitCost' AS "unitCost",'production'::text AS type,payload->>'reference' AS reference,''::text AS "supplierId",''::text AS "supplierName",''::text AS "kitchenId",''::text AS "kitchenName",COALESCE(result->>'attainment','') AS extra FROM p WHERE (payload->>'businessDate')::date BETWEEN $2::date AND $3::date`;
   else detail=`WITH ${paramsCte},${movementSql} SELECT ${(q.kind==='kitchens'||q.kind==='kitchenSupply')?rowColumns.replace('quantity::text,amount::text','abs(quantity)::text AS quantity,abs(amount)::text AS amount'):q.kind==='waste'?rowColumns.replace('quantity::text,amount::text',"CASE WHEN type='waste.post' THEN abs(quantity) ELSE quantity END::text AS quantity,CASE WHEN type='waste.post' THEN abs(amount) ELSE amount END::text AS amount"):rowColumns} FROM m WHERE business_date BETWEEN $2::date AND $3::date AND ${kindTypes[q.kind]??'true'}`;
-  if(q.kind==='kitchenSupply')detail=detail.replace('SELECT operation_id::text AS id', 'SELECT kitchen_issue_id::text AS "documentId",operation_id::text AS id');
+  if(q.kind==='kitchenSupply')detail=detail.replace('SELECT operation_id::text AS id', 'SELECT kitchen_issue_id::text AS "documentId",document_unit_price::text AS "documentUnitPrice",(abs(quantity)*document_unit_price)::text AS "documentAmount",(abs(quantity)*document_unit_price-abs(amount))::text AS "documentDifference",operation_id::text AS id');
   const total=Number((await tx.query<{count:string}>(`SELECT count(*)::text AS count FROM (${detail}) records`,params)).rows[0].count),page=Math.min(q.page,Math.max(1,Math.ceil(total/q.pageSize)));
   const rows=(await tx.query<ReportRow&{version?:string;output?:string}>(`SELECT * FROM (${detail}) records ORDER BY ${order[q.sort]} LIMIT $11 OFFSET $12`,[...params,q.pageSize,(page-1)*q.pageSize])).rows;
   for(const row of rows)if(q.kind==='sales'){row.estimatedCost=estimate({versionId:row.version!,outputPerSale:row.output!,quantity:row.quantity},row.locationId);delete row.version;delete row.output;}
