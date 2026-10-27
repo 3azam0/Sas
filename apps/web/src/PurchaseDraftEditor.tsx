@@ -38,7 +38,7 @@ export default function PurchaseDraftEditor({snapshot,location,initial,busy,expi
   if(!items.some(item=>item.id===entry.itemId)){setLocalError('اختر مادة نشطة من القائمة.');focusEntry('item');return;}
   const result=commitReceivingEntry(lines,entry,factorFor,editingId);
   if(!result.ok){
-   const messages={item:'اختر مادة من القائمة.',quantity:'أدخل كمية موجبة ضمن الحد والدقة المسموحين.',factor:'اختر وحدة شراء متاحة للمادة.',cost:'أدخل تكلفة وحدة المخزون؛ يمكن أن تكون صفراً.',incompatible:'المادة موجودة بوحدة شراء أو تكلفة مختلفة؛ عدّل سطرها بدلاً من إضافتها مرة أخرى.',capacity:'الحد الأقصى ٢٠٠ مادة مختلفة في المستند.','missing-edit':'السطر الجاري تعديله لم يعد متاحاً. ألغِ التعديل واختر المادة مجدداً.'};
+   const messages={heads:'راجع بيانات المادة وأعد إضافتها.',item:'اختر مادة من القائمة.',quantity:'أدخل كمية موجبة ضمن الحد والدقة المسموحين.',factor:'اختر وحدة شراء متاحة للمادة.',cost:'أدخل تكلفة وحدة المخزون؛ يمكن أن تكون صفراً.',incompatible:'المادة موجودة بوحدة شراء أو تكلفة مختلفة؛ عدّل سطرها بدلاً من إضافتها مرة أخرى.',capacity:'الحد الأقصى ٢٠٠ مادة مختلفة في المستند.','missing-edit':'السطر الجاري تعديله لم يعد متاحاً. ألغِ التعديل واختر المادة مجدداً.'};
    setLocalError(messages[result.reason]);focusEntry(result.reason==='item'?'item':result.reason==='cost'?'cost':result.reason==='factor'?'unit':'quantity');return;
   }
   setLines(result.lines);setLastChanged(result.line.lineId);setListVersion(value=>value+1);clearEntry();setNotice((result.action==='merged'?'جُمعت الكمية':result.action==='updated'?'عُدلت المادة':'أُضيفت المادة')+' — '+catalog.find(item=>item.id===result.line.itemId)?.name);
