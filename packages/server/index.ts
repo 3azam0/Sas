@@ -46,3 +46,5 @@ export {postFinance} from './finance';
 export {getReport} from './reports';
 
 export {postKitchenOrder} from './kitchen-display';
+
+export {postButchery} from './butchery';

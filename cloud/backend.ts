@@ -1,3 +1,4 @@
+import {postButchery} from '../packages/server/butchery';
 // Supabase Edge entry point. Auth is verified here before any tenant database access.
 import postgres from 'npm:postgres@3.4.9';
 import {BusinessError,type Access} from '../packages/contracts/index';
@@ -47,7 +48,7 @@ async function accessFor(request:Request):Promise<Access>{
  const device=request.headers.get('X-Fodo-Device')??'';if(!/^[a-f0-9-]{36}$/i.test(device))throw new BusinessError('INVALID_DEVICE','أعد تسجيل الدخول على هذا الجهاز.',400);
  return {organizationId:rows[0].organization_id,userId:user.id,deviceId:device,expiresAt:new Date(Date.now()+86400000).toISOString()};
 }
-const handlers:Record<string,(db:Database,access:Access,input:unknown)=>Promise<unknown>>={reports:getReport,commands:postCommand,setup:postSetupCommand,openings:postOpening,receipts:postReceiptDocument,'kitchen-issues':postKitchenIssue,purchases:postPurchase,transfers:postTransfer,counts:postCount,recipes:postRecipe,production:postProduction,menu:postMenuItem,sales:postSalesImport,finance:postFinance,'kitchen-orders':postKitchenOrder};
+const handlers:Record<string,(db:Database,access:Access,input:unknown)=>Promise<unknown>>={butchery:postButchery,reports:getReport,commands:postCommand,setup:postSetupCommand,openings:postOpening,receipts:postReceiptDocument,'kitchen-issues':postKitchenIssue,purchases:postPurchase,transfers:postTransfer,counts:postCount,recipes:postRecipe,production:postProduction,menu:postMenuItem,sales:postSalesImport,finance:postFinance,'kitchen-orders':postKitchenOrder};
 Deno.serve(async request=>{
  try{
   const route=new URL(request.url).pathname.split('/').filter(Boolean).at(-1)!;

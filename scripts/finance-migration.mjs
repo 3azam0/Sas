@@ -1,5 +1,5 @@
 import {tables as currentTables} from './sample-data/admin.mjs';
-const tables=currentTables.filter(t=>t!=='pos_kitchen_actions');
+const tables=currentTables.filter(t=>t!=='pos_kitchen_actions'&&t!=='butchery_catalog'&&t!=='butchery_batches');
 export function financeMigrationSql(schema){
  const quoted=values=>values.map(t=>"'"+t+"'").join(',');
  const signature=list=>`(SELECT md5(string_agg(table_name||':'||column_name||':'||udt_name,',' ORDER BY table_name,ordinal_position)) FROM information_schema.columns WHERE table_schema='fodo' AND table_name IN (${quoted(list)}))`;
