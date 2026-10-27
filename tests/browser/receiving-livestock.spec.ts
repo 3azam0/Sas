@@ -3,6 +3,7 @@ import {selectCatalog} from './catalog-control';
 
 test('sheep receiving records heads and live kilograms through editing, offline reload, sync and printing',async({page,context,baseURL})=>{
  test.setTimeout(240000);
+ page.setDefaultTimeout(15000);
  const ready=await page.request.post('/api/v1/demo-session',{headers:{origin:baseURL!},data:{organizationId:'grills',deviceId:crypto.randomUUID()},timeout:120000});expect(ready.ok()).toBe(true);
  const initial=await page.request.get('/api/v1/bootstrap',{timeout:120000});expect(initial.ok()).toBe(true);
  await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible({timeout:30000});
@@ -27,7 +28,7 @@ test('sheep receiving records heads and live kilograms through editing, offline 
  await expect(page.getByText('التطبيق جاهز للفتح دون اتصال',{exact:false})).toBeVisible({timeout:30000});await context.setOffline(true);await dialog.getByRole('button',{name:'حفظ الاستلام',exact:true}).click();await expect(dialog).toHaveCount(0);
  await page.reload();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();await page.setViewportSize({width:1280,height:900});await context.setOffline(false);await page.getByRole('button',{name:'مزامنة الآن',exact:true}).click();
  await expect.poll(async()=>{const s=await(await page.request.get('/api/v1/bootstrap')).json();return s.receipts.find((r:any)=>r.document.reason===reference)?.document.lines.find((l:any)=>l.itemId===id)?.headCount;},{timeout:30000}).toBe(2);
- await page.getByRole('button',{name:'مركز المزامنة',exact:true}).click();const history=page.locator('.opening-document').filter({hasText:reference});await history.locator('summary').click();await expect(history).toContainText('متوسط الرأس ٦٠ كجم');
+ await page.getByRole('button',{name:'مركز المزامنة',exact:true}).click();await page.getByRole('row').filter({hasText:reference}).getByRole('button',{name:'فتح ومراجعة',exact:true}).click();const history=page.locator('.opening-document').filter({hasText:reference});await expect(history).toBeVisible();if(await history.getAttribute('open')===null)await history.locator('summary').click();await expect(history).toContainText('متوسط الرأس ٦٠ كجم');
  await history.getByRole('button',{name:'عرض وطباعة مستند الاستلام',exact:true}).click();const print=page.getByRole('dialog').last();await expect(print).toContainText('متوسط الرأس ٦٠ كجم');await expect(print).toContainText('٢١٬٠٠٠');await page.screenshot({path:'test-results/sheep-receiving-print.png',fullPage:true});
  const after=await(await page.request.get('/api/v1/bootstrap')).json();expect(after.receipts.filter((r:any)=>r.document.reason===reference)).toHaveLength(1);expect(after.receipts.find((r:any)=>r.document.reason===reference).document.schemaVersion).toBe(2);
 });
