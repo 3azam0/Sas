@@ -1,3 +1,7 @@
+# Compact purchase draft — 27 October 2026
+
+**مسودة أمر شراء** now uses the compact receiving layout, fixed header/actions, full-screen/restore control, entry row above horizontal material rows and quick material creation. Pack conversion, base-unit cost, stock-free drafts and receiving/reversal rules remain unchanged. The latest butchery release is preserved. Build **611d1909728d0ef5**, Worker **95**, deployment **2c1d739a-59d1-4401-a615-f2d3467792a4** at 100%; Supabase API **18** and recovery **22** unchanged. TypeScript/builds, 34 focused tests, five browser scenarios and live bundle/access/desktop/phone checks pass. See [release verification](./releases/purchase-draft-editor-2026-10-27.md).
+
 # Central kitchen butchery — 27 October 2026
 
 Published at [FooDo](https://fodo.am-agent2026.workers.dev/?release=af2bb90d5fdbca37), build **af2bb90d5fdbca37**, Worker **93**, deployment **cf9f26ae-32fe-40c1-a021-4340b28a2fa8** at100%; Supabase API **18**, migration **20261026215636**. User-named sheep/beef outputs, assigned cost shares, direct kitchen transfers and offline recovery22 are available under **الجزارة**. Existing inventory was preserved. All408 tests are covered by the suite/affected reruns; desktop/phone/offline browser and live bundle/access checks pass. See [release evidence](./releases/butchery-2026-10-27.md) and [operating guide](./runbooks/Butchery.md).

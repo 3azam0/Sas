@@ -1,3 +1,7 @@
+# Compact purchase drafts — 27 October 2026
+
+PurchaseDraftEditor reuses receiving entry validation and the existing purchase.save/offline outbox. Supplier/date/reference, keyboard hints and full-screen controls stay in the header; a compact item entry adds to horizontal rows below. Preserve base-unit costs, fixed pack conversion, line/order identities, revision checks, stock-free drafts and existing partial receiving/reversal. Quick material creation retains the draft and returns to quantity. See [purchasing operations](./runbooks/Purchasing.md).
+
 # Kitchen document prices — 26 October 2026
 
 Kitchen issue lines may carry an optional unitPrice for the supply document only. Preserve it in save/retry/correction, history, printing and recovery 21. Inventory valuation and posted amount remain actual FIFO/average cost. Old documents without a price preserve their existing meaning; no database schema or Dexie upgrade is needed. See [operating rules](./runbooks/Kitchen-Issues.md).

@@ -299,3 +299,25 @@
 
 @media(min-width:900px){.kitchen-issue-form .kitchen-composer-row{grid-template-columns:minmax(0,2fr) minmax(100px,.7fr) minmax(150px,1fr) auto}}
 @media(max-width:899px){.kitchen-issue-form .kitchen-composer-row{grid-template-columns:minmax(0,1.6fr) minmax(90px,1fr)}.kitchen-composer-row .kitchen-price-field{grid-column:1/-1}}
+
+/* Purchase drafts reuse the receiving composer and compact horizontal list. */
+.purchase-draft-modal>.purchase-draft-form{padding:0;margin:0;min-height:0;flex:1}
+.purchase-draft-modal .workflow-body{padding:10px 16px 14px;overflow-y:auto}
+.purchase-draft-modal .workflow-footer{padding:12px 16px 16px}
+.purchase-draft-modal .purchase-draft-header{display:grid;grid-template-columns:minmax(160px,1fr) minmax(440px,2.4fr) auto;align-items:start}
+.purchase-draft-header-fields{display:grid;grid-template-columns:minmax(140px,1.3fr) minmax(125px,1fr) minmax(140px,1.2fr);gap:8px;min-width:0}
+.purchase-draft-modal .purchase-draft-header-fields>label{margin:0;gap:3px;min-width:0}
+.purchase-draft-modal .purchase-draft-header-fields .form-label{font-size:10px;line-height:1.4}
+.purchase-draft-modal .purchase-draft-header-fields :is(input,select){min-height:36px;font-size:12px;padding:6px 9px}
+.purchase-draft-modal .purchase-draft-header-fields .field-hint:has(>.field-required){display:none}
+@media(max-width:899px){
+ .purchase-draft-modal .purchase-draft-header{grid-template-columns:minmax(0,1fr) auto}
+ .purchase-draft-header-fields{grid-column:1/-1;grid-row:2;grid-template-columns:minmax(0,1fr) minmax(125px,1fr)}
+ .purchase-draft-header-fields>label:last-child{grid-column:1/-1}
+ .purchase-draft-modal .purchase-draft-header-fields :is(input,select){min-height:44px;font-size:16px}
+}
+
+.modal.purchase-draft-modal[open]{height:min(820px,calc(100dvh - 32px));max-height:calc(100dvh - 32px)}
+.purchase-draft-modal .modal-header,.purchase-draft-modal .workflow-footer{flex-shrink:0}
+@media(max-width:899px){.modal.purchase-draft-modal[open]{height:calc(100dvh - 24px);max-height:calc(100dvh - 24px)}}
+.modal.purchase-draft-modal.form-expanded[open]{height:100dvh;max-height:100dvh}
