@@ -1,3 +1,7 @@
+# Central kitchen butchery — 27 October 2026
+
+Published at [FooDo](https://fodo.am-agent2026.workers.dev/?release=af2bb90d5fdbca37), build **af2bb90d5fdbca37**, Worker **93**, deployment **cf9f26ae-32fe-40c1-a021-4340b28a2fa8** at100%; Supabase API **18**, migration **20261026215636**. User-named sheep/beef outputs, assigned cost shares, direct kitchen transfers and offline recovery22 are available under **الجزارة**. Existing inventory was preserved. All408 tests are covered by the suite/affected reruns; desktop/phone/offline browser and live bundle/access checks pass. See [release evidence](./releases/butchery-2026-10-27.md) and [operating guide](./runbooks/Butchery.md).
+
 # Kitchen document prices — 26 October 2026
 
 Kitchen supply now prefills an editable document-only price from the item's current stock cost. Saved totals, history and printing use the chosen price; warehouse/kitchen stock valuation remains actual FIFO/average cost. Recovery 21 retains prices. All 392 tests, both focused browser scenarios and production/hosted builds pass. Build **e33acad393d7e76f**, Cloudflare **91**, Supabase API **17**; deployment **18e146f9-6a82-4746-9e3b-e48c4e144b6b** at 100%. No schema migration or client test movements. See [release verification](./releases/kitchen-document-prices-2026-10-26.md).

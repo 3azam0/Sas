@@ -42,3 +42,5 @@ it('resolves stocked boundaries and all ingredients independently of selective d
  expect(r.quantities.get(JSON.stringify(['kitchen','rice']))).toBe('2');expect(r.quantities.get(JSON.stringify(['kitchen','sauce-item']))).toBe('4');expect(r.quantities.has(JSON.stringify(['kitchen','tomato']))).toBe(false);expect(r.issues.size).toBe(0);
  const invalid=theoreticalConsumption([{versionId:'absent',outputPerSale:'1',quantity:'4',locationId:'kitchen',businessDate:'2026-10-10'}],versions);expect(invalid.issues.has('kitchen')).toBe(true);
 });
+
+it('recognizes butchery transformations as known production rather than unexplained consumption',()=>{const r=compareConsumption({...input,entries:entries.map(e=>e.type==='production.input'?{...e,type:'butchery.input'}:e)});expect(r.status).toBe('complete');expect(r.actual).toBe('23');expect(r.productionInput).toBe('5');expect(r.issues).toEqual([]);});

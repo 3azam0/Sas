@@ -1,4 +1,6 @@
-import {tables} from './sample-data/admin.mjs';
+import {tables as currentTables} from './sample-data/admin.mjs';
+// Freeze this historical upgrade at its original schema stage.
+const tables=currentTables.filter(t=>t!=='butchery_catalog'&&t!=='butchery_batches');
 export function counterPOSMigrationSql(schema){const quoted=list=>list.map(t=>"'"+t+"'").join(','),signature=list=>"(SELECT md5(string_agg(table_name||':'||column_name||':'||udt_name,',' ORDER BY table_name,ordinal_position)) FROM information_schema.columns WHERE table_schema='fodo' AND table_name IN ("+quoted(list)+"))";return `SET LOCAL search_path=fodo,pg_catalog;
 DO $guard$ BEGIN
  IF EXISTS(SELECT 1 FROM fodo.sample_data_runs WHERE status<>'cleaned' AND schema_signature<>${signature(tables.filter(t=>t!=='pos_kitchen_actions'))}) THEN RAISE EXCEPTION 'Trial baseline differs; review before counter POS migration'; END IF;

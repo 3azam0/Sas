@@ -78,7 +78,7 @@ test('kitchen quick-create preserves the draft and cannot issue a new zero-stock
  await expect(supply.getByLabel('مادة الصرف',{exact:true})).toHaveValue(`${name} · ${sku} · كجم`);await expect(supply.getByLabel('كمية الصرف',{exact:true})).toBeFocused();
  await expect(supply.getByLabel('مرجع الصرف',{exact:true})).toHaveValue('مرجع محفوظ');await expect(supply.locator('.kitchen-receipt-list')).toContainText('أرز');
  await supply.getByLabel('كمية الصرف',{exact:true}).fill('1');await supply.getByRole('button',{name:'إضافة للقائمة',exact:false}).click();await expect(supply.locator('#kitchen-entry-error')).toContainText('الرصيد');
- await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>globalThis.document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await supply.getByRole('button',{name:'ملء الشاشة',exact:true}).click();expect(await supply.evaluate(node=>{const r=node.getBoundingClientRect();return r.width===innerWidth&&r.height===innerHeight;})).toBe(true);await expect(supply.getByLabel('مرجع الصرف',{exact:true})).toHaveValue('مرجع محفوظ');
  await page.screenshot({path:'.cache/kitchen-layout-mobile.png'});
  expect(await supply.evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);expect(await issueLine.evaluate(node=>getComputedStyle(node).flexWrap)).toBe('nowrap');
