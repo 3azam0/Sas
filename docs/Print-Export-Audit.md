@@ -15,4 +15,4 @@ Special-purpose exports remain appropriate to their consumer: opening import tem
 
 Shared components own download/print behavior; original serializers own exact document values. All existing `PrintPreview` and data CSV export call sites were inspected. Exported workbooks contain no user-generated formulas; identifiers/leading zeroes, null/zero and precision limits are verified. PDF raster pages preserve Arabic shaping and the current selected paper size. Existing direct-print pairing, printer queues, unknown response handling and explicit reprints remain unchanged.
 
-See [printing guide](./runbooks/Printing.md) for limits and operation. Verification and deployed identifiers are recorded in the release record after final checks.
+See [printing guide](./runbooks/Printing.md) for limits and operation. The [verified live release](./releases/print-exports-2026-10-29.md) is build `413ca955b6fc9feb`, Worker101, API22 unchanged. Forty-two focused checks and five distinct browser scenarios pass, with independent PDF/workbook inspection.

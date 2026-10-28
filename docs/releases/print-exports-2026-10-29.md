@@ -24,4 +24,14 @@ See [output inventory](../Print-Export-Audit.md) and [operating guide](../runboo
 
 Hosted build **413ca955b6fc9feb**. Backend SHA256 **8a0518ea7990713a8fba1900a0484a0b1339c7d3da9ffa495eea8ab81d9f0bfe**, identical to live API22. No Supabase function replacement, database migration, recovery-format change or device-data reset. Existing inventory controls/roles, actual stock valuation, sheep receiving/butchery and kitchen document-only prices remain intact. Windows print helper 1.0.0 binaries/protocol are unchanged; physical printer acceptance remains outside browser verification.
 
-Developed on `chore/qibli-trial-stock`. Live identifiers and read-only verification are recorded after activation below.
+Developed on `chore/qibli-trial-stock`, implementation commit **e2597d08ab908f45ec152891d7ba73f66a617514**.
+
+## Live release
+
+- URL: https://fodo.am-agent2026.workers.dev/?release=413ca955b6fc9feb
+- Cloudflare Worker **101**, version **c7421acf-1cd1-40e1-9410-78954e9d5edf**, build **413ca955b6fc9feb**.
+- Deployment **41562d31-c238-4543-bdbb-c331c8dff6cf**, verified **100%** traffic. Activation checked the previous live deployment **74c99bb4-8e00-4812-b692-6870ff9a652c** before switching.
+- Workers.dev enabled, preview URLs disabled. Existing runtime compatibility, public bindings and observability preserved.
+- Supabase `fodo-api` confirmed **22 active**, unchanged. No migration or Edge Function deployment in this release.
+- Live health matches the build; published JavaScript matches the prepared bytes exactly. Anonymous/origin/private-file protections pass, and desktop/mobile login renders without page errors or horizontal overflow. Authenticated export workflows were tested with isolated local fixtures; live smoke checks create no business transactions.
+- Independent local artifact checks reopened **8 PDFs and 6 workbooks**, verifying paper dimensions, numeric cells, RTL and frozen headings. Source changes after the acceptance tests were limited to the complete-range footer label; the hosted build includes the final label. PDF source pages and mobile preview were visually inspected.
