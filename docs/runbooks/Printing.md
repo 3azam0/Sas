@@ -1,5 +1,17 @@
 # Windows direct printing — A4 and 80 mm
 
+## PDF, Excel and browser printing
+
+Every existing print preview (material receiving, kitchen supply, cash-sale receipt and reports) now offers **تنزيل PDF**, **تنزيل Excel** and **طباعة من المتصفح** without pairing or the Windows helper. Direct printing and its job/reprint protections remain separate. Choose A4 portrait/landscape or 80 mm before exporting PDF. PDF uses the same prepared Arabic raster pages as the printer preview, including logo, status, totals and page headings; it is a visual document, not a searchable-text PDF. No stock operation is posted by printing/exporting.
+
+Reports additionally expose **تصدير Excel** and **تصدير PDF** alongside CSV. All formats gather the entire filtered result, verify each page's checkpoint/count and reject missing or changed pages. Offline export requires all matching cached pages. The print/export preview explicitly states whole-range detail scope. Excel supports up to the existing 10,000-detail limit; raster PDF/direct printing retain the 40-page/image-size limits and fail visibly instead of silently truncating. Narrow the range for larger PDF jobs. Tables wider than nine columns print in labelled groups with repeated row identity.
+
+Preparation requirements, purchasing suggestions, transfer follow-up and lots/expiry now use the same Excel/PDF/CSV controls. These export the filtered view and its update/scope context. JSON recovery/plan backups remain JSON because they are restorable device data, and the opening import template remains CSV matching its existing importer.
+
+Excel is a genuine `.xlsx` OOXML workbook with RTL, styled headings, frozen heading rows, typed quantities/costs/dates and literal codes/identifiers. Report/document context and full-range summaries appear on **ملخص المستند**, keeping the data heading at the top of the main sheet. Missing values remain blank, zero remains numeric zero and values beyond Excel's 15-digit precision remain exact text. User-entered strings never become formulas. Receipts use original decimal document values, preserving packs, livestock counts and lot data; kitchen document prices remain distinct from actual stock costs.
+
+Receipt headings include available organization contact details and clear document references. Metadata is compact on A4 and stacked on roll; cash totals and provisional notices have dedicated print styling. Physical printer acceptance remains necessary on the actual equipment.
+
 Current scope: Windows helper 1.0.0 and the FooDo browser integration. Android remains deferred. Exact printer models and physical output still require acceptance on the client's equipment.
 
 ## First setup
@@ -16,7 +28,7 @@ Keep the helper running; minimizing sends it to the tray. Its window/tray menu c
 
 Receiving/kitchen documents include every line, independent of screen pagination. Receiving retains base quantity, pack conversion, inventory-unit cost and total. Unaccepted documents carry a provisional warning; pending kitchen costs remain unknown. Printing never posts inventory or changes stock.
 
-Reports preserve filters, scope, update/cached state, full filtered totals and explicit current-detail-page scope. A4 includes charts; roll output uses labelled stacked rows. A4 raster pagination repeats table headings and prefers complete rows/charts. Long rolls are emitted as consecutive image strips with one final optional cut. Arabic/logo rendering occurs in the browser, avoiding reliance on a printer's text code page.
+Reports preserve filters, scope, update/cached state, full filtered totals and complete filtered details gathered across pages. A4 includes charts; roll output uses labelled stacked rows. A4 raster pagination repeats table headings and prefers complete rows/charts. Long rolls are emitted as consecutive image strips with one final optional cut. Arabic/logo rendering occurs in the browser, avoiding reliance on a printer's text code page.
 
 ## Job status and reprints
 

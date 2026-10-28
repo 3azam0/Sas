@@ -1,3 +1,7 @@
+# Printing and exports — 29 October 2026
+
+All existing print previews share PDF/Excel downloads and a browser print fallback. Data CSV outputs retain CSV and add Excel/PDF through `TableExport`. Document serializers preserve original values; reports gather every filtered page with checkpoint/count/identity checks. Workbook context moves to a summary sheet, typed numbers/dates remain sortable, IDs stay literal and user strings never become formulas. PDF reuses prepared Arabic raster pages and the existing safe-size limits. See [audit](./Print-Export-Audit.md), [printing guide](./runbooks/Printing.md) and [release evidence](./releases/print-exports-2026-10-29.md). This is a frontend release; API22, recovery24/legacy compatibility and the print helper are unchanged.
+
 # Inventory operating cycle — 28 October 2026
 
 Purchasing suggestions account for accepted stock, aggregated unfinished device preparation demand, open orders and inbound transit. Transfer tracking exposes partial/overdue quantities and CSV. Optional incoming/output lots follow source cost layers without changing valuation; expiry remains an alert. The inventory controls workspace adds checkpointed variance explanations, manager closing/count approval and owner role administration/reopening. Closed-through periods are enforced in stock/sales/finance and explicit count/transit-loss guards. Existing accepted retries remain idempotent; rejected offline work remains reviewable.

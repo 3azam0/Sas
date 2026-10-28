@@ -17,6 +17,7 @@ const report:ReportResponse={schemaVersion:1,organizationId:'grills',generation:
 const render=<P extends object>(component:ComponentType<P>,props:P)=>renderToStaticMarkup(createElement(component,props));
 
 describe('A4 and 80 mm printing',()=>{
+ it('prints recorded lot and expiry alongside exact receiving quantities',()=>{const doc={...document,lines:[{...document.lines[0],lot:{code:'PRINT-LOT',expiresOn:'2026-12-01'}}]};const html=render(ReceiptPrintSheet,{snapshot,row:{...receipt,document:doc}});expect(html).toContain('PRINT-LOT');expect(html).toContain('2026-12-01');expect(html).toContain('١٠');});
  it('uses valid rectangular roll sizes, bounds long documents and tolerates stale preferences',()=>{
   expect(validPrintPaper('roll80')).toBe('roll80');expect(validPrintPaper('old-value')).toBe('a4');
   expect(printPageRule('a4','landscape')).toContain('size: A4 landscape');

@@ -1,4 +1,5 @@
 'use client';
+import {kitchenExport} from './document-export';
 import {HelpButton} from './ClientGuide';
 import {SetupEditor} from './InventorySetup';
 import PrintPreview,{PrintHeader,PrintTable} from './PrintPreview';
@@ -185,7 +186,7 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,seed,co
 }
 
 function KitchenIssuePrint({snapshot,row,close}:{snapshot:Snapshot;row:IssueRow;close:()=>void}){
- return <PrintPreview organizationId={snapshot.organizationId} documentId={row.id} title="طباعة مستند صرف" close={close}><KitchenIssuePrintSheet snapshot={snapshot} row={row}/></PrintPreview>;
+ return <PrintPreview organizationId={snapshot.organizationId} documentId={row.id} title="طباعة مستند صرف" exportRows={kitchenExport(snapshot,row)} close={close}><KitchenIssuePrintSheet snapshot={snapshot} row={row}/></PrintPreview>;
 }
 export function KitchenIssuePrintSheet({snapshot,row}:{snapshot:Snapshot;row:IssueRow}){
  const d=row.document,p=row.posted;
