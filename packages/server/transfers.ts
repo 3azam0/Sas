@@ -1,9 +1,11 @@
+import {assertInventoryWrite,assertInventoryManager,assertInventoryDateOpen} from './inventory-permissions';
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import type {Database} from './database';
 import {createHash,randomUUID} from 'node:crypto';
 import {BusinessError,transferCommandSchema,type Access,type Transfer,type TransferDispatch,type TransferAction,type CommandResult,type Layer} from '@saas/contracts';
 import {allocateFIFO,decimal} from '@saas/domain';
 import {addIncomingStock} from './incoming';
+import {sourceLot} from './stock-lots';
 
 export const transferTables=`
 CREATE TABLE IF NOT EXISTS transfers(organization_id text NOT NULL REFERENCES organizations(id),transfer_id uuid NOT NULL,revision integer NOT NULL CHECK(revision>0),source_id text NOT NULL,destination_id text NOT NULL,payload jsonb NOT NULL,amount numeric(38,12) NOT NULL CHECK(amount>=0),posted_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(organization_id,transfer_id),CHECK(source_id<>destination_id),FOREIGN KEY(organization_id,source_id) REFERENCES locations(organization_id,id),FOREIGN KEY(organization_id,destination_id) REFERENCES locations(organization_id,id));
@@ -34,6 +36,7 @@ export async function transferSnapshot(tx:Pick<Database,'query'>,org:string){
 }
 
 export async function postTransfer(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
  const parsed=transferCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من مستند التحويل.',400);const c=parsed.data;
  if(c.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');
@@ -69,7 +72,7 @@ export async function postTransfer(db:Database,access:Access,input:unknown):Prom
     await applyIssue(tx,c.organizationId,c.sourceId,line.itemId,line.movementId,line.quantity,allocation);
    }
   }else{
-   const d=existing!.payload;
+   const d=existing!.payload;if(c.type==='transfer.loss')await assertInventoryDateOpen(tx,c.organizationId,d.sourceId,c.businessDate);
    // Receiving remains possible when catalog records are deactivated after dispatch.
    const prepared=[];
    for(const line of c.lines){
@@ -88,7 +91,7 @@ export async function postTransfer(db:Database,access:Access,input:unknown):Prom
      if(c.type==='transfer.receive'){
       // Separate incoming ledger sequences preserve the original FIFO segment order.
       const movementId=index===0?line.movementId:randomUUID();
-      await addIncomingStock(tx,{organizationId:c.organizationId,operationId:movementId,locationId:d.destinationId,itemId:definition.itemId,quantity:p.quantity,unitCost:p.unit_cost,amount:p.amount,type:c.type,reason:c.reason,businessDate:c.businessDate});
+      await addIncomingStock(tx,{organizationId:c.organizationId,operationId:movementId,locationId:d.destinationId,itemId:definition.itemId,quantity:p.quantity,unitCost:p.unit_cost,amount:p.amount,type:c.type,reason:c.reason,businessDate:c.businessDate,lot:await sourceLot(tx,c.organizationId,p.layer_id)});
       await tx.query('UPDATE stock_entries SET transfer_id=$3,transfer_line_id=$4 WHERE organization_id=$1 AND operation_id=$2',[c.organizationId,movementId,c.transferId,line.dispatchLineId]);
      }
     }

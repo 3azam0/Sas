@@ -1,7 +1,8 @@
+import type {StockLot} from '../../../packages/contracts/inventory-operations';
 import {decimal} from '@saas/domain';
 import {normalizeNumber} from '../../../packages/domain/opening-import';
 
-export type ReceivingLine={lineId:string;itemId:string;selection:string;factor:string;enteredQuantity:string;unitCost:string;headCount?:string};
+export type ReceivingLine={lineId:string;itemId:string;selection:string;factor:string;enteredQuantity:string;unitCost:string;headCount?:string;lot?:StockLot};
 const valid=(value:string)=>/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/.test(value);
 const bounded=(quantity:string,factor:string)=>{const base=decimal(quantity).mul(factor);return base.gt(0)&&base.decimalPlaces()<=6&&base.lte('999999999.999999');};
 type Failure='item'|'quantity'|'factor'|'cost'|'heads'|'incompatible'|'capacity'|'missing-edit';
@@ -33,6 +34,6 @@ export function commitReceivingEntry(lines:ReceivingLine[],entry:ReceivingLine,f
   enteredQuantity=decimal(target.enteredQuantity).add(quantity).toString();
   if(!valid(enteredQuantity)||!bounded(enteredQuantity,factor))return {ok:false,reason:'quantity'};
  }
- const line={...entry,lineId:target?.lineId??entry.lineId,enteredQuantity,unitCost:decimal(cost).toString(),factor,...headCount!==undefined?{headCount}:{}};
+ const line={...entry,lot:editingId?entry.lot:target?.lot??entry.lot,lineId:target?.lineId??entry.lineId,enteredQuantity,unitCost:decimal(cost).toString(),factor,...headCount!==undefined?{headCount}:{}};
  return {ok:true,line,lines:[line,...lines.filter(previous=>previous.lineId!==line.lineId)],action:editingId?'updated':target?'merged':'added'};
 }

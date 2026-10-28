@@ -1,3 +1,4 @@
+import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import type {Database} from './database';
 import {createHash} from 'node:crypto';
@@ -6,6 +7,7 @@ import {decimal} from '@saas/domain';
 import {addIncomingStock} from './incoming';
 
 export async function postOpening(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
  const parsed=openingSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_OPENING','تحقق من سطور الرصيد الافتتاحي (٢٠٠ سطر كحد أقصى).',400);
  const doc=parsed.data;
  if(doc.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
@@ -37,7 +39,7 @@ export async function postOpening(db:Database,access:Access,input:unknown):Promi
   const amount=total.toFixed(12);
   await tx.query('INSERT INTO opening_documents(organization_id,operation_id,payload,amount) VALUES($1,$2,$3,$4)',[doc.organizationId,doc.operationId,JSON.stringify(doc),amount]);
   for(const line of doc.lines){
-   const lineAmount=await addIncomingStock(tx,{...doc,operationId:line.lineId,itemId:line.itemId,quantity:line.quantity,unitCost:line.unitCost,openingDocumentId:doc.operationId});
+   const lineAmount=await addIncomingStock(tx,{...doc,operationId:line.lineId,itemId:line.itemId,quantity:line.quantity,unitCost:line.unitCost,lot:line.lot,openingDocumentId:doc.operationId});
    const lineHash=createHash('sha256').update(JSON.stringify({openingDocumentId:doc.operationId,...line})).digest('hex');
    await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[doc.organizationId,line.lineId,lineHash,JSON.stringify({operationId:line.lineId,outcome:'accepted',amount:lineAmount})]);
   }

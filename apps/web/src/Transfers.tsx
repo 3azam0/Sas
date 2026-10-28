@@ -1,5 +1,6 @@
 'use client';
 import CollapsibleSection from './CollapsibleSection';
+import {TransferWatch} from './InventoryFollowUp';
 import {DocumentEditor,DocumentFields,DocumentSummary,FormExplanation} from './DocumentForm';
 import {issueStockPreview} from './kitchen-issue-preview';
 import {operationLabels,OperationStatus,reviewFirst,DocumentLink} from './OperationStatus';
@@ -38,6 +39,7 @@ export default function Transfers({snapshot,location,rows,expired,synchronize,no
  async function resolve(id:string,action:'retry'|'cancel'){try{await resolveTransfer(snapshot.organizationId,id,action);if(action==='retry'&&navigator.onLine)await synchronize();}catch(e){setError(e instanceof Error?e.message:'تعذرت معالجة التحويل.');}}
  const editRows=mode==='transfer.dispatch'?snapshot.items.filter(i=>i.active!==false).map(i=>({key:i.id,itemId:i.id,name:i.name,sku:i.sku,unit:i.unit,available:snapshot.balances.find(b=>b.locationId===sourceId&&b.itemId===i.id)?.quantity??'0'})):(selected?.lines??[]).map(l=>({key:l.dispatchLineId,itemId:l.itemId,name:itemName(l.itemId),sku:snapshot.items.find(i=>i.id===l.itemId)?.sku??'',unit:snapshot.items.find(i=>i.id===l.itemId)?.unit??'',available:l.remaining}));
  return <>
+  <TransferWatch snapshot={snapshot} location={location}/>
   <CollapsibleSection className="panel opening-intro"><div className="panel-heading"><div><h2>تحويلات المخزون</h2><p>من فرع أو مخزن أو مطبخ إلى موقع آخر، بقيمة الإرسال المقبولة.</p></div><button className="primary" disabled={expired||busy||snapshot.locations.filter(l=>l.active!==false).length<2} onClick={()=>start('transfer.dispatch')}>تحويل جديد</button></div>{snapshot.locations.filter(l=>l.active!==false).length<2&&<p className="disabled-reason">التحويل يحتاج موقعين نشطين: مصدر ووجهة. أضف الموقع الآخر في إعداد المخزون.</p>}<p>الإرسال يخفض المصدر. الاستلام يزيد الوجهة. المتبقي يبقى في الطريق حتى استلامه أو تسجيل فقد بسبب واضح.</p></CollapsibleSection>
   {error&&!mode&&<p role="alert" className="alert error">{error}</p>}
   {mode&&<DocumentEditor helpTopic="transfers" title={replacesId?'تصحيح المستند المرفوض':mode==='transfer.dispatch'?'إعداد إرسال مخزون':mode==='transfer.receive'?'استلام تحويل':'تسجيل فقد في الطريق'} close={()=>{setMode(null);setReplaces(undefined);}} busy={busy} className="opening-editor transfer-editor"><WorkflowForm summary={<DocumentSummary label="مواد المستند" value={num(String(editRows.filter(r=>quantities[r.key]?.trim()&&Number(normalize(quantities[r.key]))>0).length))+' مادة'} detail={mode==='transfer.dispatch'?'الإرسال يخفض رصيد المصدر بعد القبول':mode==='transfer.receive'?'الاستلام يزيد رصيد الوجهة بعد القبول':'الفقد يخص مخزون الطريق فقط'}/>} busy={expired||busy} error={error} onEdit={()=>setError('')} onInvalid={()=>setSearch('')} documentCheck={()=>Object.values(quantities).some(q=>q.trim()&&Number(normalize(q))>0)?undefined:{message:'أدخل كمية لمادة واحدة على الأقل.',field:'كمية تحويل'}} onSubmit={()=>void save()}>

@@ -5,6 +5,8 @@ import {decimal,allocateFIFO} from '@saas/domain';
 import {butcheryCommandSchema,isKilogramUnit,type ButcheryCommand,type MeatKind} from '../../../packages/contracts/butchery';
 import {saveButchery,resolveButchery,type LocalButchery} from './offline';
 import {OperationStatus} from './OperationStatus';
+import StockLotFields from './StockLotFields';
+import type {StockLot} from '../../../packages/contracts/inventory-operations';
 import CollapsibleSection from './CollapsibleSection';
 
 const kinds:Record<MeatKind,string>={beef_input:'لحم بقري مشترى',sheep_live:'ضاني حي',beef_product:'منتج بقري للمطبخ',lamb_product:'منتج ضاني للمطبخ'};
@@ -12,7 +14,7 @@ const names:Record<ButcheryCommand['type'],string>={'product.create':'تعريف
 const number=(value:string|number)=>new Intl.NumberFormat('ar-EG',{maximumFractionDigits:3}).format(Number(value));
 const normalize=(value:string)=>value.replace(/[٠-٩]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/٫/g,'.').trim();
 const valid=(value:string)=>/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/.test(value);
-type Output={itemId:string;quantity:string;costShare:string};
+type Output={itemId:string;quantity:string;costShare:string;lot?:StockLot};
 type Props={snapshot:Snapshot;location:string;rows:LocalButchery[];expired:boolean;synchronize:()=>Promise<void>;notify:(message:string)=>void;openTransfers:()=>void;openSetup:()=>void;openReport?:()=>void};
 
 export default function Butchery({snapshot,location,rows,expired,synchronize,notify,openTransfers,openSetup,openReport}:Props){
@@ -29,7 +31,7 @@ export default function Butchery({snapshot,location,rows,expired,synchronize,not
  const totalShare=outputs.reduce((sum,o)=>sum.add(valid(o.costShare)?o.costShare:'0'),decimal('0'));
  let estimate:string|undefined;
  try{if(valid(quantity)&&decimal(quantity).gt(0)&&valid(processing)&&decimal(quantity).lte(available(input))){const value=snapshot.costing?.method==='moving_average'?decimal(snapshot.balances.find(b=>b.locationId===location&&b.itemId===input)?.value??'0').mul(quantity).div(available(input)):decimal(allocateFIFO(snapshot.layers.filter(l=>l.locationId===location&&l.itemId===input),quantity).amount);estimate=value.add(processing).toFixed(12);}}catch{/* Accepted stock determines final costing. */}
- const update=(index:number,key:keyof Output,value:string)=>setOutputs(old=>old.map((o,i)=>i===index?{...o,[key]:key==='itemId'?value:normalize(value)}:o));
+ const update=(index:number,key:Exclude<keyof Output,'lot'>,value:string)=>setOutputs(old=>old.map((o,i)=>i===index?{...o,[key]:key==='itemId'?value:normalize(value)}:o));
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();const form=event.currentTarget,data=new FormData(form),field=(key:string)=>String(data.get(key)??'').trim(),weight=(key:string)=>normalize(field(key));setSaving(true);setError('');
   try{
@@ -53,7 +55,7 @@ export default function Butchery({snapshot,location,rows,expired,synchronize,not
     <div className="form-row"><label>{mode==='lamb'?'الوزن الحي (كجم)':'وزن اللحم المستخدم (كجم)'}<input required inputMode="decimal" value={quantity} onChange={e=>setQuantity(normalize(e.target.value))}/></label><label>تكاليف التجهيز الإضافية (ج.م)<input required inputMode="decimal" value={processing} onChange={e=>setProcessing(normalize(e.target.value))}/></label></div>
     {mode==='lamb'&&<><div className="form-row"><label>عدد الرؤوس<input name="headCount" required inputMode="numeric"/></label><label>وزن الذبيحة والأحشاء المستخدمة (كجم)<input name="carcassWeight" required inputMode="decimal"/></label><label>فاقد الذبح (كجم)<input name="slaughterLoss" required defaultValue="0" inputMode="decimal"/></label></div><p className="table-help">الوزن الحي = وزن الذبيحة مع الأحشاء المستخدمة في المطبخ + فاقد الذبح.</p></>}
     <h3>المنتجات الناتجة ونسب التكلفة</h3><p className="table-help">أضف كل ناتج يستخدم في المطبخ. يمكن إعطاء منتج نسبة تكلفة صفراً؛ مجموع النسب يجب أن يساوي 100%.</p>
-    {outputs.map((output,index)=><div className="butchery-output" key={index}><label>المنتج {index+1}<select aria-label={`المنتج ${index+1}`} value={output.itemId} required onChange={e=>update(index,'itemId',e.target.value)}><option value="">اختر المنتج</option>{products.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}</select></label><label>وزن المنتج {index+1} (كجم)<input required inputMode="decimal" value={output.quantity} onChange={e=>update(index,'quantity',e.target.value)}/></label><label>نسبة التكلفة {index+1} (%)<input required inputMode="decimal" value={output.costShare} onChange={e=>update(index,'costShare',e.target.value)}/></label><button className="text-button" type="button" disabled={outputs.length===1} onClick={()=>setOutputs(old=>old.filter((_,i)=>i!==index))}>حذف</button></div>)}
+    {outputs.map((output,index)=><div className="butchery-output" key={index}><StockLotFields label={'تشغيلة منتج '+(index+1)} value={output.lot} disabled={expired||!snapshot.capabilities?.stockLots} onChange={lot=>setOutputs(old=>old.map((o,i)=>i===index?{...o,lot}:o))}/><label>المنتج {index+1}<select aria-label={`المنتج ${index+1}`} value={output.itemId} required onChange={e=>update(index,'itemId',e.target.value)}><option value="">اختر المنتج</option>{products.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}</select></label><label>وزن المنتج {index+1} (كجم)<input required inputMode="decimal" value={output.quantity} onChange={e=>update(index,'quantity',e.target.value)}/></label><label>نسبة التكلفة {index+1} (%)<input required inputMode="decimal" value={output.costShare} onChange={e=>update(index,'costShare',e.target.value)}/></label><button className="text-button" type="button" disabled={outputs.length===1} onClick={()=>setOutputs(old=>old.filter((_,i)=>i!==index))}>حذف</button></div>)}
     <button className="secondary" type="button" disabled={outputs.length>=50} onClick={()=>setOutputs(old=>[...old,{itemId:'',quantity:'',costShare:'0'}])}>إضافة منتج للدفعة</button>
     <div className="form-row"><label>فاقد التقطيع (كجم)<input name="cuttingLoss" required defaultValue="0" inputMode="decimal"/></label><div className="operation-summary"><span>مجموع نسب التكلفة</span><strong className={totalShare.eq(100)?'success':'error'}>{number(totalShare.toString())}%</strong></div></div>
     <div className="operation-summary"><span>تكلفة الدفعة التقديرية</span><strong>{estimate?`${number(estimate)} ج.م`:'تتوفر بعد اختيار مدخل برصيد كافٍ'}</strong></div>

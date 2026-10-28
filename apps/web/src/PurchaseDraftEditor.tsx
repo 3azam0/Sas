@@ -4,6 +4,7 @@ import {purchaseCommandSchema,type PurchaseDefinition,type PurchaseOrder,type Sn
 import {decimal} from '@saas/domain';
 import {HelpButton} from './ClientGuide';
 import CollapsibleSection from './CollapsibleSection';
+import type {PurchaseDraftSeed} from '../../../packages/contracts/inventory-operations';
 import Collection from './Collection';
 import {DocumentSummary,FormSizeButton} from './DocumentForm';
 import {FormInput,FormSelect,SearchableSelect,WorkflowForm,FormKeyboardHelp,focusControl} from './FormControls';
@@ -16,10 +17,10 @@ const fresh=():ReceivingLine=>({lineId:crypto.randomUUID(),itemId:'',selection:'
 type EntryField='item'|'quantity'|'cost'|'unit';
 
 /** The receiving entry/list pattern captures only the existing purchase.save command. */
-export default function PurchaseDraftEditor({snapshot,location,initial,busy,expired,error,save,close}:{snapshot:Snapshot;location:string;initial?:PurchaseOrder;busy:boolean;expired:boolean;error:string;save:(document:PurchaseDefinition)=>Promise<void>;close:()=>void}){
+export default function PurchaseDraftEditor({snapshot,location,initial,seed,busy,expired,error,save,close}:{snapshot:Snapshot;location:string;initial?:PurchaseOrder;seed?:PurchaseDraftSeed;busy:boolean;expired:boolean;error:string;save:(document:PurchaseDefinition)=>Promise<void>;close:()=>void}){
  const dialog=useRef<HTMLDialogElement>(null),titleId=useId(),orderId=useRef(initial?.orderId??crypto.randomUUID()),locked=useRef(false);
- const [expanded,setExpanded]=useState(false),[supplier,setSupplier]=useState(initial?.document.supplierId??snapshot.suppliers?.find(s=>s.active)?.id??''),[businessDate,setDate]=useState(initial?.document.businessDate??today()),[reference,setReference]=useState(initial?.document.reference??'');
- const [lines,setLines]=useState<ReceivingLine[]>(()=>initial?.document.lines.map(line=>({lineId:line.lineId,itemId:line.itemId,selection:line.purchaseUnitId??'',factor:line.factor,enteredQuantity:line.enteredQuantity,unitCost:line.unitCost}))??[]);
+ const [expanded,setExpanded]=useState(false),[supplier,setSupplier]=useState(initial?.document.supplierId??snapshot.suppliers?.find(s=>s.active)?.id??''),[businessDate,setDate]=useState(initial?.document.businessDate??today()),[reference,setReference]=useState(initial?.document.reference??seed?.reference??'');
+ const [lines,setLines]=useState<ReceivingLine[]>(()=>initial?.document.lines.map(line=>({lineId:line.lineId,itemId:line.itemId,selection:line.purchaseUnitId??'',factor:line.factor,enteredQuantity:line.enteredQuantity,unitCost:line.unitCost}))??seed?.lines.map(line=>({lineId:crypto.randomUUID(),itemId:line.itemId,selection:'',factor:'1',enteredQuantity:line.quantity,unitCost:line.unitCost}))??[]);
  const [entry,setEntry]=useState(fresh),[editingId,setEditingId]=useState<string|null>(null),[entryVersion,setEntryVersion]=useState(0),[listVersion,setListVersion]=useState(0),[notice,setNotice]=useState(''),[localError,setLocalError]=useState(''),[lastChanged,setLastChanged]=useState('');
  const [createdItems,setCreatedItems]=useState<Snapshot['items']>([]),[newMaterial,setNewMaterial]=useState<{name:string}|null>(null),afterCreate=useRef<EntryField|null>(null);
  const catalog=[...snapshot.items,...createdItems.filter(item=>!snapshot.items.some(current=>current.id===item.id))],items=catalog.filter(item=>item.active!==false&&item.unitId),blocked=busy||!!newMaterial;

@@ -1,4 +1,6 @@
+import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
 import {addIncomingStock} from './incoming';
+import {sourceLot} from './stock-lots';
 import {createHash} from 'node:crypto';
 import {kitchenIssueSchema,BusinessError,type Access,type CommandResult,type PostedKitchenIssue} from '@saas/contracts';
 import {decimal} from '@saas/domain';
@@ -7,6 +9,7 @@ import {assertGeneration,planIssue,applyIssue,costingMethod} from './valuation';
 import {reconcileStock} from './counts';
 
 export async function postKitchenIssue(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
  const parsed=kitchenIssueSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_KITCHEN_ISSUE','راجع اسم المطبخ والمواد والكميات (٢٠٠ مادة كحد أقصى).',400);
  const d=parsed.data,org=d.organizationId;
  if(org!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
@@ -52,7 +55,7 @@ export async function postKitchenIssue(db:Database,access:Access,input:unknown):
    if(destinationId)for(const [index,p] of plan.allocations.entries()){
     const hex=createHash('sha256').update(JSON.stringify(['kitchen-incoming',d.operationId,l.lineId,index])).digest('hex'),incomingId=hex.slice(0,8)+'-'+hex.slice(8,12)+'-5'+hex.slice(13,16)+'-a'+hex.slice(17,20)+'-'+hex.slice(20,32);
     if(ids.includes(incomingId)||(await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND operation_id=$2 UNION ALL SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=$2',[org,incomingId])).rows.length)throw new BusinessError('PAYLOAD_CONFLICT','معرّف حركة التحويل مستخدم بالفعل.');
-    await addIncomingStock(tx,{organizationId:org,operationId:incomingId,locationId:destinationId,itemId:l.itemId,quantity:p.quantity,unitCost:plan.method==='fifo'?costs.get(p.layerId)!:decimal(p.amount).div(p.quantity).toFixed(6),amount:p.amount,type:'kitchen.transfer.in',reason:d.reference?kitchen+' · '+d.reference:kitchen,businessDate:d.businessDate});
+    await addIncomingStock(tx,{organizationId:org,operationId:incomingId,locationId:destinationId,itemId:l.itemId,quantity:p.quantity,unitCost:plan.method==='fifo'?costs.get(p.layerId)!:decimal(p.amount).div(p.quantity).toFixed(6),amount:p.amount,type:'kitchen.transfer.in',reason:d.reference?kitchen+' · '+d.reference:kitchen,businessDate:d.businessDate,lot:await sourceLot(tx,org,p.layerId)});
     await tx.query('UPDATE stock_entries SET kitchen_issue_id=$3 WHERE organization_id=$1 AND operation_id=$2',[org,incomingId,d.operationId]);
    }
    await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[org,l.lineId,createHash('sha256').update('kitchen:'+d.operationId+':'+l.lineId).digest('hex'),JSON.stringify({operationId:l.lineId,outcome:'accepted',amount:plan.amount})]);

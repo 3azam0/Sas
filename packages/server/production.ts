@@ -1,3 +1,5 @@
+import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
+import {tagOutputLot} from './stock-lots';
 import type {Database} from './database';
 import {createHash,randomUUID} from 'node:crypto';
 import {productionSchema,BusinessError,type Access,type CommandResult,type PostedProduction,type Snapshot,type ProductionLineCost} from '@saas/contracts';
@@ -19,6 +21,7 @@ CREATE INDEX IF NOT EXISTS stock_production_lookup ON stock_entries(organization
 `;
 export async function productionSnapshot(tx:Pick<Database,'query'>,org:string){return {productions:(await tx.query<{result:PostedProduction}>('SELECT result FROM production_batches WHERE organization_id=$1 ORDER BY posted_at DESC',[org])).rows.map(r=>r.result)};}
 export async function postProduction(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
  const parsed=productionSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_PRODUCTION','راجع الكميات والناتج وأسباب الهالك أو فشل الدفعة.',400);const c=parsed.data,org=c.organizationId;
  if(org!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','الجلسة لا تسمح بالإنتاج لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');
@@ -40,6 +43,7 @@ export async function postProduction(db:Database,access:Access,input:unknown):Pr
   if(!failed){const entry=(await tx.query<{sequence:string}>('INSERT INTO stock_entries(organization_id,operation_id,location_id,item_id,quantity,amount,type,reason,business_date,production_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING sequence',[org,c.outputMovementId,c.outputLocationId,d.outputItemId,c.actualOutput,outputAmount,'production.output',c.reference,c.businessDate,c.operationId])).rows[0];
    const outputLayers=method==='fifo'?parts:[{quantity:c.actualOutput,unitCost:unitCost!}];
    for(const p of outputLayers)await tx.query('INSERT INTO cost_layers(organization_id,id,location_id,item_id,remaining,unit_cost,sequence,remaining_value) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[org,randomUUID(),c.outputLocationId,d.outputItemId,p.quantity,p.unitCost,entry.sequence,method==='moving_average'?outputAmount:null]);
+   await tagOutputLot(tx,org,c.outputMovementId,c.outputLot);
    await tx.query('INSERT INTO stock_balances VALUES($1,$2,$3,$4,$5) ON CONFLICT(organization_id,location_id,item_id) DO UPDATE SET quantity=stock_balances.quantity+EXCLUDED.quantity,value=stock_balances.value+EXCLUDED.value',[org,c.outputLocationId,d.outputItemId,c.actualOutput,outputAmount]);await rebalanceAverage(tx,org,c.outputLocationId,d.outputItemId!);
   }
   await check();

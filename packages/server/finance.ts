@@ -1,3 +1,4 @@
+import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
 import {createHash} from 'node:crypto';
 import {BusinessError,financeCommandSchema,type Access,type CommandResult,type FinanceCommand,type FinanceRecord,type SalesLine} from '@saas/contracts';
 import {decimal} from '@saas/domain';
@@ -20,6 +21,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS finance_expense_reversal ON finance_entries(or
 `;
 export async function financeSnapshot(tx:Pick<Database,'query'>,org:string){return {financeRecords:(await tx.query<{command:FinanceCommand;amount:string;actor:string;postedAt:string}>('SELECT payload AS command,amount::text,actor,posted_at::text AS "postedAt" FROM finance_entries WHERE organization_id=$1 ORDER BY posted_at DESC,operation_id',[org])).rows};}
 export async function postFinance(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
  const parsed=financeCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_FINANCE','راجع التاريخ والمبلغ والمرجع وسبب التصحيح.',400);
  const c=parsed.data,org=c.organizationId,digest=createHash('sha256').update(JSON.stringify(c)).digest('hex');
  if(org!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','الجلسة لا تسمح بعمليات هذه المؤسسة.',403);

@@ -1,3 +1,4 @@
+import {assertInventoryWrite,assertInventoryManager,assertInventoryDateOpen} from './inventory-permissions';
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import type {Database} from './database';
 import {createHash} from 'node:crypto';
@@ -35,7 +36,8 @@ export async function countSnapshot(tx:Pick<Database,'query'>,org:string){
 }
 
 export async function postCount(db:Database,access:Access,input:unknown):Promise<CommandResult>{
- const parsed=countCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من مستند الجرد.',400);const c=parsed.data;
+ assertInventoryWrite(access);
+ const parsed=countCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من مستند الجرد.',400);const c=parsed.data;if(c.type==='count.finalize')assertInventoryManager(access);
  if(c.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');
  return db.transaction(async tx=>{
@@ -48,7 +50,7 @@ export async function postCount(db:Database,access:Access,input:unknown):Promise
   if((current?.revision??0)!==c.expectedRevision)throw new BusinessError('STALE_REVISION','تغير مستند الجرد. زامن وراجع الإصدار.');
   if(current&&current.state!=='draft')throw new BusinessError('COUNT_LOCKED','الجرد معتمد أو ملغى؛ لا يمكن تعديله.');
   const revision=c.expectedRevision+1;let amount:string|undefined;
-  if(c.type==='count.save'){
+  if(c.type==='count.save'){await assertInventoryDateOpen(tx,c.organizationId,c.locationId,c.businessDate);
    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());if(c.businessDate>today||Date.parse(c.cutoffAt)>Date.now()+300000)throw new BusinessError('FUTURE_DATE','تاريخ أو وقت الجرد في المستقبل.');
    if(current&&current.payload.entryMode!==c.entryMode)throw new BusinessError('BASELINE_MISMATCH','نوع التسوية ثابت؛ استخدم مستنداً جديداً.');
    if(c.entryMode==='balance_edit'&&!(await tx.query('SELECT 1 FROM items WHERE organization_id=$1 AND id=$2 AND active',[c.organizationId,c.lines[0].itemId])).rows.length)throw new BusinessError('INVALID_REFERENCE','مادة تعديل الرصيد غير نشطة.');
@@ -58,7 +60,7 @@ export async function postCount(db:Database,access:Access,input:unknown):Promise
    for(const line of c.lines)if(!(await tx.query('SELECT 1 FROM items WHERE organization_id=$1 AND id=$2 AND unit_id=$3',[c.organizationId,line.itemId,line.unitId])).rows.length)throw new BusinessError('INVALID_REFERENCE','المادة أو وحدة الجرد خارج نطاق المؤسسة.');
    await tx.query('INSERT INTO stock_counts(organization_id,count_id,location_id,revision,state,payload) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(organization_id,count_id) DO UPDATE SET revision=EXCLUDED.revision,payload=EXCLUDED.payload',[c.organizationId,c.countId,c.locationId,revision,'draft',JSON.stringify(c)]);
   }else{
-   if(!current)throw new BusinessError('INVALID_REFERENCE','مسودة الجرد لم تقبل بعد.');const d=current.payload;
+   if(!current)throw new BusinessError('INVALID_REFERENCE','مسودة الجرد لم تقبل بعد.');const d=current.payload;if(c.type==='count.finalize')await assertInventoryDateOpen(tx,c.organizationId,d.locationId,d.businessDate);
    if(c.type==='count.cancel')await tx.query("UPDATE stock_counts SET revision=$3,state='cancelled' WHERE organization_id=$1 AND count_id=$2",[c.organizationId,c.countId,revision]);
    else{
     if(!(await tx.query('SELECT 1 FROM locations WHERE organization_id=$1 AND id=$2 AND active',[c.organizationId,d.locationId])).rows.length)throw new BusinessError('INVALID_REFERENCE','موقع الجرد غير نشط.');

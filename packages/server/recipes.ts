@@ -1,3 +1,4 @@
+import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
 import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {recipeCommandSchema,BusinessError,type Access,type CommandResult,type Recipe,type RecipeVersion,type Item,type Unit,type ReceiptPrice} from '@saas/contracts';
@@ -19,6 +20,7 @@ export async function recipeSnapshot(tx:Tx,org:string){
  return {recipes,recipeVersions,receiptPrices};
 }
 export async function postRecipe(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
  const parsed=recipeCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_RECIPE','راجع تعريف الوصفة والمكونات والكميات.',400);const c=parsed.data,org=c.organizationId;
  if(org!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','الجلسة لا تسمح بتعديل هذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');

@@ -11,6 +11,7 @@ export async function savePreparationPlan(input:PreparationPlan,expectedRevision
  const plan=preparationPlanSchema.parse(input);
  return local.transaction('rw',[local.snapshots,local.preferences],async()=>{
   const snapshot=await local.snapshots.get(plan.organizationId);
+  if(snapshot?.access.role==='viewer')throw Error('الحساب للعرض فقط.');
   if(!snapshot||!Number.isFinite(Date.parse(snapshot.access.expiresAt))||Date.parse(snapshot.access.expiresAt)<=Date.now())throw Error('جدد الجلسة لحفظ الخطة؛ مسودتك الحالية ما زالت مفتوحة.');
   validatePreparationPlan(snapshot,plan);
   const key=prefix(plan.organizationId,plan.generation)+plan.id,old=await local.preferences.get(key),previous=old?preparationPlanSchema.parse(JSON.parse(old.value)):undefined;

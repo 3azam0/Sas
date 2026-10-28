@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import {stockLotSchema,type LotMetadata,type InventoryRole,type InventoryOperationsSnapshot} from './inventory-operations';
 import type {KitchenTicket} from './kitchen-display';
 import type {FinanceSnapshot} from './finance';
 export * from './finance';
@@ -11,7 +12,7 @@ export const commandSchema = z.object({
   type: z.enum(['receipt.post','waste.post']), itemId: z.string().min(1).max(80), quantity: quantitySchema,
   unitCost: z.string().regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/).optional(),
   reason: z.string().trim().min(2).max(200), businessDate: z.iso.date(), capturedAt: z.iso.datetime(), schemaVersion:z.literal(1),
-  supplierId:z.string().min(1).max(80).optional(),purchaseUnitId:z.uuid().optional(),enteredQuantity:quantitySchema.optional()
+  lot:stockLotSchema.optional(),supplierId:z.string().min(1).max(80).optional(),purchaseUnitId:z.uuid().optional(),enteredQuantity:quantitySchema.optional()
 }).superRefine((v,ctx)=>{
   if(v.type === 'receipt.post' && !v.unitCost) ctx.addIssue({code:'custom',message:'تكلفة الوحدة مطلوبة',path:['unitCost']});
   if(!!v.purchaseUnitId!==!!v.enteredQuantity || (v.type==='waste.post'&&(v.purchaseUnitId||v.supplierId)))ctx.addIssue({code:'custom',message:'بيانات وحدة الشراء أو المورد غير صالحة'});
@@ -28,7 +29,7 @@ export const organizationProfileSchema=z.object({
 });
 export type OrganizationProfile=z.infer<typeof organizationProfileSchema>;
 export const organizationIdSchema=z.string().regex(/^[A-Za-z0-9_-]{1,80}$/);
-export type Access = { organizationId: DemoProfile; userId: string; deviceId: string; expiresAt: string };
+export type Access = { organizationId: DemoProfile; userId: string; deviceId: string; expiresAt: string;role?:InventoryRole };
 export type PurchaseUnit={id:string;name:string;factor:string};
 export type Unit={id:string;name:string;revision:number};
 export type Kitchen={id:string;name:string;active:boolean;revision:number;locationId?:string;parentLocationId?:string};
@@ -37,9 +38,9 @@ export type Supplier={id:string;name:string;phone:string;email:string;address:st
 export type Item = { id: string; name: string; sku: string; category: string; unit: string; minimum: string;unitId?:string;purchaseUnits?:PurchaseUnit[];active?:boolean;revision?:number };
 export type Location = {id:string;name:string;kind:string;active?:boolean;revision?:number;kitchenId?:string;parentLocationId?:string};
 export type Balance = {locationId:string;itemId:string;quantity:string;value:string;average:string|null};
-export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;remainingValue?:string;sequence:number};
+export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;remainingValue?:string;sequence:number;lot?:LotMetadata|null};
 export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;receiptDocumentId?:string|null;referenceAmount?:string|null;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null;productionId?:string|null;countId?:string|null;countLineId?:string|null;kitchenIssueId?:string|null;butcheryId?:string|null};
-export type Snapshot = FinanceSnapshot & {butcheryCatalog?:import('./butchery').ButcheryCatalog[];butcheryDocuments?:import('./butchery').PostedButchery[];kitchenTickets?:KitchenTicket[];capabilities?:{counterPOS:1;kitchenDisplay?:1};generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;organizationProfile?:OrganizationProfile;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];kitchens?:Kitchen[];pointsOfSale?:PointOfSale[];suppliers?:Supplier[];menuItems?:MenuItem[];salesImports?:ImportedSales[];productions?:PostedProduction[];recipes?:Recipe[];recipeVersions?:RecipeVersion[];receiptPrices?:ReceiptPrice[];receipts?:PostedReceiptDocument[];kitchenIssues?:PostedKitchenIssue[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
+export type Snapshot = FinanceSnapshot & {inventoryOperations?:InventoryOperationsSnapshot;butcheryCatalog?:import('./butchery').ButcheryCatalog[];butcheryDocuments?:import('./butchery').PostedButchery[];kitchenTickets?:KitchenTicket[];capabilities?:{counterPOS:1;kitchenDisplay?:1;stockLots?:1;inventoryControls?:1};generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;organizationProfile?:OrganizationProfile;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];kitchens?:Kitchen[];pointsOfSale?:PointOfSale[];suppliers?:Supplier[];menuItems?:MenuItem[];salesImports?:ImportedSales[];productions?:PostedProduction[];recipes?:Recipe[];recipeVersions?:RecipeVersion[];receiptPrices?:ReceiptPrice[];receipts?:PostedReceiptDocument[];kitchenIssues?:PostedKitchenIssue[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
 export type CommandResult = {operationId:string;outcome:'accepted'|'needs_review';code?:string;message?:string;amount?:string};
 export class BusinessError extends Error { constructor(public code:string, message:string,public status=409){super(message);} }
 export const messages: Record<string,string> = {INSUFFICIENT_STOCK:'الرصيد المتاح لا يكفي. راجع العملية قبل إعادة إرسالها.',FORBIDDEN:'ليس لديك صلاحية لهذه المؤسسة أو الموقع.',PAYLOAD_CONFLICT:'معرّف العملية مستخدم لبيانات مختلفة.',INVALID_COMMAND:'تحقق من بيانات العملية.',AUTH_REQUIRED:'انتهت الجلسة. اتصل بالإنترنت وسجل الدخول مرة أخرى.'};
@@ -62,7 +63,7 @@ export type SetupCommand=z.infer<typeof setupCommandSchema>;
 export const openingSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),locationId:recordId,type:z.literal('opening.post'),
  businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),
- lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative})).min(1).max(200),
+ lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative,lot:stockLotSchema.optional()})).min(1).max(200),
  source:z.object({fileName:z.string().max(200),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).optional()
 }).superRefine((doc,ctx)=>{
  if(new Set(doc.lines.map(l=>l.itemId)).size!==doc.lines.length||new Set([doc.operationId,...doc.lines.map(l=>l.lineId)]).size!==doc.lines.length+1)ctx.addIssue({code:'custom',message:'المادة ومعرّفات السطور يجب ألا تتكرر'});
@@ -73,7 +74,7 @@ export type PostedOpening={document:OpeningDocument;amount:string;postedAt:strin
 export const receiptDocumentSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),locationId:recordId,type:z.literal('receipt.document'),
  businessDate:z.iso.date(),reason:z.string().trim().max(200).refine(value=>!value||value.length>=2,'أدخل حرفين على الأقل أو اترك المرجع فارغاً').default(''),capturedAt:z.iso.datetime(),schemaVersion:z.union([z.literal(1),z.literal(2)]),currency:z.literal('EGP'),supplierId:recordId.optional(),
- lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative,purchaseUnitId:z.uuid().optional(),receivingUnit:z.object({unitId:recordId,name:recordName,baseName:recordName,factor:quantitySchema}).optional(),enteredQuantity:quantitySchema.optional(),headCount:z.number().int().min(1).max(100000).optional()})).min(1).max(200)
+ lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative,purchaseUnitId:z.uuid().optional(),receivingUnit:z.object({unitId:recordId,name:recordName,baseName:recordName,factor:quantitySchema}).optional(),enteredQuantity:quantitySchema.optional(),headCount:z.number().int().min(1).max(100000).optional(),lot:stockLotSchema.optional()})).min(1).max(200)
 }).superRefine((doc,ctx)=>{
  if(new Set(doc.lines.map(l=>l.itemId)).size!==doc.lines.length||new Set([doc.operationId,...doc.lines.map(l=>l.lineId)]).size!==doc.lines.length+1)ctx.addIssue({code:'custom',message:'المادة ومعرّفات السطور يجب ألا تتكرر'});
  if(doc.lines.some(l=>(!!l.purchaseUnitId||!!l.receivingUnit)!==!!l.enteredQuantity||!!l.purchaseUnitId&&!!l.receivingUnit))ctx.addIssue({code:'custom',message:'بيانات وحدة الاستلام غير مكتملة أو متعارضة'});
@@ -96,7 +97,7 @@ export const purchaseCommandSchema=z.discriminatedUnion('type',[
  z.object({...purchaseEnvelope,type:z.literal('purchase.save'),locationId:recordId,supplierId:recordId,businessDate:z.iso.date(),reference:z.string().trim().min(2).max(200),currency:z.literal('EGP'),lines:z.array(purchaseLineSchema).min(1).max(200)}),
  z.object({...purchaseEnvelope,type:z.literal('purchase.submit')}),
  z.object({...purchaseEnvelope,type:z.literal('purchase.cancel'),reason:z.string().trim().min(2).max(200)}),
- z.object({...purchaseEnvelope,type:z.literal('purchase.receive'),replacesReceiptId:z.uuid().optional(),businessDate:z.iso.date(),reference:z.string().trim().min(2).max(200),lines:z.array(z.object({movementId:z.uuid(),orderLineId:z.uuid(),enteredQuantity:quantitySchema})).min(1).max(200)}),
+ z.object({...purchaseEnvelope,type:z.literal('purchase.receive'),replacesReceiptId:z.uuid().optional(),businessDate:z.iso.date(),reference:z.string().trim().min(2).max(200),lines:z.array(z.object({movementId:z.uuid(),orderLineId:z.uuid(),enteredQuantity:quantitySchema,lot:stockLotSchema.optional()})).min(1).max(200)}),
  z.object({...purchaseEnvelope,type:z.literal('purchase.reverse'),receiptId:z.uuid(),businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200)}),
  z.object({...purchaseEnvelope,type:z.literal('purchase.return'),receiptId:z.uuid(),supplierId:recordId,locationId:recordId,businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),creditNote:z.string().trim().max(200).optional(),lines:z.array(z.object({movementId:z.uuid(),sourceMovementId:z.uuid(),quantity:quantitySchema})).min(1).max(200)})
 ]).superRefine((c,ctx)=>{
@@ -172,7 +173,7 @@ export type ReceiptPrice={locationId:string;itemId:string;unitCost:string;busine
 export const productionSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),type:z.literal('production.post'),
  versionId:z.uuid(),inputLocationId:recordId,outputLocationId:recordId,outputMovementId:z.uuid(),
- plannedOutput:quantitySchema,actualOutput:nonNegative,businessDate:z.iso.date(),reference:recordName,
+ plannedOutput:quantitySchema,actualOutput:nonNegative,outputLot:stockLotSchema.optional(),businessDate:z.iso.date(),reference:recordName,
  wasteReason:z.string().trim().max(200).optional(),failureReason:z.string().trim().max(200).optional(),
  capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),
  lines:z.array(z.object({movementId:z.uuid(),itemId:recordId,unitId:recordId,quantity:nonNegative,abnormalWaste:nonNegative})).min(1).max(200)

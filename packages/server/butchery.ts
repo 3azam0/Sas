@@ -1,3 +1,5 @@
+import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
+import {tagOutputLot} from './stock-lots';
 import type {Database} from './database';
 import {createHash,randomUUID} from 'node:crypto';
 import {BusinessError,type Access,type CommandResult,type Item} from '@saas/contracts';
@@ -33,6 +35,7 @@ export async function butcherySnapshot(tx:Pick<Database,'query'>,org:string){
  return {butcheryCatalog:catalog.rows,butcheryDocuments:docs.rows.map(d=>d.result)};
 }
 export async function postButchery(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
  const parsed=butcheryCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_BUTCHERY','راجع الأصناف والأوزان ونسب التكلفة.',400);const c=parsed.data,org=c.organizationId;
  if(org!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','الجلسة لا تسمح بالجزارة لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');
@@ -89,6 +92,7 @@ export async function postButchery(db:Database,access:Access,input:unknown):Prom
     const movement=randomUUID(),entry=(await tx.query<{sequence:string}>('INSERT INTO stock_entries(organization_id,operation_id,location_id,item_id,quantity,amount,type,reason,business_date,butchery_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING sequence',[org,movement,c.locationId,o.itemId,o.quantity,o.amount,'butchery.output',c.reason,c.businessDate,c.operationId])).rows[0];
     const parts=method==='fifo'?exactOutputLayers(o.quantity,o.amount):[{quantity:o.quantity,unitCost:o.unitCost}];
     for(const part of parts)await tx.query('INSERT INTO cost_layers(organization_id,id,location_id,item_id,remaining,unit_cost,sequence,remaining_value) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[org,randomUUID(),c.locationId,o.itemId,part.quantity,part.unitCost,entry.sequence,method==='moving_average'?o.amount:null]);
+    await tagOutputLot(tx,org,movement,c.outputs.find(output=>output.itemId===o.itemId)?.lot);
     await tx.query('INSERT INTO stock_balances VALUES($1,$2,$3,$4,$5) ON CONFLICT(organization_id,location_id,item_id) DO UPDATE SET quantity=stock_balances.quantity+EXCLUDED.quantity,value=stock_balances.value+EXCLUDED.value',[org,c.locationId,o.itemId,o.quantity,o.amount]);await rebalanceAverage(tx,org,c.locationId,o.itemId);
    }
    await reconcile();

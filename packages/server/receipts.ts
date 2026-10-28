@@ -1,3 +1,4 @@
+import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
 import {assertGeneration} from './valuation';
 import type {Database} from './database';
 import {createHash} from 'node:crypto';
@@ -7,6 +8,7 @@ import {validateReceiptLineConversion,validateReceiptLivestock} from '../domain/
 import {addIncomingStock} from './incoming';
 
 export async function postReceiptDocument(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
  const parsed=receiptDocumentSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_RECEIPT','تحقق من سطور الاستلام (٢٠٠ سطر كحد أقصى).',400);
  const doc=parsed.data;
  if(doc.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
@@ -41,7 +43,7 @@ export async function postReceiptDocument(db:Database,access:Access,input:unknow
   const amount=total.toFixed(12);
   await tx.query('INSERT INTO receipt_documents(organization_id,operation_id,payload,amount) VALUES($1,$2,$3,$4)',[doc.organizationId,doc.operationId,JSON.stringify(doc),amount]);
   for(const line of doc.lines){
-   const lineAmount=await addIncomingStock(tx,{...doc,reason:doc.reason||'استلام مواد',operationId:line.lineId,itemId:line.itemId,quantity:line.quantity,unitCost:line.unitCost,type:'receipt.post',receiptDocumentId:doc.operationId});
+   const lineAmount=await addIncomingStock(tx,{...doc,reason:doc.reason||'استلام مواد',operationId:line.lineId,itemId:line.itemId,quantity:line.quantity,unitCost:line.unitCost,lot:line.lot,type:'receipt.post',receiptDocumentId:doc.operationId});
    await tx.query('UPDATE stock_entries SET supplier_id=$3,purchase_unit_id=$4,entered_quantity=$5 WHERE organization_id=$1 AND operation_id=$2',[doc.organizationId,line.lineId,doc.supplierId??null,line.purchaseUnitId??null,line.enteredQuantity??null]);
    const lineHash=createHash('sha256').update(JSON.stringify({receiptDocumentId:doc.operationId,...line})).digest('hex');
    await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[doc.organizationId,line.lineId,lineHash,JSON.stringify({operationId:line.lineId,outcome:'accepted',amount:lineAmount})]);

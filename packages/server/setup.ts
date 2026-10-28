@@ -1,9 +1,11 @@
+import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {setupCommandSchema,BusinessError,type Access,type CommandResult,type PurchaseUnit} from '@saas/contracts';
 
 export async function postSetupCommand(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+ assertInventoryWrite(access);
   const parsed=setupCommandSchema.safeParse(input);
   if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من بيانات الإعداد.',400);
   const c=parsed.data,org=c.organizationId;

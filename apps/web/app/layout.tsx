@@ -21,3 +21,4 @@ import './filters.css';
 import './counter-pos.css';
 import './workspace-navigation.css';
 import './preparation.css';
+import './inventory-operations.css';

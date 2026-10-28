@@ -1,6 +1,7 @@
 'use client';
 import {HelpButton} from './ClientGuide';
 import PrintPreview,{PrintHeader,PrintTable} from './PrintPreview';
+import StockLotFields from './StockLotFields';
 import CollapsibleSection from './CollapsibleSection';
 import {DocumentFields,DocumentSummary,FormSizeButton} from './DocumentForm';
 import {focusControl,SearchableSelect,KeyboardForm,FormKeyboardHelp} from './FormControls';
@@ -48,7 +49,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
  const [lines,setLines]=useState<EditorLine[]>(()=>initial?initial.document.lines.map(l=>({
   lineId:crypto.randomUUID(),itemId:l.itemId,
   selection:l.purchaseUnitId??(l.receivingUnit&&l.receivingUnit.unitId!==l.unitId?'unit:'+l.receivingUnit.unitId:''),
-  factor:l.receivingUnit?.factor??'',enteredQuantity:l.enteredQuantity??l.quantity,unitCost:l.unitCost,...(l.headCount!==undefined?{headCount:String(l.headCount)}:{})
+  lot:l.lot,factor:l.receivingUnit?.factor??'',enteredQuantity:l.enteredQuantity??l.quantity,unitCost:l.unitCost,...(l.headCount!==undefined?{headCount:String(l.headCount)}:{})
  })):[]);
  const [entry,setEntry]=useState<EditorLine>(()=>fresh(itemId)),[editingId,setEditingId]=useState<string|null>(null);
  const [entrySubmitted,setEntrySubmitted]=useState(false),[entryVersion,setEntryVersion]=useState(0),[listVersion,setListVersion]=useState(0),[notice,setNotice]=useState(''),[lastChanged,setLastChanged]=useState('');
@@ -153,7 +154,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
    const receiptLines=lines.map((l,index)=>{
     const choice=selected(l),quantity=base(l);
     if(!quantity)throw new Error('راجع كمية السطر '+(index+1)+' ومعامل التحويل.');
-    return {lineId:l.lineId,itemId:l.itemId,unitId:choice.item?.unitId,quantity:quantity.toString(),unitCost:l.unitCost,purchaseUnitId:choice.pack?.id,
+    return {lineId:l.lineId,itemId:l.itemId,unitId:choice.item?.unitId,quantity:quantity.toString(),unitCost:l.unitCost,lot:l.lot,purchaseUnitId:choice.pack?.id,
      receivingUnit:choice.unit?{unitId:choice.unit.id,name:choice.unit.name,baseName:choice.item?.unit,factor:choice.factor}:undefined,
      enteredQuantity:l.selection?l.enteredQuantity:undefined,headCount:isLiveSheep(l.itemId)?Number(l.headCount):undefined};
    });
@@ -210,7 +211,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
       const c=selected(l),q=base(l),amount=q&&valid(l.unitCost)?q.mul(l.unitCost):null;
       return <li key={l.lineId}><article data-receiving-line={l.lineId} className={'kitchen-receipt-line'+(lastChanged===l.lineId?' kitchen-receipt-latest':'')} aria-label={'مادة الاستلام: '+c.item?.name}>
        <div className="kitchen-receipt-item"><strong>{c.item?.name??l.itemId}</strong><small>{c.item?.sku} · {c.item?.category}</small><span>الرصيد بعد القبول، تقديري: {q?number(decimal(snapshot.balances.find(b=>b.locationId===location&&b.itemId===l.itemId)?.quantity??'0').add(q).toString()):'—'} {c.item?.unit}</span></div>
-       <dl className="kitchen-receipt-details"><div><dt>{l.headCount!==undefined?'الوزن الحي المستلم':'الكمية المستلمة'}</dt><dd className="kitchen-receipt-quantity">{number(l.enteredQuantity)} <small>{c.name}</small></dd>{l.headCount!==undefined&&<small className="field-hint">{number(l.headCount)} رأس · متوسط الرأس {q?number(q.div(l.headCount).toString()):'—'} كجم</small>}{l.selection&&<small className="field-hint">{q?number(q.toString()):'—'} {c.item?.unit} للمخزون · ١ {c.name} = {number(c.factor)} {c.item?.unit}</small>}</div><div><dt>تكلفة وحدة المخزون</dt><dd>{number(l.unitCost)} ج.م / {c.item?.unit}</dd></div><div><dt>قيمة المادة</dt><dd>{amount?number(amount.toString()):'—'} ج.م</dd></div></dl>
+       <StockLotFields label={'تشغيلة '+(c.item?.name??l.itemId)} value={l.lot} disabled={busy||!snapshot.capabilities?.stockLots} onChange={lot=>setLines(old=>old.map(row=>row.lineId===l.lineId?{...row,lot}:row))}/><dl className="kitchen-receipt-details"><div><dt>{l.headCount!==undefined?'الوزن الحي المستلم':'الكمية المستلمة'}</dt><dd className="kitchen-receipt-quantity">{number(l.enteredQuantity)} <small>{c.name}</small></dd>{l.headCount!==undefined&&<small className="field-hint">{number(l.headCount)} رأس · متوسط الرأس {q?number(q.div(l.headCount).toString()):'—'} كجم</small>}{l.selection&&<small className="field-hint">{q?number(q.toString()):'—'} {c.item?.unit} للمخزون · ١ {c.name} = {number(c.factor)} {c.item?.unit}</small>}</div><div><dt>تكلفة وحدة المخزون</dt><dd>{number(l.unitCost)} ج.م / {c.item?.unit}</dd></div><div><dt>قيمة المادة</dt><dd>{amount?number(amount.toString()):'—'} ج.م</dd></div></dl>
        <div className="kitchen-receipt-actions"><button type="button" className="text-button" aria-label={'تعديل '+c.item?.name} onClick={()=>editLine(l)}>تعديل</button><button type="button" className="text-button kitchen-receipt-remove" aria-label={'حذف '+c.item?.name} onClick={()=>removeLine(l)}>حذف</button></div>
       </article></li>;
      })}</ol>}</Collection></div>

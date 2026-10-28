@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {stockLotSchema} from './inventory-operations';
 import {quantitySchema,organizationIdSchema} from './index';
 import type {CostingMethod} from './index';
 
@@ -10,7 +11,7 @@ export type MeatKind=z.infer<typeof meatKind>;
 export const butcheryCommandSchema=z.discriminatedUnion('type',[
  z.object({...base,type:z.literal('product.create'),itemId:z.uuid(),name:z.string().trim().min(2).max(100),unitId:recordId,meatKind}),
  z.object({...base,type:z.literal('product.classify'),itemId:recordId,meatKind}),
- z.object({...base,type:z.literal('butchery.process'),locationId:recordId,mode:z.enum(['beef','lamb']),itemId:recordId,quantity:quantitySchema,headCount:z.number().int().min(1).max(100000).optional(),carcassWeight:quantitySchema.optional(),slaughterLoss:nonnegative,cuttingLoss:nonnegative,processingCost:nonnegative,outputs:z.array(z.object({itemId:recordId,quantity:quantitySchema,costShare:nonnegative})).min(1).max(50)})
+ z.object({...base,type:z.literal('butchery.process'),locationId:recordId,mode:z.enum(['beef','lamb']),itemId:recordId,quantity:quantitySchema,headCount:z.number().int().min(1).max(100000).optional(),carcassWeight:quantitySchema.optional(),slaughterLoss:nonnegative,cuttingLoss:nonnegative,processingCost:nonnegative,outputs:z.array(z.object({itemId:recordId,quantity:quantitySchema,costShare:nonnegative,lot:stockLotSchema.optional()})).min(1).max(50)})
 ]);
 export type ButcheryCommand=z.infer<typeof butcheryCommandSchema>;
 export type ButcheryCatalog={itemId:string;meatKind:MeatKind;unitId:string};

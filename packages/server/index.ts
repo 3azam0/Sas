@@ -19,6 +19,7 @@ export async function seed(db:PGlite,method:CostingMethod='moving_average',fixtu
 }
 const globalDB=globalThis as typeof globalThis & {saasDatabase?:Promise<PGlite>};
 export function database() { return globalDB.saasDatabase ??= (async()=>{const db=await createDatabase(process.env.SAAS_DATA_DIR || resolve('.data'));await initializeDevelopmentBaseline(db);await seed(db,process.env.SAAS_INITIAL_COSTING_METHOD==='fifo'?'fifo':'moving_average',process.env.SAAS_SEED_FIXTURES==='1');return db;})(); }
+export {postInventoryControl} from './inventory-operations';
 export {postCommand,getSnapshot} from './services';
 export {postSetupCommand} from './setup';
 export {postOpening} from './opening';
