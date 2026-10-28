@@ -24,4 +24,13 @@ TypeScript, the production build/offline manifest, hosted build **06ecf041fa85e3
 
 ## Deployment
 
-Pending final artifact checks and activation. Apply the additive `inventory_operating_cycle` migration, deploy `fodo-api`, then activate the tested Cloudflare frontend. The previous live release is build `d7dfdf1d9c4d7d5a`, Worker99 (`bdc56445-e502-4847-a754-eb0ea77f3172`), deployment `b5430d8d-0f47-43ab-b8b8-76f932267a88`, API21. Verify this checkpoint before activation and record actual identifiers below.
+Applied the additive migration, deployed `fodo-api`, then activated the matching frontend. Verified previous deployment `b5430d8d-0f47-43ab-b8b8-76f932267a88` immediately before activation; no unrelated release was overwritten.
+
+- Live URL: https://fodo.am-agent2026.workers.dev/?release=06ecf041fa85e3df
+- Source implementation: `ab3781d49a4ee62d5566fa6ae25daff05a6943a9`, branch `chore/qibli-trial-stock`.
+- Migration: `20261028181354_inventory_operating_cycle.sql`. The migration was created with Supabase CLI, then renamed to the actual managed migration version after application. The first tool attempt expired; read-only verification confirmed no schema/history changes before the successful retry.
+- Supabase `fodo-api` **22** active, ID `bda0225d-b269-49d5-8848-da2722659700`, preserving manual Auth/active-membership/tenant checks and the prior verify_jwt=false setting.
+- Cloudflare Worker **100**, version ID `eae19ce0-7c71-47a4-bc36-8eebce725692`, build **06ecf041fa85e3df**.
+- Deployment `74c99bb4-8e00-4812-b692-6870ff9a652c`, verified **100%** traffic. Workers.dev enabled; preview URLs disabled. Runtime, public bindings and observability settings preserved.
+- Live health matches the expected build and JavaScript matches the prepared bytes. Anonymous bootstrap/new controls/butchery, invalid-origin and private-file protections pass. Desktop/mobile login has no page errors or horizontal overflow. Live checks do not post business transactions; authenticated workflows were verified in isolated local fixtures.
+- Live SQL confirms one active owner, forced tenant RLS on both new control tables, fixed trigger search paths, no control-event DELETE permission and no membership activation UPDATE permission for the API role. Security advisors show no new findings; the pre-existing [leaked-password-protection setting](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) remains disabled.
