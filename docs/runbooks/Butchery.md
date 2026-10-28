@@ -2,6 +2,8 @@
 
 Open **المطابخ والتحضير → الجزارة**. On a phone, open **القائمة → المطابخ والتحضير → الجزارة**.
 
+Use **تقرير المردود والتكلفة** for complete accepted history, weighted beef/sheep yields, historical allocated costs, exports and print preview. See [report definitions and limits](./Butchery-Report.md).
+
 1. Select the stock location used for the central kitchen/butchery. Create a separate location through inventory setup if your operation needs a separate processing balance. This release does not automatically rename or create locations in the live organization.
 2. Under **تعريف أصناف الجزارة**, create products with your own names, or classify existing kilogram items. The four kinds are purchased beef, live sheep, beef kitchen product, and lamb kitchen product. Classification does not change stock. Sync definitions before selecting them in processing batches.
 3. Receive purchased meat or live-weight sheep through normal receiving. For an item classified as live sheep, enter the head count and total live weight; cost remains per kilogram. Use existing transfers to send inputs into the selected butchery location and confirm receipt before processing. Receipt counts are descriptive; transfers and stock balances continue to track kilograms.

@@ -1,5 +1,7 @@
 # Compact report workspace — 28 October 2026
 
+**بطاقة صنف** reconstructs per-location opening/incoming/outgoing/closing quantities and full-ledger running balances. **مردود وتكلفة الجزارة** reports accepted beef/sheep batches, weighted yields and historical cost allocations, with a mode filter, CSV and printing. See [stock-card rules](./Stock-Card.md) and [butchery report rules](./Butchery-Report.md).
+
 Choose a report from the grouped **التقرير** selector. The dedicated workspace starts with details; **إظهار الرسوم** adds charts, and **عرض التفاصيل** returns focus to the table. **ملء الشاشة** expands the same report without resetting its filters, page or loaded data; Escape restores the previous size and opener focus. While expanded, the surrounding workspace is inert and keyboard focus stays in the report. The home analytics remain unchanged.
 
 The side menu now groups daily shortcuts, stock operations, kitchens/preparation, sales/reports, settings and help. Open **المبيعات والتقارير → التقارير والتحليلات**. Butchery, recipes and production are under **المطابخ والتحضير**. The active desktop group opens automatically; the mobile menu uses the same groups and still returns focus to its opener on dismissal. Collapsing the sidebar preserves the current report and filters.

@@ -43,6 +43,21 @@
 .bi-report .bi-table th,.bi-report .bi-table td{padding:10px 12px;font-size:12px}
 .bi-report .bi-empty{padding:16px}
 .bi-report-charts{display:grid;gap:12px;min-width:0}
+.bi-butchery-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
+.bi-butchery-summary>.panel{padding:14px;margin:0}
+.bi-butchery-summary h2,.bi-stock-balances h2{font-size:16px}
+.bi-operational-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}
+.bi-operational-metrics>div{border-top:1px solid var(--line);padding-top:9px;min-width:0}
+.bi-operational-metrics dt{font-size:11px;color:var(--muted)}
+.bi-operational-metrics dd{font-size:18px;font-weight:650;margin:4px 0;color:var(--navy);overflow-wrap:anywhere}
+.bi-operational-metrics small{display:block;font-size:10px;line-height:1.8;color:var(--muted)}
+.bi-stock-balances{padding:14px 16px}.bi-stock-balances table{width:100%;font-size:12px}
+.bi-stock-balances small{display:block;color:var(--muted)}
+.bi-products{min-width:190px}.bi-products>summary{cursor:pointer;color:var(--green);font-weight:600}
+.bi-products>div{padding:8px 0;border-bottom:1px solid var(--line)}
+.bi-report .bi-table:has(.bi-products)>table{min-width:1250px}
+.bi-report:has(.bi-stock-balances) .bi-table>table{min-width:1100px}
+@media(max-width:900px){.bi-butchery-summary{grid-template-columns:minmax(0,1fr)}}
 .bi-fullscreen{position:fixed;inset:0;z-index:90;overflow:auto;overscroll-behavior:contain;background:#f5f7fb;padding:18px;align-content:start;grid-auto-rows:max-content}
 .bi-fullscreen>.bi-report-controls{position:sticky;top:-18px;z-index:4;background:#f5f7fb;padding-block:10px;border-bottom:1px solid #dce4ee}
 .bi-fullscreen:focus{outline:none}

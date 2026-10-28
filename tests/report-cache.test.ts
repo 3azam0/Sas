@@ -30,3 +30,11 @@ it('preserves the cached report on authentication loss and rejects a mismatched 
  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({...report,organizationId:'client-b'})));await expect(fetchReport(snapshot,query)).rejects.toThrow('لا يطابق');expect(await cachedReport(query)).toEqual(report);
  await local.preferences.put({key:reportKey(query),value:'invalid JSON'});expect(await cachedReport(query)).toBeUndefined();
 });
+
+it('restores a selected stock card instead of a newer unselected placeholder',async()=>{
+ await acceptSnapshot(snapshot);
+ const selected={...query,kind:'stockCard' as const,itemId:'rice'},blank={...selected,itemId:''};
+ await cacheReport({...report,query:selected,stockCard:{itemId:'rice',name:'Rice',sku:'RICE',unit:'kg',balances:[]}},selected);
+ await cacheReport({...report,query:blank,generatedAt:'2026-10-12T13:00:00Z'},blank);
+ expect((await latestCachedReport(blank))?.query.itemId).toBe('rice');
+});

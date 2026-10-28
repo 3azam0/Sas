@@ -1,3 +1,7 @@
+# Stock card and butchery reports — 28 October 2026
+
+Read-only report kinds `stockCard` and `butchery` cover complete accepted history, location balances and weighted processing yield/cost. Preserve business-date running quantities before search/pagination, accepted historical costs, optional mode scope and legacy cache keys. CSV keeps exact decimals; printing shows the current detail page and all batch outputs. See [implementation and verification](./releases/operational-reports-2026-10-28.md).
+
 # Reports and arranged side menu — 28 October 2026
 
 Reports now use a compact grouped chooser, optional charts, direct details and accessible full-screen/restore. Kitchen supply exposes accepted document prices independently of actual stock cost, with explicit unpriced coverage in full-range totals, CSV and printing. The side menu separates daily shortcuts, stock operations, kitchens/preparation, sales/reports, settings and help. Preserve tenant/generation cache isolation, stock valuation, all routes, focus return and recovery23. See [release checks](./releases/reports-navigation-2026-10-28.md).
