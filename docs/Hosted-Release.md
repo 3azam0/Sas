@@ -1,3 +1,7 @@
+# Stock card and butchery reports — 28 October 2026
+
+**بطاقة صنف** and **مردود وتكلفة الجزارة** are live, with accepted-history balances, weighted beef/sheep yields, allocated costs, CSV, printing and offline cached cards. Build **08a3ce03557371e6**, Worker **98**, deployment **c9fdfbfa-64c1-458e-bedd-bebffdc3cb9e** at 100%; Supabase API **21**, recovery **23**, no migration. Production/hosted builds, 35 focused checks, three browser scenarios and live bundle/access/login checks pass. See [release evidence](./releases/operational-reports-2026-10-28.md).
+
 # Reports and arranged side menu — 28 October 2026
 
 The dedicated reports workspace is compact, uses grouped selection, optional charts, direct details and full-screen/restore. Kitchen supply includes document-only price/value/difference independently of stock cost, with unpriced coverage, CSV and print preview. The arranged desktop/mobile menu separates daily shortcuts, stock operations, kitchens/preparation, sales/reports, settings and help. Build **41a7e92847c13ef2**, Worker **97**, deployment **22bf2494-a271-4000-b5fb-34c4dca8e9e8** at 100%; Supabase API **20**, recovery **23**, no migration. Production/hosted builds, 53 focused checks, two browser scenarios and live bundle/access/login checks pass. Sheep receiving and butchery are preserved. See [release evidence](./releases/reports-navigation-2026-10-28.md).

@@ -21,3 +21,12 @@ See [stock card](../runbooks/Stock-Card.md) and [butchery reporting](../runbooks
 ## Release integrity
 
 This adds read-only report kinds to the existing authorized API. No database migration, stock writes, schema/Dexie upgrade or recovery-format change is needed. Kitchen document-only pricing, actual stock valuation, sheep receiving, butchery posting and recovery 23 remain intact. The backend must support the new kinds before activating the frontend. Previous live release: build **41a7e92847c13ef2**, Worker **97**, Supabase API **20**.
+
+## Live deployment
+
+- URL: https://fodo.am-agent2026.workers.dev/?release=08a3ce03557371e6
+- Source: **97bfab3ada12306540fe65dcc25a3ca5d6ce303a**, branch **chore/qibli-trial-stock**.
+- Cloudflare version **98**, version ID **d7765d88-bb4b-4107-a113-6ee2db0755f3**, deployment **c9fdfbfa-64c1-458e-bedd-bebffdc3cb9e**, at **100%**.
+- Supabase `sas` / `fodo-api` **21** is active. Existing manual authentication and tenant validation remain in place. Recovery **23**, no migration.
+- Live health identifies **08a3ce03557371e6**; published JavaScript matches the prepared bundle exactly. Anonymous reports on both Worker and direct backend return **401**. Origin/private-file checks pass. Desktop/mobile login has no page errors or horizontal overflow. Workers.dev remains enabled and preview URLs disabled.
+- Local fixture tests verify authenticated report content. Live verification creates no business transactions.
