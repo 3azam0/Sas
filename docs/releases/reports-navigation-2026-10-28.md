@@ -20,4 +20,11 @@ The side menu keeps overview/POS/kitchen display/inventory as daily shortcuts. S
 
 The branch includes the exact committed live sheep-receiving source **6a4d5e355bb3659a60c623b6b3c43ae6778b8947** before this release. It preserves butchery, sheep receiving, recovery 23 and existing authorization. No schema migration or IndexedDB upgrade is required. The backend needs the new read-only report fields before the frontend is activated; existing clients can consume its additive response fields.
 
-Deployment identifiers and live verification are recorded after activation.
+## Live deployment
+
+- URL: https://fodo.am-agent2026.workers.dev/?release=41a7e92847c13ef2
+- Cloudflare version **97**, version ID **76a49202-143e-4276-a7b3-3e41fb8b2f68**, deployment **22bf2494-a271-4000-b5fb-34c4dca8e9e8**, at **100%**.
+- Supabase `fodo-api` **20** is active in `sas` / `bkkxrptgwbrwredauopq`. The user explicitly approved this reports backend replacement after automatic review required approval beyond the earlier kitchen-price deployment.
+- Auth behavior and `verify_jwt=false` are preserved; the function continues its own user/membership/tenant checks. Recovery remains **23**; no migration or stock mutation occurred in deployment.
+- Live health reports build **41a7e92847c13ef2**. JavaScript SHA256 matches the prepared bundle. Anonymous/bootstrap access, valid-origin unauthenticated butchery, invalid-origin setup and private administrative paths retain their expected protections. Desktop and 390px login checks report no page errors or horizontal overflow.
+- Source commit: **405a24d848cf51a36e7bf57837250fb32d09967d** on `chore/qibli-trial-stock`. No GitHub push or PR was performed.

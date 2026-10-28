@@ -1,3 +1,7 @@
+# Reports and arranged side menu — 28 October 2026
+
+The dedicated reports workspace is compact, uses grouped selection, optional charts, direct details and full-screen/restore. Kitchen supply includes document-only price/value/difference independently of stock cost, with unpriced coverage, CSV and print preview. The arranged desktop/mobile menu separates daily shortcuts, stock operations, kitchens/preparation, sales/reports, settings and help. Build **41a7e92847c13ef2**, Worker **97**, deployment **22bf2494-a271-4000-b5fb-34c4dca8e9e8** at 100%; Supabase API **20**, recovery **23**, no migration. Production/hosted builds, 53 focused checks, two browser scenarios and live bundle/access/login checks pass. Sheep receiving and butchery are preserved. See [release evidence](./releases/reports-navigation-2026-10-28.md).
+
 # Compact purchase draft — 27 October 2026
 
 **مسودة أمر شراء** now uses the compact receiving layout, fixed header/actions, full-screen/restore control, entry row above horizontal material rows and quick material creation. Pack conversion, base-unit cost, stock-free drafts and receiving/reversal rules remain unchanged. The latest butchery release is preserved. Build **611d1909728d0ef5**, Worker **95**, deployment **2c1d739a-59d1-4401-a615-f2d3467792a4** at 100%; Supabase API **18** and recovery **22** unchanged. TypeScript/builds, 34 focused tests, five browser scenarios and live bundle/access/desktop/phone checks pass. See [release verification](./releases/purchase-draft-editor-2026-10-27.md).
