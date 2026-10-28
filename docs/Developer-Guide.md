@@ -1,3 +1,7 @@
+# Preparation planning — 28 October 2026
+
+`preparation` is a device-scoped planning workspace that reads accepted recipes and balances. Plans persist in namespaced preferences with generation/grant/revision checks, explicit JSON backup/import and CSV. Handoffs prefill existing kitchen supply/production editors with stable operation IDs linked before capture; stock posts only through those existing flows. Accepted production and linked corrections drive actuals; meal observations remain stock-free. No API/schema/Dexie/recovery-format changes. Preserve the device-only scope and separate outbox recovery; see [operations and limits](./runbooks/Preparation-Planning.md).
+
 # Stock card and butchery reports — 28 October 2026
 
 Read-only report kinds `stockCard` and `butchery` cover complete accepted history, location balances and weighted processing yield/cost. Preserve business-date running quantities before search/pagination, accepted historical costs, optional mode scope and legacy cache keys. CSV keeps exact decimals; printing shows the current detail page and all batch outputs. See [implementation and verification](./releases/operational-reports-2026-10-28.md).
