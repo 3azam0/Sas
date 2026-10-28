@@ -23,4 +23,13 @@ Plans are **device drafts**, not shared server documents. Namespaced IndexedDB p
 
 The reporting backend bundle is byte-for-byte identical to the previously deployed API21 (SHA256 `94e034933dc4681a50af01c11d0d1847f2673fe3878262fdd771126114540f76`). This is a frontend release: no Supabase function replacement, database migration, Dexie version change or recovery-format change. Existing reports, butchery, sheep receiving, document-only kitchen prices, authorization and stock posting remain intact.
 
-Live identifiers and final browser results are recorded after activation below.
+Source: **3588dcd23d8fbb33e9619b43727d660685209f2f**, branch **chore/qibli-trial-stock**. Live identifiers are recorded after activation below.
+
+## Live deployment
+
+- URL: https://fodo.am-agent2026.workers.dev/?release=d7dfdf1d9c4d7d5a
+- Build **d7dfdf1d9c4d7d5a**, Cloudflare version **99**, version ID **bdc56445-e502-4847-a754-eb0ea77f3172**.
+- Deployment **b5430d8d-0f47-43ab-b8b8-76f932267a88**, confirmed at **100%**.
+- Supabase `fodo-api` remains **21** active, recovery **23**; no backend deployment/migration.
+- Live health reports the expected build and published JavaScript matches the prepared bundle exactly. Anonymous access, invalid-origin and private-file protections pass. Desktop/mobile login renders without page errors or horizontal overflow. Workers.dev remains enabled and preview URLs disabled.
+- Authenticated content/workflow checks use isolated local fixtures. Live smoke checks create no business transactions.

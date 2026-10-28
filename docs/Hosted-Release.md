@@ -1,3 +1,7 @@
+# Preparation planning — 28 October 2026
+
+**خطة التحضير** is live from the home shortcut and kitchens/preparation menu: device plans, accepted recipe needs and stock shortages, reviewed kitchen supply, linked actual production, meal observations, JSON backup and CSV. Build **d7dfdf1d9c4d7d5a**, Worker **99**, deployment **b5430d8d-0f47-43ab-b8b8-76f932267a88** at 100%. API **21** and recovery **23** unchanged; no migration. 52 focused checks, three final browser scenarios, production/hosted builds and live asset/access/login checks pass. Plans are device-specific and do not reserve stock. See [release evidence](./releases/preparation-planning-2026-10-28.md).
+
 # Stock card and butchery reports — 28 October 2026
 
 **بطاقة صنف** and **مردود وتكلفة الجزارة** are live, with accepted-history balances, weighted beef/sheep yields, allocated costs, CSV, printing and offline cached cards. Build **08a3ce03557371e6**, Worker **98**, deployment **c9fdfbfa-64c1-458e-bedd-bebffdc3cb9e** at 100%; Supabase API **21**, recovery **23**, no migration. Production/hosted builds, 35 focused checks, three browser scenarios and live bundle/access/login checks pass. See [release evidence](./releases/operational-reports-2026-10-28.md).
