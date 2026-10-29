@@ -689,7 +689,7 @@ export async function saveRecipe(input:RecipeCommand){
   const owners=await identityOwners();if(recipeIdentities(c).some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)||snapshot.recipeVersions?.some(v=>v.versionId===id)))throw new Error('معرّف العملية أو الإصدار مستخدم بالفعل.');
   if(c.type==='recipe.publish'&&(!current||current.state!=='draft'))throw new Error('احفظ مسودة قبل نشر إصدار.');
   const d=c.type==='recipe.save'?c.definition:current!.definition;validateRecipe(projected,c.recipeId,d);
-  if(projected.recipes?.some(r=>r.recipeId!==c.recipeId&&r.definition.code===d.code))throw new Error('كود الوصفة مستخدم بالفعل.');
+  if(d.code&&projected.recipes?.some(r=>r.recipeId!==c.recipeId&&r.definition.code===d.code))throw new Error('كود الوصفة مستخدم بالفعل.');
   await local.recipes.add({id:c.operationId,scope:c.organizationId,command:c,status:'pending',createdAt:c.capturedAt,sourceDeviceId:snapshot.access.deviceId});
  });
 }

@@ -43,7 +43,7 @@ test('enhanced setup form keeps actions visible, explains invalid fields and res
  const add=page.getByRole('button',{name:'إضافة مادة',exact:true});
  await add.click();const dialog=page.getByRole('dialog');
  const suffix=Date.now().toString();const itemName=`مكون تجربة النموذج ${suffix}`;
- await page.getByLabel('كود المادة',{exact:true}).fill(`FORM-${suffix}`);
+ await expect(page.getByLabel('كود المادة',{exact:true})).not.toBeEditable();
  await page.getByLabel('فئة المادة',{exact:true}).fill('اختبار النماذج');
  await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();
  await expectErrorDescribed(page.getByLabel('اسم السجل',{exact:true}),page);
@@ -56,7 +56,7 @@ test('enhanced setup form keeps actions visible, explains invalid fields and res
  await expectPinnedDialogActions(page,dialog);
  await page.setViewportSize({width:390,height:844});
  await expectPinnedDialogActions(page,dialog);
- await page.screenshot({path:'../Fodo-Setup-Form-Mobile.png'});
+ await page.screenshot({path:'test-results/Fodo-Setup-Form-Mobile.png'});
  await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();await expect(dialog).not.toBeVisible();
  await expect(page.getByRole('row').filter({hasText:itemName})).toBeVisible();
  await add.click();await expect(dialog).toBeVisible();await page.keyboard.press('Escape');
@@ -89,7 +89,7 @@ test('enhanced receiving form validates inline and saves offline from a compact 
  await expectPinnedDialogActions(page,dialog);
  await page.getByRole('button',{name:'حذف السطر 2',exact:true}).click();
  await expect(dialog.locator('.document-summary strong')).toHaveText('٤٠ ج.م');
- await page.screenshot({path:'../Fodo-Receiving-Form-Mobile.png'});
+ await page.screenshot({path:'test-results/Fodo-Receiving-Form-Mobile.png'});
  await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();await expect(dialog).not.toBeVisible();
  await page.reload();await page.getByRole('button',{name:'مركز المزامنة',exact:false}).first().click();
  const receipt=page.locator('.opening-document').filter({hasText:reference});

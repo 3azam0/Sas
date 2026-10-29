@@ -3,7 +3,7 @@ import {selectCatalog} from './catalog-control';
 
 async function fillItem(dialog:Locator,name:string,sku:string){
  await dialog.getByLabel('اسم السجل',{exact:true}).fill(name);
- await dialog.getByLabel('كود المادة',{exact:true}).fill(sku);
+ await expect(dialog.getByLabel('كود المادة',{exact:true})).not.toBeEditable();
  await dialog.getByLabel('وحدة المخزون',{exact:true}).selectOption({label:'كجم'});
 }
 
@@ -15,11 +15,11 @@ test('inventory adds a material offline without creating stock and restores focu
  const add=page.getByRole('button',{name:'إضافة مادة',exact:true});await add.click();
  const editor=page.getByRole('dialog',{name:'إضافة مادة',exact:true});await fillItem(editor,name,sku);
  await editor.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();await expect(editor).not.toBeVisible();await expect(add).toBeFocused();
- await page.getByLabel('بحث المواد',{exact:true}).fill(sku);await expect(page.getByRole('table').getByText(name,{exact:true})).toBeVisible();
- await page.reload();await page.getByRole('button',{name:'المخزون',exact:true}).click();await page.getByLabel('بحث المواد',{exact:true}).fill(sku);await expect(page.getByRole('table').getByText(name,{exact:true})).toBeVisible();
+ await page.getByLabel('بحث المواد',{exact:true}).fill(name);await expect(page.getByRole('table').getByText(name,{exact:true})).toBeVisible();
+ await page.reload();await page.getByRole('button',{name:'المخزون',exact:true}).click();await page.getByLabel('بحث المواد',{exact:true}).fill(name);await expect(page.getByRole('table').getByText(name,{exact:true})).toBeVisible();
  await context.setOffline(false);await page.getByRole('button',{name:'مزامنة الآن',exact:true}).first().click();
- await expect.poll(async()=>{const s=await(await page.request.get('/api/v1/bootstrap')).json();return s.items.some((i:any)=>i.sku===sku);},{timeout:30000}).toBe(true);
- const s=await(await page.request.get('/api/v1/bootstrap')).json(),item=s.items.find((i:any)=>i.sku===sku);
+ await expect.poll(async()=>{const s=await(await page.request.get('/api/v1/bootstrap')).json();return s.items.some((i:any)=>i.name===name);},{timeout:30000}).toBe(true);
+ const s=await(await page.request.get('/api/v1/bootstrap')).json(),item=s.items.find((i:any)=>i.name===name);
  expect(s.balances.filter((b:any)=>b.itemId===item.id).every((b:any)=>Number(b.quantity)===0)).toBe(true);
  expect(s.entries.some((e:any)=>e.itemId===item.id)).toBe(false);
 });

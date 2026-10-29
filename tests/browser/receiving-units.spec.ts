@@ -31,9 +31,9 @@ test('all catalog receiving units support offline conversion, required package c
  await page.getByLabel('وحدة الاستلام',{exact:true}).selectOption({label:'جرام'});await page.getByLabel('وحدة الاستلام',{exact:true}).selectOption({label:'عدد'});
  await expect(page.getByLabel('محتوى وحدة الاستلام',{exact:true})).toHaveValue('');await page.getByLabel('محتوى وحدة الاستلام',{exact:true}).fill('٥');
  await page.getByRole('button',{name:'إضافة إلى القائمة',exact:true}).click();await expect(page.getByRole('dialog').locator('.document-summary strong')).toHaveText('١٬٠١٠ ج.م');
- await page.getByRole('dialog').evaluate(el=>el.scrollTop=0);await page.screenshot({path:'../Fodo-Receiving-Units.png'});await page.setViewportSize({width:390,height:844});
+ await page.getByRole('dialog').evaluate(el=>el.scrollTop=0);await page.screenshot({path:'test-results/Fodo-Receiving-Units.png'});await page.setViewportSize({width:390,height:844});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.getByRole('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
- await page.getByRole('button',{name:'تعديل لحم بقري',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:'../Fodo-Receiving-Units-Mobile.png'});await page.setViewportSize({width:1280,height:900});
+ await page.getByRole('button',{name:'تعديل لحم بقري',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/Fodo-Receiving-Units-Mobile.png'});await page.setViewportSize({width:1280,height:900});
  await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();await expect(page.getByRole('dialog')).not.toBeVisible();
  await page.reload();await page.getByRole('button',{name:'مركز المزامنة',exact:false}).first().click();
  const history=page.locator('.opening-document').filter({hasText:reference});await history.locator('summary').click();

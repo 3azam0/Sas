@@ -18,7 +18,7 @@ test('receiving quick-create preserves rows, selects an offline material and acc
  await create.getByLabel('اسم السجل').press('Escape');await expect(create).not.toBeVisible();await expect(material).toBeFocused();
  await expect(receipt.locator('.kitchen-receipt-list')).toContainText('٢');
  // F2 works when matching results exist too, and required unit selection is explicit.
- await material.fill('أرز');await material.press('F2');await expect(create.getByLabel('اسم السجل')).toHaveValue('أرز');await create.getByLabel('اسم السجل').fill(name);await create.getByLabel('كود المادة').fill(sku);
+ await material.fill('أرز');await material.press('F2');await expect(create.getByLabel('اسم السجل')).toHaveValue('أرز');await create.getByLabel('اسم السجل').fill(name);await expect(create.getByLabel('كود المادة')).not.toBeEditable();
  await create.getByRole('button',{name:'حفظ واختيار',exact:true}).click();await expect(create.getByLabel('وحدة المخزون',{exact:true})).toHaveAttribute('aria-invalid','true');
  await create.getByLabel('وحدة المخزون',{exact:true}).selectOption({label:'كجم'});await create.getByRole('button',{name:'حفظ واختيار',exact:true}).click();
  await expect(create).not.toBeVisible();await expect(material).toHaveValue(`${name} · ${sku} · كجم`);
@@ -26,8 +26,8 @@ test('receiving quick-create preserves rows, selects an offline material and acc
  await receipt.getByLabel('الكمية (كجم)',{exact:true}).fill('3');await receipt.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('10');
  await receipt.getByRole('button',{name:'إضافة إلى القائمة',exact:true}).click();await expect(receipt.locator('.document-summary strong')).toHaveText('٧٠ ج.م');await receipt.getByRole('button',{name:'حفظ العملية',exact:true}).click();await expect(receipt).not.toBeVisible();
  await page.reload();await context.setOffline(false);await page.getByRole('button',{name:'مزامنة الآن',exact:true}).first().click();
- await expect.poll(async()=>{const s=await(await page.request.get('/api/v1/bootstrap')).json();const id=s.items.find((item:any)=>item.sku===sku)?.id;return !!id&&s.receipts.some((r:any)=>r.document.lines.some((line:any)=>line.itemId===id));},{timeout:30000}).toBeTruthy();
- const s=await(await page.request.get('/api/v1/bootstrap')).json(),item=s.items.find((item:any)=>item.sku===sku);
+ await expect.poll(async()=>{const s=await(await page.request.get('/api/v1/bootstrap')).json();const id=s.items.find((item:any)=>item.name===name)?.id;return !!id&&s.receipts.some((r:any)=>r.document.lines.some((line:any)=>line.itemId===id));},{timeout:30000}).toBeTruthy();
+ const s=await(await page.request.get('/api/v1/bootstrap')).json(),item=s.items.find((item:any)=>item.name===name);
  const posted=s.receipts.find((r:any)=>r.document.lines.some((line:any)=>line.itemId===item.id));expect(posted.document.reason).toBe('');expect(posted.document.lines).toHaveLength(2);
  expect(s.balances.find((b:any)=>b.locationId==='central'&&b.itemId===item.id).quantity).toBe('3.000000');
 });

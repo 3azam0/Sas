@@ -6,6 +6,7 @@ import {productionSchema,BusinessError,type Access,type CommandResult,type Poste
 import {decimal} from '@saas/domain';
 import {validateProduction,exactOutputLayers,productionWasteValue} from '../domain/production';
 import {recipeSnapshot} from './recipes';
+import {nextAutomaticCode} from './automatic-code';
 import {assertGeneration,planIssue,applyIssue,costingMethod,rebalanceAverage} from './valuation';
 import {reconcileStock} from './counts';
 
@@ -28,6 +29,7 @@ export async function postProduction(db:Database,access:Access,input:unknown):Pr
  return db.transaction(async tx=>{
   await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);await assertGeneration(tx,org,c.generation);
   const prior=(await tx.query<{payload_hash:string;result:CommandResult}>('SELECT payload_hash,result FROM command_receipts WHERE organization_id=$1 AND operation_id=$2',[org,c.operationId])).rows[0];if(prior){if(prior.payload_hash!==hash)throw new BusinessError('PAYLOAD_CONFLICT','معرّف الإنتاج مستخدم لبيانات مختلفة.');return prior.result;}
+  c.reference=c.reference||await nextAutomaticCode(tx,org,'production');
   const ids=[c.operationId,c.outputMovementId,...c.lines.map(l=>l.movementId)];if((await tx.query('SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=ANY($2::uuid[]) UNION ALL SELECT 1 FROM stock_entries WHERE organization_id=$1 AND operation_id=ANY($2::uuid[])',[org,ids])).rows.length)throw new BusinessError('PAYLOAD_CONFLICT','أحد معرّفات الإنتاج أو سطوره مستخدم بالفعل.');
   const data=await recipeSnapshot(tx,org),items=(await tx.query<Snapshot['items'][number]>('SELECT id,unit_id AS "unitId",active FROM items WHERE organization_id=$1',[org])).rows,locations=(await tx.query<Snapshot['locations'][number]>('SELECT id,active FROM locations WHERE organization_id=$1',[org])).rows;
   const plan=validateProduction({recipeVersions:data.recipeVersions,items,locations},c),d=plan.version.definition,method=await costingMethod(tx,org);

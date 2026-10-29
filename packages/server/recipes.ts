@@ -3,6 +3,7 @@ import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {recipeCommandSchema,BusinessError,type Access,type CommandResult,type Recipe,type RecipeVersion,type Item,type Unit,type ReceiptPrice} from '@saas/contracts';
 import {validateRecipe} from '../domain/recipes';
+import {nextAutomaticCode} from './automatic-code';
 import {assertGeneration} from './valuation';
 type Tx=Pick<Database,'query'>;
 export const recipeTables=`
@@ -30,7 +31,9 @@ export async function postRecipe(db:Database,access:Access,input:unknown):Promis
   if((await tx.query('SELECT 1 FROM recipe_versions WHERE organization_id=$1 AND version_id=$2',[org,c.operationId])).rows.length)throw new BusinessError('PAYLOAD_CONFLICT','معرّف العملية مستخدم لإصدار وصفة.');
   const current=(await tx.query<Recipe>('SELECT recipe_id AS "recipeId",revision,state,payload AS definition FROM recipes WHERE organization_id=$1 AND recipe_id=$2',[org,c.recipeId])).rows[0];if((current?.revision??0)!==c.expectedRevision)throw new BusinessError('REVISION_CONFLICT','تغيرت الوصفة على جهاز آخر. ألغِ الإجراء المرفوض وافتح أحدث مسودة.');
   if(c.type==='recipe.publish'&&(!current||current.state!=='draft'))throw new BusinessError('INVALID_STATE','احفظ مسودة جديدة قبل نشر إصدار جديد.');
-  const d=c.type==='recipe.save'?c.definition:current!.definition;
+  const d=structuredClone(c.type==='recipe.save'?c.definition:current!.definition);
+  if(current&&d.code&&d.code!==current.definition.code)throw new BusinessError('IMMUTABLE_CODE','كود الوصفة ثابت ويُنشأ تلقائياً؛ عدّل الاسم أو المكونات فقط.');
+  d.code=current?.definition.code||d.code||await nextAutomaticCode(tx,org,'recipe');
   const data=await recipeSnapshot(tx,org),items=(await tx.query<Item>('SELECT id,unit_id AS "unitId",active FROM items WHERE organization_id=$1',[org])).rows,units=(await tx.query<Unit>('SELECT id,name FROM units WHERE organization_id=$1',[org])).rows;
   validateRecipe({items,units,recipeVersions:data.recipeVersions},c.recipeId,d);
   const revision=c.expectedRevision+1;

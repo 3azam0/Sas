@@ -1,4 +1,5 @@
 import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
+import {nextAutomaticCode} from './automatic-code';
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import type {Database} from './database';
 import {createHash} from 'node:crypto';
@@ -18,7 +19,7 @@ export async function postSetupCommand(db:Database,access:Access,input:unknown):
     const prior=(await tx.query<{payload_hash:string;result:CommandResult}>('SELECT payload_hash,result FROM command_receipts WHERE organization_id=$1 AND operation_id=$2',[org,c.operationId])).rows[0];
     if(prior){if(prior.payload_hash!==hash)throw new BusinessError('PAYLOAD_CONFLICT','معرّف العملية مستخدم لبيانات مختلفة.');return prior.result;}
     const table={ 'unit.save':'units','supplier.save':'suppliers','location.save':'locations','item.save':'items','kitchen.save':'kitchens','pos.save':'points_of_sale'}[c.type];
-    const previous=(await tx.query<{revision:number;unit_id?:string;purchase_units?:PurchaseUnit[];location_id?:string;parent_location_id?:string;source?:string}>(`SELECT * FROM ${table} WHERE organization_id=$1 AND id=$2`,[org,c.record.id])).rows[0];
+    const previous=(await tx.query<{revision:number;sku?:string;unit_id?:string;purchase_units?:PurchaseUnit[];location_id?:string;parent_location_id?:string;source?:string}>(`SELECT * FROM ${table} WHERE organization_id=$1 AND id=$2`,[org,c.record.id])).rows[0];
     if((previous?.revision??0)!==c.expectedRevision)throw new BusinessError('REVISION_CONFLICT','تغيرت البيانات على جهاز آخر. ألغِ التعديل المرفوض ثم افتح السجل من جديد.');
     const r=c.record,revision=c.expectedRevision+1;
     if(c.type==='unit.save'){
@@ -52,6 +53,8 @@ export async function postSetupCommand(db:Database,access:Access,input:unknown):
       await tx.query('INSERT INTO locations(organization_id,id,name,kind,active,revision) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(organization_id,id) DO UPDATE SET name=$3,kind=$4,active=$5,revision=$6',[org,l.id,l.name,l.kind,l.active,revision]);
     }else{
       const i=c.record;
+      if(previous?.sku&&i.sku&&i.sku!==previous.sku)throw new BusinessError('IMMUTABLE_CODE','كود المادة ثابت ويُنشأ تلقائياً؛ عدّل الاسم أو البيانات الأخرى.');
+      i.sku=previous?.sku||i.sku||await nextAutomaticCode(tx,org,'material');
       const unit=(await tx.query<{name:string}>('SELECT name FROM units WHERE organization_id=$1 AND id=$2',[org,i.unitId])).rows[0];
       if(!unit)throw new BusinessError('MISSING_UNIT','وحدة المخزون لم تتم مزامنتها أو تخص مؤسسة أخرى.');
       if(previous&&previous.unit_id!==i.unitId)throw new BusinessError('UNIT_LOCKED','وحدة المخزون الأساسية ثابتة بعد إنشاء المادة. أنشئ مادة جديدة لوحدة مختلفة.');

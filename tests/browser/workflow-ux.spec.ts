@@ -44,13 +44,13 @@ test('328-item Arabic and SKU search works offline and keeps the selection on a 
  await search.press('Enter');await expect(stored).toHaveValue(targetId);await search.fill('ارز صنف البحث 200');await expect(results.getByRole('option')).toHaveCount(1);
  await search.fill('لا توجد هذه المادة');await expect(results.getByRole('option')).toHaveCount(0);await expect(stored).toHaveValue(targetId);await search.press('Enter');await expect(search).toBeFocused();await expect(stored).toHaveValue(targetId);
  await search.press('Tab');await expect(search).toHaveValue('أرز صنف البحث 200 · CAT-200 · كجم');await search.fill('');await expect(results.getByRole('option')).toHaveCount(328);await search.press('Escape');
- await page.setViewportSize({width:820,height:1180});await page.screenshot({path:'../Fodo-Catalog-Search-Tablet.png'});
+ await page.setViewportSize({width:820,height:1180});await page.screenshot({path:'test-results/Fodo-Catalog-Search-Tablet.png'});
  await page.setViewportSize({width:390,height:640});
  const footer=dialog.locator('.modal-footer'),box=await footer.boundingBox();expect(box).not.toBeNull();expect(box!.y+box!.height).toBeLessThanOrEqual(641);
  await dialog.locator('.modal-body').evaluate(element=>element.scrollTop=element.scrollHeight);
  await expect(footer.getByRole('button',{name:'حفظ العملية',exact:true})).toBeInViewport();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:'../Fodo-Catalog-Search-Short-Mobile.png'});
+ await page.screenshot({path:'test-results/Fodo-Catalog-Search-Short-Mobile.png'});
  await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
  await expect(page.getByRole('button',{name:'استلام مواد',exact:true})).toBeFocused();
 });
@@ -65,7 +65,7 @@ test('count filters preserve zero and quantities and reveal the first hidden inv
  await describedError(rice,page);await expect(beef).toHaveValue('0');await rice.fill('2');
  await page.getByLabel('بحث مواد الجرد',{exact:true}).fill('DR-001');await expect(rice).toHaveValue('2');
  await page.getByLabel('بحث مواد الجرد',{exact:true}).fill('MT-001');await expect(beef).toHaveValue('0');await expect(beef).toBeVisible();await page.getByLabel('فلتر حالة العد',{exact:true}).selectOption('counted');await expect(beef).toBeVisible();await page.getByLabel('تصنيف الجرد',{exact:true}).selectOption('لحوم');await expect(beef).toBeVisible();
- const countSave=page.getByRole('button',{name:'حفظ مسودة الجرد',exact:true});await expect(countSave).toBeInViewport();const saveBox=await countSave.boundingBox(),navBox=await page.locator('.sidebar nav').boundingBox();expect(saveBox!.y+saveBox!.height).toBeLessThanOrEqual(navBox!.y+1);await expect(page.locator('.sidebar nav [aria-current=page]')).toBeInViewport();await page.screenshot({path:'../Fodo-Count-Filter-Mobile.png'});await beef.press('Control+Enter');
+ const countSave=page.getByRole('button',{name:'حفظ مسودة الجرد',exact:true});await expect(countSave).toBeInViewport();const saveBox=await countSave.boundingBox(),navBox=await page.locator('.sidebar nav').boundingBox();expect(saveBox!.y+saveBox!.height).toBeLessThanOrEqual(navBox!.y+1);await expect(page.locator('.sidebar nav [aria-current=page]')).toBeInViewport();await page.screenshot({path:'test-results/Fodo-Count-Filter-Mobile.png'});await beef.press('Control+Enter');
  await expect(page.locator('.count-document')).toContainText('جرد فلترة محفوظ');await page.reload();
  await page.getByLabel('الموقع',{exact:true}).selectOption(locationId);await page.getByRole('button',{name:'الجرد والتسوية',exact:true}).click();
  const document=page.locator('.count-document').filter({hasText:'جرد فلترة محفوظ'});await expect(document.locator('tbody tr')).toHaveCount(2);
@@ -81,7 +81,7 @@ test('purchase Ctrl+Enter submission focuses its invalid quantity and saves an o
  await page.getByLabel('مادة الشراء 1',{exact:true}).fill('DR-001');await page.getByLabel('مادة الشراء 1',{exact:true}).press('Enter');
  const quantity=page.getByLabel('كمية الشراء 1',{exact:true}),cost=page.getByLabel('تكلفة الشراء 1',{exact:true});
  await quantity.fill('خطأ');await cost.fill('20');await cost.press('Control+Enter');await describedError(quantity,page);
- await quantity.fill('2');const save=page.getByRole('button',{name:'حفظ مسودة الشراء',exact:true});await expect(save).toBeInViewport();const actionBox=await save.boundingBox(),navigationBox=await page.locator('.sidebar nav').boundingBox();expect(actionBox!.y+actionBox!.height).toBeLessThanOrEqual(navigationBox!.y+1);await page.screenshot({path:'../Fodo-Purchase-Form-Mobile.png'});
+ await quantity.fill('2');const save=page.getByRole('button',{name:'حفظ مسودة الشراء',exact:true});await expect(save).toBeInViewport();const actionBox=await save.boundingBox(),navigationBox=await page.locator('.sidebar nav').boundingBox();expect(actionBox!.y+actionBox!.height).toBeLessThanOrEqual(navigationBox!.y+1);await page.screenshot({path:'test-results/Fodo-Purchase-Form-Mobile.png'});
  await cost.press('Control+Enter');await expect(page.locator('.purchase-order')).toContainText('شراء من لوحة المفاتيح');await page.reload();
  await page.getByLabel('الموقع',{exact:true}).selectOption(locationId);await page.getByRole('button',{name:'المشتريات',exact:true}).click();
  await expect(page.locator('.purchase-order')).toContainText('شراء من لوحة المفاتيح');
@@ -97,6 +97,6 @@ test('invalid recovery file has an associated Arabic error and Escape restores m
  await describedError(file,page);await expect(dialog.getByRole('alert')).toContainText('ملف الاسترداد غير صالح');
  await expect(dialog.getByRole('button',{name:'تأكيد الاسترداد',exact:true})).toBeDisabled();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:'../Fodo-Recovery-Error-Mobile.png'});await page.keyboard.press('Escape');
+ await page.screenshot({path:'test-results/Fodo-Recovery-Error-Mobile.png'});await page.keyboard.press('Escape');
  await expect(dialog).not.toBeVisible();await expect(trigger).toBeFocused();
 });

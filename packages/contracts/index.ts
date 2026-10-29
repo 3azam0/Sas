@@ -56,7 +56,7 @@ export const setupCommandSchema=z.discriminatedUnion('type',[
   z.object({...setupEnvelope,type:z.literal('pos.save'),record:z.object({id:recordId,name:recordName,source:z.string().trim().min(1).max(60).regex(/^[A-Za-z0-9_.-]+$/).transform(v=>v.toUpperCase()),kitchenId:recordId,active:z.boolean()})}),
   z.object({...setupEnvelope,type:z.literal('supplier.save'),record:z.object({id:recordId,name:recordName,phone:z.string().trim().max(40),email:z.union([z.literal(''),z.email()]),address:z.string().trim().max(300),active:z.boolean()})}),
   z.object({...setupEnvelope,type:z.literal('location.save'),record:z.object({id:recordId,name:recordName,kind:z.enum(['مطعم','مخزن','مطبخ تحضير','تخزين وتحضير','مطبخ']),active:z.boolean()})}),
-  z.object({...setupEnvelope,type:z.literal('item.save'),record:z.object({id:recordId,name:recordName,sku:z.string().trim().min(1).max(60).transform(v=>v.toUpperCase()),category:recordName,unitId:recordId,minimum:nonNegative,purchaseUnits:purchaseUnitsSchema,active:z.boolean()})})
+  z.object({...setupEnvelope,type:z.literal('item.save'),record:z.object({id:recordId,name:recordName,sku:z.string().trim().max(60).default('').transform(v=>v.toUpperCase()),category:recordName,unitId:recordId,minimum:nonNegative,purchaseUnits:purchaseUnitsSchema,active:z.boolean()})})
 ]);
 export type SetupCommand=z.infer<typeof setupCommandSchema>;
 
@@ -148,7 +148,7 @@ export type StockReconciliation={locationId:string;itemId:string;balanceQuantity
 export const recipeInputUnitSchema=z.enum(['base','g','kg','ml','l']);
 const recipeComponentFields={lineId:z.uuid(),unitId:recordId,inputUnit:recipeInputUnitSchema,enteredQuantity:quantitySchema,quantity:quantitySchema};
 export const recipeDefinitionSchema=z.object({
- code:z.string().trim().min(1).max(60).transform(v=>v.toUpperCase()),name:recordName,
+ code:z.string().trim().max(60).default('').transform(v=>v.toUpperCase()),name:recordName,
  outputMode:z.enum(['stocked','non_stocked']),outputItemId:recordId.optional(),outputUnitId:recordId,outputQuantity:quantitySchema,effectiveDate:z.iso.date(),salePrice:nonNegative.optional(),salesStockItemIds:z.array(recordId).max(200).optional(),
  lines:z.array(z.discriminatedUnion('kind',[
   z.object({...recipeComponentFields,kind:z.literal('material'),itemId:recordId}),
@@ -173,7 +173,7 @@ export type ReceiptPrice={locationId:string;itemId:string;unitCost:string;busine
 export const productionSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),type:z.literal('production.post'),
  versionId:z.uuid(),inputLocationId:recordId,outputLocationId:recordId,outputMovementId:z.uuid(),
- plannedOutput:quantitySchema,actualOutput:nonNegative,outputLot:stockLotSchema.optional(),businessDate:z.iso.date(),reference:recordName,
+ plannedOutput:quantitySchema,actualOutput:nonNegative,outputLot:stockLotSchema.optional(),businessDate:z.iso.date(),reference:z.string().trim().max(100).default(''),
  wasteReason:z.string().trim().max(200).optional(),failureReason:z.string().trim().max(200).optional(),
  capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),
  lines:z.array(z.object({movementId:z.uuid(),itemId:recordId,unitId:recordId,quantity:nonNegative,abnormalWaste:nonNegative})).min(1).max(200)

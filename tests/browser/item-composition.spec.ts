@@ -12,13 +12,13 @@ test('item composition opens an offline stocked recipe and reuses its definition
  await context.setOffline(true);
  await page.getByRole('button',{name:'إضافة مادة',exact:true}).click();
  await page.getByLabel('اسم السجل',{exact:true}).fill(name);
- await page.getByLabel('كود المادة',{exact:true}).fill(sku);
+ await expect(page.getByLabel('كود المادة',{exact:true})).not.toBeEditable();
  await page.getByLabel('وحدة المخزون',{exact:true}).selectOption('كجم');
  await page.getByLabel('فتح إعداد المكونات بعد الحفظ',{exact:true}).check();
  await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();
  await expect(page.getByRole('heading',{name:`مكونات الصنف: ${name}`,exact:true})).toBeVisible();
  await expect(page.getByLabel('اسم الوصفة',{exact:true})).toHaveValue(name);
- await expect(page.getByLabel('كود الوصفة',{exact:true})).toHaveValue(`BOM-${sku}`);
+ await expect(page.getByLabel('كود الوصفة',{exact:true})).not.toBeEditable();
  await expect(page.getByLabel('نوع ناتج الوصفة',{exact:true})).toHaveValue('stocked');
  await expect(page.getByLabel('وحدة ناتج الوصفة',{exact:true})).toHaveValue('كجم');
  await expect(page.getByLabel('وحدة ناتج الوصفة',{exact:true})).toBeDisabled();
@@ -60,8 +60,8 @@ test('item composition opens an offline stocked recipe and reuses its definition
  expect(after.recipeVersions.filter((v:any)=>v.definition.outputItemId===outputId)).toHaveLength(1);
  expect(after.balances).toEqual(before.balances);
  expect(after.entries).toEqual(before.entries);
- await page.screenshot({path:'../Fodo-Item-Composition.png',fullPage:true});
+ await page.screenshot({path:'test-results/Fodo-Item-Composition.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:'../Fodo-Item-Composition-Mobile.png',fullPage:true});
+ await page.screenshot({path:'test-results/Fodo-Item-Composition-Mobile.png',fullPage:true});
 });
