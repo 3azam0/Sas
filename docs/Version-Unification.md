@@ -1,14 +1,14 @@
 # Unification against the current hosted application
 
-Reviewed 29 October 2026. The user's latest instruction authorizes deployment first, verification of the live release, and then local/source parity. Release the compatible backend before activating the new frontend. This release needs no database migration or data deletion; browser fixture postings remain isolated from the hosted organization.
+Reviewed 29 October 2026. The user's latest instruction authorizes deployment first, verification of the live release, and then local/source parity. Release the compatible backend before activating the new frontend. Central Kitchen uses an additive, tenant-scoped migration; no customer data was deleted. Browser fixture postings remain isolated from the hosted organization.
 
 ## Authoritative source
 
-Read-only live health at `https://fodo.am-agent2026.workers.dev/api/v1/health` reports build **413ca955b6fc9feb**. The source release `docs/releases/print-exports-2026-10-29.md` records that same build and API22. Implementation commit is `e2597d08ab908f45ec152891d7ba73f66a617514`; source was checked against the `chore/qibli-trial-stock` head **07c9ded**. No differences in apps/packages/cloud/scripts occur between that implementation and the starting checkout.
+The starting hosted baseline was build **413ca955b6fc9feb**, API22, recorded in `docs/releases/print-exports-2026-10-29.md`. Implementation commit was `e2597d08ab908f45ec152891d7ba73f66a617514`; source was checked against the `chore/qibli-trial-stock` head **07c9ded**. The later automatic-forms release used build **bdc27349fb53deba**, Worker102 and API23.
 
 The attached `recipe-forms-compatibility` worktree starts from this advanced application. The old `D:/New folder (3)/Sas` main checkout was not a release source. Its prototype is preserved in stash `85a50e801ccd6f0a694262afc8354cc30c4d1355` and an independent bundle under `.cache/local-parity-backups/` before synchronizing that folder to the hosted release lineage. Do not restore the prototype directly over the hosted application.
 
-The authorized release is now build **bdc27349fb53deba**, Worker version **102**, compatible API **23**. See [verified release and recovery details](releases/forms-average-2026-10-29.md). Live JavaScript/CSS hashes and deployed backend source match the prepared local release. No schema migration, customer-data deletion or live business posting was performed.
+The verified Central Kitchen release is build **34f88b834a5f7bc6**, Worker version **104**, compatible API **24**. See [verified release and recovery details](releases/central-kitchen-2026-10-29.md). Live JavaScript/CSS hashes and deployed backend source match the prepared local release. Migration `20261029145734_central_kitchen_batches.sql` was applied additively. No customer-data deletion or live business posting was performed.
 
 ## Integrated compatible changes
 
