@@ -8,7 +8,7 @@ The starting hosted baseline was build **413ca955b6fc9feb**, API22, recorded in 
 
 The attached `recipe-forms-compatibility` worktree starts from this advanced application. The old `D:/New folder (3)/Sas` main checkout was not a release source. Its prototype is preserved in stash `85a50e801ccd6f0a694262afc8354cc30c4d1355` and an independent bundle under `.cache/local-parity-backups/` before synchronizing that folder to the hosted release lineage. Do not restore the prototype directly over the hosted application.
 
-The verified Central Kitchen release is build **34f88b834a5f7bc6**, Worker version **104**, compatible API **24**. See [verified release and recovery details](releases/central-kitchen-2026-10-29.md). Live JavaScript/CSS hashes and deployed backend source match the prepared local release. Migration `20261029145734_central_kitchen_batches.sql` was applied additively. No customer-data deletion or live business posting was performed.
+The published Central Kitchen release is build **6d7cf712aef7e03a**, Worker version **105**, compatible API **24**. See [core workflow and recovery details](releases/central-kitchen-2026-10-29.md) and [interface and shortage-preview release](releases/central-kitchen-ux-2026-10-29.md). Live JavaScript/CSS hashes match the prepared local release; backend24 is unchanged and its deployed source was verified exactly. Migration `20261029145734_central_kitchen_batches.sql` was applied additively for the core workflow. No customer data was deleted and no hosted business postings were made. The user elected to perform the final visual check of the interface changes.
 
 ## Integrated compatible changes
 
