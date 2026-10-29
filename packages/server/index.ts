@@ -49,3 +49,4 @@ export {getReport} from './reports';
 export {postKitchenOrder} from './kitchen-display';
 
 export {postButchery} from './butchery';
+export {postCentralKitchen} from './central-kitchen';

@@ -1,4 +1,5 @@
 import {butcheryTables} from './butchery';
+import {centralKitchenTables} from './central-kitchen-schema';
 import {inventoryOperationsTables} from './inventory-operations-schema';
 import {kitchenInventoryMigration} from './kitchen-inventory-schema';
 import {salesTables} from './sales';
@@ -100,4 +101,4 @@ END IF; END $$;
 export {kitchenInventoryMigration} from './kitchen-inventory-schema';
 import {financeTables} from './finance';
 import {kitchenDisplayTables} from './kitchen-display';
-export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables+butcheryTables+inventoryOperationsTables;
+export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables+butcheryTables+inventoryOperationsTables+centralKitchenTables;
