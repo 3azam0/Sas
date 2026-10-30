@@ -77,6 +77,21 @@ it('uses linked reversals for issue, held receipt and unused closed output, then
  expect(balance(await snapshot(),'kofta')).toEqual(balance(initial,'kofta'));await command(id,{type:'central.cost',amount:'50',reason:'مصاريف تشغيل'});await close(id);expect((await state(id)).outputAmount).toBe('300.000000000000');expect((await reconcileStock(db,'grills')).every(r=>r.matches)).toBe(true);
 });
 
+it('reverses returns, losses and processing costs without deleting their audit trail',async()=>{
+ const id=await create();await issue(id);let b=await state(id),issueLine=b.issues[0];
+ const returned=await command(id,{type:'central.return',recipient:'أمين المخزن',lines:[{lineId:uuid(),issueLineId:issueLine.lineId,sourceId:issueLine.sources[0].sourceId,quantity:'2'}]});
+ expect((await state(id)).issues[0].returned).toBe('2');expect(balance(await snapshot(),'beef')?.quantity).toBe('12.000000');
+ await command(id,{type:'central.reverse',targetOperationId:returned.c.operationId,reason:'إلغاء مرتجع خاطئ'});
+ expect((await state(id)).issues[0].returned).toBe('0');expect(balance(await snapshot(),'beef')?.quantity).toBe('10.000000');
+ b=await state(id);issueLine=b.issues[0];const lost=await command(id,{type:'central.loss',lines:[{lineId:uuid(),issueLineId:issueLine.lineId,quantity:'1',reason:'فاقد مسجل بالخطأ',kind:'normal'}]});
+ expect((await state(id)).issues[0].lost).toBe('1');await command(id,{type:'central.reverse',targetOperationId:lost.c.operationId,reason:'إلغاء الفاقد'});
+ expect((await state(id)).issues[0].lost).toBe('0');expect((await state(id)).losses).toEqual([]);
+ const cost=await command(id,{type:'central.cost',amount:'50',reason:'تكلفة تجريبية'});expect((await state(id)).processingAmount).toBe('50.000000000000');
+ await command(id,{type:'central.reverse',targetOperationId:cost.c.operationId,reason:'إلغاء تكلفة التشغيل'});expect((await state(id)).processingCosts).toEqual([]);expect((await state(id)).processingAmount).toBe('0.000000000000');
+ const actions=((await snapshot()).centralActions??[]).filter((a:any)=>a.batchId===id);expect(actions.filter((a:any)=>a.command.type==='central.reverse')).toHaveLength(3);expect(actions.filter((a:any)=>a.reversedBy)).toHaveLength(3);
+ expect((await reconcileStock(db,'grills')).every(r=>r.matches)).toBe(true);
+});
+
 it('prevents reversing a closed batch after downstream stock use, without changing accepted transactions',async()=>{
  const id=await create();await issue(id);await receive(id,'10');const closed=await close(id);
  await postCommand(db,access,{operationId:uuid(),generation,organizationId:'grills',locationId:'central',type:'waste.post',itemId:'kofta',quantity:'1',reason:'Downstream use',businessDate:date,capturedAt:new Date().toISOString(),schemaVersion:1});const before=await snapshot();
