@@ -34,6 +34,17 @@ it('issues a multi-ingredient batch at the pooled average, permits additional is
  await expect(postCentralKitchen(db,access,{...first.c,notes:'changed'})).rejects.toMatchObject({code:'PAYLOAD_CONFLICT'});
 });
 
+it('freezes the recipe cost reference when the batch is created and compares it with actual production cost',async()=>{
+ const recipeId=uuid(),versionId=uuid(),definition={code:'REC-TEST',name:'كفتة معيارية',outputMode:'stocked',outputItemId:'kofta',outputUnitId:'kg',outputQuantity:'10',effectiveDate:date,lines:[{lineId:uuid(),kind:'material',itemId:'beef',unitId:'kg',inputUnit:'base',enteredQuantity:'8',quantity:'8'},{lineId:uuid(),kind:'material',itemId:'onion',unitId:'kg',inputUnit:'base',enteredQuantity:'2',quantity:'2'}]};
+ await db.query("INSERT INTO recipes(organization_id,recipe_id,code,revision,state,payload,published_version_id) VALUES('grills',$1,'REC-TEST',1,'published',$2,$3)",[recipeId,JSON.stringify(definition),versionId]);
+ await db.query("INSERT INTO recipe_versions(organization_id,version_id,recipe_id,version_number,payload) VALUES('grills',$1,$2,1,$3)",[versionId,recipeId,JSON.stringify(definition)]);
+ const id=uuid();await postCentralKitchen(db,access,{...base(id,0),type:'central.create',locationId:'central',name:'دفعة مقارنة تكلفة',operationType:'manufacturing',recipeVersionId:versionId,plannedOutput:'10'});
+ expect((await state(id)).costReference).toMatchObject({recipeVersionId:versionId,plannedOutput:'10',complete:true,batchCost:'220.000000000000',unitCost:'22.000000',lines:[{itemId:'beef',expectedQuantity:'8',amount:'200.000000000000'},{itemId:'onion',expectedQuantity:'2',amount:'20.000000000000'}]});
+ await receipt('beef','10','100');expect((await state(id)).costReference?.batchCost).toBe('220.000000000000');
+ await issue(id,[material('beef','9'),material('onion','1')]);await command(id,{type:'central.cost',amount:'15',reason:'تشغيل'});await receive(id,'10');await close(id);
+ const closed=await state(id);expect(closed.costReference?.batchCost).toBe('220.000000000000');expect(closed).toMatchObject({status:'closed',outputAmount:'475.000000000000',processingAmount:'15.000000000000'});
+});
+
 it('holds partial receipts outside the available average, settles original-cost returns/losses and partially transfers to a real kitchen',async()=>{
  const initial=await snapshot(),id=await create();await issue(id,[material('beef','10'),material('onion','2')]);await receive(id,'6');
  expect(balance(await snapshot(),'kofta')).toEqual(balance(initial,'kofta'));

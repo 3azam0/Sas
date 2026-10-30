@@ -1,6 +1,6 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {BusinessError,type Access,type CommandResult,type RecipeDefinition} from '@saas/contracts';
-import {centralCommandSchema,type CentralCommand,type CentralBatch,type CentralAction,type CentralEffect,type CentralIssue} from '../contracts/central-kitchen';
+import {centralCommandSchema,type CentralCommand,type CentralBatch,type CentralAction,type CentralEffect,type CentralIssue,type CentralCostReference} from '../contracts/central-kitchen';
 import type {StockLot,LotMetadata} from '../contracts/inventory-operations';
 import type {Database,QueryDatabase} from './database';
 import {decimal} from '@saas/domain';
@@ -11,6 +11,8 @@ import {sourceLot} from './stock-lots';
 import {exactOutputLayers} from '../domain/production';
 import {nextAutomaticCode} from './automatic-code';
 import {reconcileStock} from './counts';
+import {recipeSnapshot} from './recipes';
+import {resolveRecipe} from '../domain/recipes';
 
 function check(value:unknown,message:string,code='INVALID_CENTRAL_BATCH'):asserts value{if(!value)throw new BusinessError(code,message);}
 const sum=(values:string[])=>values.reduce((n,v)=>n.add(v),decimal('0'));
@@ -31,6 +33,14 @@ function refresh(b:CentralBatch){
  check(value.gte(0),'قيمة الدفعة غير متوازنة.','RECONCILIATION_MISMATCH');
  b.wipAmount=b.status==='closed'?'0.000000000000':money(value);
  if(b.status!=='closed'){b.outputAmount='0.000000000000';b.expenseAmount=b.abnormalAmount;b.status=b.receipts.length?'partially_received':b.issues.length||b.processingCosts.length?'in_progress':'draft';}
+}
+async function freezeRecipeCost(tx:QueryDatabase,org:string,locationId:string,versionId:string,plannedOutput:string):Promise<CentralCostReference>{
+ const recipes=await recipeSnapshot(tx,org),version=recipes.recipeVersions.find(v=>v.versionId===versionId);check(version,'إصدار الوصفة غير متاح.','INVALID_REFERENCE');
+ const factor=decimal(plannedOutput).div(version.definition.outputQuantity),requirements=resolveRecipe(version.recipeId,version.definition,recipes.recipeVersions).map(r=>({...r,expectedQuantity:decimal(r.quantity).mul(factor).toString()}));
+ const balances=requirements.length?(await tx.query<{itemId:string;quantity:string;value:string}>('SELECT item_id AS "itemId",quantity::text,value::text FROM stock_balances WHERE organization_id=$1 AND location_id=$2 AND item_id=ANY($3::text[])',[org,locationId,requirements.map(r=>r.itemId)])).rows:[];
+ const lines=requirements.map(r=>{const balance=balances.find(b=>b.itemId===r.itemId),unitCost=balance&&decimal(balance.quantity).gt(0)?decimal(balance.value).div(balance.quantity).toString():null;return {itemId:r.itemId,expectedQuantity:r.expectedQuantity,unitCost,amount:unitCost===null?null:money(decimal(r.expectedQuantity).mul(unitCost))};});
+ const complete=lines.every(l=>l.amount!==null),known=sum(lines.map(l=>l.amount??'0')),batchCost=complete?money(known):null;
+ return {capturedAt:new Date().toISOString(),recipeVersionId:versionId,plannedOutput,recipeOutputQuantity:version.definition.outputQuantity,complete,knownAmount:money(known),batchCost,unitCost:batchCost===null?null:decimal(batchCost).div(plannedOutput).toFixed(6),lines};
 }
 export async function centralKitchenSnapshot(tx:QueryDatabase,org:string){
  const batches=(await tx.query<{state:CentralBatch}>('SELECT state FROM central_batches WHERE organization_id=$1 ORDER BY created_at DESC',[org])).rows.map(r=>r.state);
@@ -55,8 +65,8 @@ export async function postCentralKitchen(db:Database,access:Access,input:unknown
   if(c.type==='central.create'){
    check(!stored,'الدفعة موجودة بالفعل.');check(c.expectedRevision===0,'الدفعة الجديدة تبدأ من الإصدار صفر.');
    check((await tx.query('SELECT l.id FROM locations l WHERE l.organization_id=$1 AND l.id=$2 AND l.active AND NOT EXISTS(SELECT 1 FROM kitchens k WHERE k.organization_id=l.organization_id AND k.location_id=l.id)',[org,c.locationId])).rows.length,'اختر مخزنًا نشطًا داخل المؤسسة.');
-   if(c.recipeVersionId){const version=(await tx.query<{payload:RecipeDefinition}>('SELECT payload FROM recipe_versions WHERE organization_id=$1 AND version_id=$2',[org,c.recipeVersionId])).rows[0]?.payload;check(version&&version.outputMode==='stocked'&&version.effectiveDate<=c.businessDate,'اختر وصفة مخزنية منشورة وسارية في تاريخ الدفعة.');check(c.plannedOutput,'أدخل كمية الإنتاج المطلوبة للوصفة.');}
-   b={batchId:c.batchId,reference:await nextAutomaticCode(tx,org,'central'),name:c.name,locationId:c.locationId,operationType:c.operationType,butcheryMode:c.butcheryMode,recipeVersionId:c.recipeVersionId,plannedOutput:c.plannedOutput,revision:1,status:'draft',businessDate:c.businessDate,operator:access.userId,notes:c.notes,method:await costingMethod(tx,org),issues:[],receipts:[],losses:[],processingCosts:[],issuedAmount:'0',returnedAmount:'0',processingAmount:'0',abnormalAmount:'0',wipAmount:'0',outputAmount:'0',expenseAmount:'0',createdAt:new Date().toISOString()};
+   let costReference:CentralCostReference|undefined;if(c.recipeVersionId){const version=(await tx.query<{payload:RecipeDefinition}>('SELECT payload FROM recipe_versions WHERE organization_id=$1 AND version_id=$2',[org,c.recipeVersionId])).rows[0]?.payload;check(version&&version.outputMode==='stocked'&&version.effectiveDate<=c.businessDate,'اختر وصفة مخزنية منشورة وسارية في تاريخ الدفعة.');check(c.plannedOutput,'أدخل كمية الإنتاج المطلوبة للوصفة.');costReference=await freezeRecipeCost(tx,org,c.locationId,c.recipeVersionId,c.plannedOutput);}
+   b={batchId:c.batchId,reference:await nextAutomaticCode(tx,org,'central'),name:c.name,locationId:c.locationId,operationType:c.operationType,butcheryMode:c.butcheryMode,recipeVersionId:c.recipeVersionId,plannedOutput:c.plannedOutput,costReference,revision:1,status:'draft',businessDate:c.businessDate,operator:access.userId,notes:c.notes,method:await costingMethod(tx,org),issues:[],receipts:[],losses:[],processingCosts:[],issuedAmount:'0',returnedAmount:'0',processingAmount:'0',abnormalAmount:'0',wipAmount:'0',outputAmount:'0',expenseAmount:'0',createdAt:new Date().toISOString()};
    await tx.query('INSERT INTO central_batches(organization_id,batch_id,reference,location_id,revision,state) VALUES($1,$2,$3,$4,1,$5)',[org,c.batchId,b.reference,b.locationId,JSON.stringify(b)]);
   }else{check(stored,'الدفعة غير موجودة.');b=structuredClone(stored);check(b.status!=='closed'||c.type==='central.reverse','الدفعة مغلقة؛ استخدم عكس الإغلاق إذا لم تصرف المنتجات.','BATCH_CLOSED');b.revision++;}
   check(c.businessDate>=b.businessDate,'تاريخ العملية يسبق تاريخ الدفعة.');await assertInventoryDateOpen(tx,org,b.locationId,c.businessDate);
