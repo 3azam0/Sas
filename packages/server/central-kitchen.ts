@@ -16,6 +16,13 @@ function check(value:unknown,message:string,code='INVALID_CENTRAL_BATCH'):assert
 const sum=(values:string[])=>values.reduce((n,v)=>n.add(v),decimal('0'));
 const money=(value:ReturnType<typeof decimal>)=>value.toFixed(12);
 const remaining=(line:CentralIssue)=>decimal(line.quantity).sub(line.returned).sub(line.lost);
+const weight=(value:ReturnType<typeof decimal>)=>value.toDecimalPlaces(6).toString();
+function weightImbalanceMessage(inputMass:ReturnType<typeof decimal>,outputMass:ReturnType<typeof decimal>){
+ const difference=outputMass.sub(inputMass),gap=difference.abs();
+ const detail=`إجمالي المواد المستهلكة بعد المرتجعات والفاقد ${weight(inputMass)} كجم، وإجمالي المنتجات المستلمة ${weight(outputMass)} كجم، والفرق ${weight(gap)} كجم.`;
+ if(difference.gt(0))return `الوزن المستلم أكبر من وزن المواد المستهلكة. ${detail} أضف وصرف المكوّن الناقص مثل الماء بكمية ${weight(gap)} كجم، أو صحح كمية/وزن المنتج المستلم إذا كان التسجيل غير دقيق.`;
+ return `وزن المواد المستهلكة أكبر من الوزن المستلم. ${detail} سجّل مرتجعًا أو فاقدًا إضافيًا بمقدار ${weight(gap)} كجم، أو صحح كمية/وزن المنتج المستلم إذا كان الوزن الفعلي أكبر.`;
+}
 const sourceRemaining=(source:CentralIssue['sources'][number])=>decimal(source.quantity).sub(source.returned).sub(source.lost??'0');
 const sourceValue=(source:CentralIssue['sources'][number])=>decimal(source.amount).sub(source.returnedAmount).sub(source.lostAmount??'0');
 function refresh(b:CentralBatch){
@@ -111,7 +118,7 @@ export async function postCentralKitchen(db:Database,access:Access,input:unknown
    const units=(await tx.query<{id:string;name:string}>('SELECT id,name FROM units WHERE organization_id=$1',[org])).rows;
    const mass=(unitId:string)=>{const name=units.find(u=>u.id===unitId)?.name.trim().toLowerCase().replace(/\s/g,'');return ['kg','كجم','كيلوجرام','كيلوغرام'].includes(name??'')?'1':['g','جم','جرام','غرام'].includes(name??'')?'0.001':null;};
    const used=b.issues.filter(i=>remaining(i).gt(0)),comparable=used.every(i=>mass(i.unitId))&&b.receipts.every(r=>mass(r.unitId)||r.weightKg);
-   if(b.receipts.length&&comparable){const inputMass=sum(used.map(i=>remaining(i).mul(mass(i.unitId)!).toString())),outputMass=sum(b.receipts.map(r=>mass(r.unitId)?decimal(r.quantity).mul(mass(r.unitId)!).toString():r.weightKg!));check(inputMass.eq(outputMass),'الوزن المستلم لا يطابق المواد المستهلكة بعد المرتجعات والفاقد؛ أضف الماء أو المكونات أو الفاقد الناقص.','WEIGHT_IMBALANCE');}
+   if(b.receipts.length&&comparable){const inputMass=sum(used.map(i=>remaining(i).mul(mass(i.unitId)!).toString())),outputMass=sum(b.receipts.map(r=>mass(r.unitId)?decimal(r.quantity).mul(mass(r.unitId)!).toString():r.weightKg!));check(inputMass.eq(outputMass),weightImbalanceMessage(inputMass,outputMass),'WEIGHT_IMBALANCE');}
    else if(b.receipts.length)check(c.balanceReason.length>=2,'الوحدات غير قابلة لجمع الوزن؛ اكتب تفسير موازنة الكميات.','BALANCE_REASON_REQUIRED');
    refresh(b);const cost=decimal(b.wipAmount),products=[...new Set(b.receipts.map(r=>r.itemId))];
    let allocations=c.allocations;

@@ -55,7 +55,7 @@ it('holds partial receipts outside the available average, settles original-cost 
 it('rejects unexplained material/weight balances and requires complete explicit cost allocations',async()=>{
  const id=await create();await issue(id);await receive(id,'6');await receive(id,'3','mix');
  await expect(command(id,{type:'central.close',consumption:[],allocations:[],balanceReason:''})).rejects.toMatchObject({code:'UNSETTLED_MATERIALS'});
- await expect(close(id)).rejects.toMatchObject({code:'WEIGHT_IMBALANCE'});
+ await expect(close(id)).rejects.toMatchObject({code:'WEIGHT_IMBALANCE',message:expect.stringContaining('إجمالي المواد المستهلكة بعد المرتجعات والفاقد 10 كجم، وإجمالي المنتجات المستلمة 9 كجم، والفرق 1 كجم')});
  const b=await state(id);await command(id,{type:'central.loss',lines:[{lineId:uuid(),issueLineId:b.issues[0].lineId,quantity:'1',reason:'تشغيل',kind:'normal'}]});
  await expect(close(id)).rejects.toMatchObject({code:'INVALID_COST_ALLOCATION'});
  await close(id,{allocations:[{itemId:'kofta',share:'75'},{itemId:'mix',share:'25'}]});
