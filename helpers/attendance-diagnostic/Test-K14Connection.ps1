@@ -2,7 +2,8 @@ param(
   [string]$Address = '192.168.123.201',
   [ValidateRange(1, 65535)][int]$Port = 4370,
   [ValidateRange(0, 999999999)][int]$CommKey = 0,
-  [ValidateRange(500, 30000)][int]$TimeoutMs = 4000
+  [ValidateRange(500, 30000)][int]$TimeoutMs = 4000,
+  [switch]$ReadAttendanceSample
 )
 
 $ErrorActionPreference = 'Stop'
@@ -56,7 +57,7 @@ try {
 
 $device = $null
 try {
-  $device = New-Object -ComObject 'zkemkeeper.CZKEM'
+  $device = New-Object -ComObject 'zkemkeeper.ZKEM'
   $result.sdkAvailable = $true
   Write-Host 'PASS: ZKTeco Standalone SDK is registered.' -ForegroundColor Green
 } catch {
@@ -100,20 +101,24 @@ try {
   $count = 0
   try { if ($device.GetDeviceStatus(1, 6, [ref]$count)) { $result.attendanceRecordCount = $count } } catch { $result.warnings += ('Attendance count: ' + $_.Exception.Message) }
 
-  try {
-    if ($device.ReadGeneralLogData(1)) {
-      $enroll = ''; $verifyMode = 0; $inOutMode = 0; $year = 0; $month = 0; $day = 0
-      $hour = 0; $minute = 0; $second = 0; $workCode = 0
-      if ($device.SSR_GetGeneralLogData(1, [ref]$enroll, [ref]$verifyMode, [ref]$inOutMode, [ref]$year, [ref]$month, [ref]$day, [ref]$hour, [ref]$minute, [ref]$second, [ref]$workCode)) {
-        $result.attendanceReadTest = $true
-        try { $result.attendanceSampleTime = ([DateTime]::new($year, $month, $day, $hour, $minute, $second)).ToString('s') } catch {}
+  if ($ReadAttendanceSample) {
+    try {
+      if ($device.ReadGeneralLogData(1)) {
+        $enroll = ''; $verifyMode = 0; $inOutMode = 0; $year = 0; $month = 0; $day = 0
+        $hour = 0; $minute = 0; $second = 0; $workCode = 0
+        if ($device.SSR_GetGeneralLogData(1, [ref]$enroll, [ref]$verifyMode, [ref]$inOutMode, [ref]$year, [ref]$month, [ref]$day, [ref]$hour, [ref]$minute, [ref]$second, [ref]$workCode)) {
+          $result.attendanceReadTest = $true
+          try { $result.attendanceSampleTime = ([DateTime]::new($year, $month, $day, $hour, $minute, $second)).ToString('s') } catch {}
+        }
       }
+    } catch {
+      $result.warnings += ('Read-only attendance test: ' + $_.Exception.Message)
     }
-  } catch {
-    $result.warnings += ('Read-only attendance test: ' + $_.Exception.Message)
   }
 
-  if ($result.attendanceReadTest) {
+  if (-not $ReadAttendanceSample) {
+    $result.message = 'The device connection succeeded. Device information and counters were checked; attendance records were not read, imported, changed, or deleted.'
+  } elseif ($result.attendanceReadTest) {
     $result.message = 'Connection and read-only attendance test succeeded. No attendance record was uploaded, changed, or deleted.'
   } else {
     $result.message = 'The device connection succeeded. Device information was read, but no attendance sample was returned; check whether records exist and whether another program is holding the device.'
