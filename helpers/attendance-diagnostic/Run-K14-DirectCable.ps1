@@ -2,7 +2,8 @@ param(
   [string]$InterfaceAlias = 'Ethernet',
   [string]$LaptopAddress = '192.168.123.200',
   [string]$DeviceAddress = '192.168.123.201',
-  [int]$Port = 4370
+  [int]$Port = 4370,
+  [ValidateRange(0, 999999999)][int]$CommKey = 0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,7 +14,8 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     ' -InterfaceAlias "' + $InterfaceAlias + '"' +
     ' -LaptopAddress "' + $LaptopAddress + '"' +
     ' -DeviceAddress "' + $DeviceAddress + '"' +
-    ' -Port ' + $Port
+    ' -Port ' + $Port +
+    ' -CommKey ' + $CommKey
   $process = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -Verb RunAs -Wait -PassThru
   exit $process.ExitCode
 }
@@ -33,7 +35,7 @@ try {
 
   $powerShell32 = Join-Path $env:WINDIR 'SysWOW64\WindowsPowerShell\v1.0\powershell.exe'
   if (-not (Test-Path -LiteralPath $powerShell32)) { $powerShell32 = 'powershell.exe' }
-  & $powerShell32 -NoLogo -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-K14Connection.ps1') -Address $DeviceAddress -Port $Port
+  & $powerShell32 -NoLogo -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-K14Connection.ps1') -Address $DeviceAddress -Port $Port -CommKey $CommKey
   $diagnosticExit = $LASTEXITCODE
   $nodeModule = Join-Path $PSScriptRoot '..\..\.cache\k14-node\node_modules\node-zklib\zklib.js'
   if ($diagnosticExit -eq 3 -and (Get-Command node.exe -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath $nodeModule)) {
