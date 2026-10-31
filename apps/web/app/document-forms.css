@@ -369,3 +369,35 @@
  .opening-import-popover{position:fixed;inset:74px 12px auto;width:auto;max-height:calc(100dvh - 150px)}
  .opening-header-import>summary small{display:none}
 }
+
+/* Keep every material composer as one readable horizontal strip. */
+.receiving-composer-row,.kitchen-issue-form .kitchen-composer-row{display:flex;grid-column:1/-1;flex-wrap:nowrap;align-items:flex-start;gap:8px;min-width:0;overflow-x:auto;overflow-y:hidden;padding:0 0 3px;scrollbar-width:thin}
+.receiving-composer-row .receiving-composer-main,.receiving-composer-row .receiving-composer-details{display:contents}
+.receiving-composer-row label,.kitchen-issue-form .kitchen-composer-row label{flex:1 0 130px;min-width:130px;margin:0}
+.receiving-composer-row .receiving-composer-main>label:first-child,.kitchen-issue-form .kitchen-composer-row .kitchen-item-field{flex:2 0 230px;min-width:230px}
+.receiving-composer-row .receiving-composer-details>label:first-child,.kitchen-issue-form .kitchen-composer-row .kitchen-price-field{flex:1.25 0 180px;min-width:180px}
+.receiving-composer-row .receiving-entry-add,.kitchen-issue-form .kitchen-composer-row .kitchen-entry-add{flex:0 0 auto;width:auto!important;min-width:122px;margin-top:18px!important;white-space:nowrap}
+.receiving-composer-row .field-error,.kitchen-issue-form .kitchen-composer-row .field-error{max-width:none;overflow-wrap:anywhere}
+
+@media(min-width:900px){
+ .receipt-modal .receiving-workspace,.kitchen-entry-workspace{display:flex!important;flex-direction:column;gap:8px;min-height:0;overflow:hidden!important}
+ .receipt-modal .receiving-workspace>.receiving-composer,.kitchen-entry-workspace>.kitchen-entry-composer{flex:0 0 auto;min-height:0;overflow:visible!important}
+ .receipt-modal .receiving-receipt-pane,.kitchen-entry-workspace>.kitchen-receipt-section{flex:1 1 auto;min-height:0}
+}
+
+/* Compact review and save area so the material list keeps the viewport height. */
+.kitchen-issue-modal .kitchen-issue-form .workflow-footer{padding:6px 14px 8px}
+.kitchen-issue-modal .workflow-footer .form-error-summary{margin:0 0 6px;padding:6px 10px;font-size:11px;line-height:1.4}
+.kitchen-issue-modal .kitchen-issue-actions{grid-template-columns:minmax(0,1fr) auto;gap:5px 16px;align-items:center}
+.kitchen-issue-modal .kitchen-issue-total>div{gap:10px;flex-wrap:nowrap}
+.kitchen-issue-modal .kitchen-issue-total strong{font-size:18px;line-height:1.25}
+.kitchen-issue-modal .kitchen-issue-total>small{margin-top:1px;font-size:9px;line-height:1.35}
+.kitchen-issue-modal .kitchen-consumption-note{color:#64748b}
+.kitchen-issue-modal .kitchen-save-buttons{display:flex;align-items:center;gap:8px}
+.kitchen-issue-modal .kitchen-save-buttons :is(.primary,.secondary){min-height:38px;margin:0;padding:7px 12px}
+
+@media(max-width:899px){
+ .receiving-composer-row,.kitchen-issue-form .kitchen-composer-row{padding-bottom:6px}
+ .kitchen-issue-modal .kitchen-issue-actions{grid-template-columns:1fr;gap:6px}
+ .kitchen-issue-modal .kitchen-save-buttons{display:grid;grid-template-columns:minmax(0,1fr) 84px}
+}

@@ -174,9 +174,8 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,seed,co
    </CollapsibleSection>
    </div>
    <div className="workflow-actions kitchen-issue-actions">
-    <div className="kitchen-issue-total"><div><span>إجمالي المستند · {number(lines.length)} مادة</span><strong>{total===null?'—':number(total)+' ج.م'}</strong></div><small>{total===null?(lines.length?'لا تتوفر تكلفة مؤكدة لبعض المواد؛ تُثبت القيمة بعد قبول المزامنة.':'يظهر بعد إضافة المواد إلى القائمة.'):'سعر خاص بمستند المطبخ؛ تكلفة المخزون لا تتغير.'}</small>{shortageCount>0&&<span className="kitchen-shortage-count" role="status">راجع الكمية في {number(shortageCount)} مادة</span>}</div>
+    <div className="kitchen-issue-total"><div><span>إجمالي المستند · {number(lines.length)} مادة</span><strong>{total===null?'—':number(total)+' ج.م'}</strong></div><small>{total===null?(lines.length?'لا تتوفر تكلفة مؤكدة لبعض المواد؛ تُثبت القيمة بعد قبول المزامنة.':'يظهر بعد إضافة المواد إلى القائمة.'):'سعر خاص بمستند المطبخ؛ تكلفة المخزون لا تتغير.'}</small>{shortageCount>0&&<span className="kitchen-shortage-count" role="status">راجع الكمية في {number(shortageCount)} مادة</span>}<small className="kitchen-consumption-note">المواد تُنقل إلى مخزون المطبخ بقيمتها الحالية؛ الاستهلاك يحدث عند البيع أو الهالك.</small></div>
     <div className="kitchen-save-buttons"><button type="submit" className="primary">{busy?'جارٍ الحفظ…':'حفظ صرف المطبخ'}</button><button type="button" className="secondary" onClick={close}>إلغاء</button></div>
-    <small className="kitchen-consumption-note">المواد تُنقل إلى مخزون المطبخ بقيمتها الحالية؛ الاستهلاك يحدث عند البيع أو الهالك.</small>
    </div>
   </WorkflowForm>
  </dialog>{newMaterial&&<SetupEditor section="items" snapshot={{...snapshot,items:catalog}} composeAvailable={false} saved={()=>{}} close={()=>returnToEntry('item')} quickCreate={{name:newMaterial.name,context:'أضف المادة واخترها في سطر الصرف الحالي. بيانات المستند محفوظة. يبدأ رصيد المادة بصفر؛ سجّل استلامًا قبل صرفها.',created:record=>{

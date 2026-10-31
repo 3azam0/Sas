@@ -77,7 +77,7 @@ export default function PurchaseDraftEditor({snapshot,location,initial,seed,busy
    <div className="receiving-workspace">
     <CollapsibleSection key={entryVersion} data-form-scroll className={'receiving-composer'+(editingId?' receiving-composer-editing':'')} aria-labelledby="purchase-entry-title">
      <div className="form-section-heading"><div><h3 id="purchase-entry-title">{editingId?'تعديل المادة':'إضافة مادة'}</h3></div><button type="button" className="text-button" aria-label="إضافة مادة جديدة" disabled={blocked||!!editingId} onClick={()=>setNewMaterial({name:''})}>＋ إضافة مادة جديدة</button></div>
-     <div className="receiving-composer-main">
+     <div className="receiving-composer-row"><div className="receiving-composer-main">
       <label><span className="form-label">المادة <span className="field-required" aria-hidden="true">*</span></span><SearchableSelect aria-label={labels.item} openOnFocus={!notice} value={entry.itemId} disabled={!!editingId} onCreate={name=>setNewMaterial({name})} onChange={event=>{update({itemId:event.target.value,selection:'',factor:''});focusEntry('quantity');}} onSearchEnter={()=>focusEntry('quantity')}>{items.map(item=><option key={item.id} value={item.id}>{item.name} · {item.sku} · {item.unit}</option>)}</SearchableSelect></label>
       <label><span className="form-label">الكمية{item&&' ('+(pack?.name??item.unit)+')'} <span className="field-required" aria-hidden="true">*</span></span><FormInput aria-label={labels.quantity} inputMode="decimal" dir="ltr" placeholder="0.00" validateAs="positive" value={entry.enteredQuantity} onChange={event=>update({enteredQuantity:event.target.value})}/></label>
      </div>
@@ -85,7 +85,7 @@ export default function PurchaseDraftEditor({snapshot,location,initial,seed,busy
       <label><span className="form-label">التكلفة (ج.م / {item?.unit??'وحدة مخزون'}) <span className="field-required" aria-hidden="true">*</span></span><FormInput aria-label={labels.cost} inputMode="decimal" dir="ltr" placeholder="0.00" validateAs="nonnegative" value={entry.unitCost} onChange={event=>update({unitCost:event.target.value})}/></label>
       <label><span className="form-label">وحدة الشراء</span><FormSelect aria-label={labels.unit} disabled={!item} value={entry.selection} onChange={event=>update({selection:event.target.value})}><option value="">{item?.unit??'اختر المادة أولاً'} · وحدة المخزون</option>{item?.purchaseUnits?.map(pack=><option key={pack.id} value={pack.id}>{pack.name} · {pack.factor} {item.unit}</option>)}</FormSelect></label>
       <button type="button" data-keyboard-add className="primary receiving-entry-add" onClick={addEntry}>{editingId?'حفظ تعديل المادة':'إضافة إلى القائمة'} <kbd aria-hidden="true">↵</kbd></button>
-     </div>
+     </div></div>
      <div className="receiving-entry-preview">{pack&&<span className="receiving-conversion">١ {pack.name} = {number(pack.factor)} {item?.unit}</span>}{item&&<><span>كمية المخزون: <strong>{entryQuantity?number(entryQuantity):'—'} {item.unit}</strong></span><span>قيمة المادة: <strong>{entryAmount?number(entryAmount)+' ج.م':'—'}</strong></span></>}{dirty&&<button type="button" className="text-button" onClick={clearEntry}>{editingId?'إلغاء تعديل المادة':'مسح الإدخال'}</button>}</div><p role="status" aria-live="polite" className="kitchen-entry-notice">{notice}</p>
     </CollapsibleSection>
     <CollapsibleSection className={'form-section receipt-items-section kitchen-receipt-section receiving-receipt-pane'+(lines.length<=10?' kitchen-compact-receipt':'')} aria-labelledby="purchase-items-title">
