@@ -35,7 +35,7 @@ export async function handle(request:Request,env:Env,assets:Assets,buildId:strin
   await scoped.arrayBuffer();return sessionCookies(json({ok:true}),session,body.deviceId);
  }
  if(path==='/api/v1/auth/logout'&&request.method==='POST'){
-  const session=readTokens(request);if(session)await fetch(env.SUPABASE_URL+'/auth/v1/logout?scope=local',{method:'POST',headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,Authorization:'Bearer '+session.access_token},signal:AbortSignal.timeout(10000)});
+  const session=readTokens(request);if(session)try{const upstream=await fetch(env.SUPABASE_URL+'/auth/v1/logout?scope=local',{method:'POST',headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,Authorization:'Bearer '+session.access_token},signal:AbortSignal.timeout(10000)});await upstream.body?.cancel();}catch{/* Local logout must still clear the protected browser cookies. */}
   const r=json({ok:true});for(const name of [cookieName,deviceName])r.headers.append('Set-Cookie',`${name}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0`);return r;
  }
  if(path.startsWith('/api/')){

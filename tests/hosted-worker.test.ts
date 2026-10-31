@@ -34,8 +34,9 @@ it('does not misreport authentication or workspace service outages as bad creden
  }
 });
 it('expires both cookies on logout and adds security headers',async()=>{
- vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(null,{status:204})));const worker=createWorker({},'test');
- const r=await worker.fetch(new Request(origin+'/api/v1/auth/logout',{method:'POST',headers:{Origin:origin,Cookie:cookie}}),env);expect(r.headers.get('Set-Cookie')).toContain('Max-Age=0');expect(r.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");expect(r.headers.get('Cache-Control')).toBe('no-store');
+ const fetcher=vi.fn().mockResolvedValue(new Response(null,{status:204}));vi.stubGlobal('fetch',fetcher);const worker=createWorker({},'test');
+ const r=await worker.fetch(new Request(origin+'/api/v1/auth/logout',{method:'POST',headers:{Origin:origin,Cookie:cookie}}),env);expect(r.headers.get('Set-Cookie')).toContain('Max-Age=0');expect(r.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");expect(r.headers.get('Cache-Control')).toBe('no-store');expect(fetcher.mock.calls[0][0]).toContain('/auth/v1/logout?scope=local');
+ fetcher.mockRejectedValueOnce(new Error('offline'));const offline=await worker.fetch(new Request(origin+'/api/v1/auth/logout',{method:'POST',headers:{Origin:origin,Cookie:cookie}}),env);expect(offline.status).toBe(200);expect(offline.headers.get('Set-Cookie')).toContain('Max-Age=0');
 });
 it('allows only the fixed loopback helper connection while retaining other policy boundaries',async()=>{
  const r=await createWorker({},'test').fetch(new Request(origin+'/missing'),env),policy=r.headers.get('Content-Security-Policy')!;
