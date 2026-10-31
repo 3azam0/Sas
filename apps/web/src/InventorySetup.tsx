@@ -38,8 +38,9 @@ export default function InventorySetup({snapshot,rows,expired,synchronize,notify
 }
 
 export function SetupEditor({section,initial,snapshot,close,saved,composeAvailable,quickCreate}:{section:Section;initial?:RecordData;snapshot:Snapshot;close:()=>void;saved:(item?:CompositionItem)=>void;composeAvailable:boolean;quickCreate?:{name:string;context?:string;created:(item:Extract<SetupCommand,{type:'item.save'}>['record'])=>void}}){
- const [record,setRecord]=useState<RecordData>(()=>({id:initial?.id??crypto.randomUUID(),name:quickCreate?.name??'',sku:'',category:'مواد غذائية',unitId:quickCreate?'':snapshot.units?.[0]?.id??'',minimum:'0',purchaseUnits:[],phone:'',email:'',address:'',kind:'مطعم',active:true,...initial}));
- const [error,setError]=useState(''),[fieldErrors,setFieldErrors]=useState<Record<string,string>>({}),[submitted,setSubmitted]=useState(false),[saving,setSaving]=useState(false),[composeAfterSave,setComposeAfterSave]=useState(false);
+ const blankRecord=(previous?:RecordData):RecordData=>({id:crypto.randomUUID(),name:'',sku:'',category:previous?.category??'مواد غذائية',unitId:previous?.unitId??(quickCreate?'':snapshot.units?.[0]?.id??''),minimum:'0',purchaseUnits:[],phone:'',email:'',address:'',kind:'مطعم',active:true});
+ const [record,setRecord]=useState<RecordData>(()=>initial?{...blankRecord(),...initial}:{...blankRecord(),name:quickCreate?.name??''});
+ const [error,setError]=useState(''),[saveNotice,setSaveNotice]=useState(''),[fieldErrors,setFieldErrors]=useState<Record<string,string>>({}),[submitted,setSubmitted]=useState(false),[saving,setSaving]=useState(false),[composeAfterSave,setComposeAfterSave]=useState(false);
  const dialog=useRef<HTMLDialogElement>(null);
  const packs=record.purchaseUnits??[];
  const unitName=snapshot.units?.find(u=>u.id===record.unitId)?.name??'وحدة المخزون';
@@ -70,7 +71,7 @@ export function SetupEditor({section,initial,snapshot,close,saved,composeAvailab
   return errors;
  }
  function field<K extends keyof RecordData>(key:K,value:RecordData[K]){
-  const next={...record,[key]:value};setRecord(next);setError('');
+  const next={...record,[key]:value};setRecord(next);setError('');setSaveNotice('');
   if(submitted)setFieldErrors(validate(next));
   else setFieldErrors(previous=>Object.fromEntries(Object.entries(previous).filter(([name])=>name!==key&&!name.startsWith(`${key}.`))));
  }
@@ -78,11 +79,15 @@ export function SetupEditor({section,initial,snapshot,close,saved,composeAvailab
   return {'aria-invalid':fieldErrors[key]?true:undefined,'aria-describedby':[hint?`setup-${key}-hint`:undefined,fieldErrors[key]?`setup-${key}-error`:undefined].filter(Boolean).join(' ')||undefined,onBlur:()=>{const message=validate(record)[key];setFieldErrors(previous=>{const next={...previous};if(message)next[key]=message;else delete next[key];return next;});}};
  }
  function message(key:string){return fieldErrors[key]&&<small id={`setup-${key}-error`} className="field-error">{fieldErrors[key]}</small>;}
- async function submit(e:React.FormEvent){
-  e.preventDefault();if(saving)return;setSubmitted(true);const errors=validate(record);setFieldErrors(errors);
+ async function submit(e:React.FormEvent,addAnother=false){
+  e.preventDefault();if(saving)return;setSubmitted(true);setSaveNotice('');const errors=validate(record);setFieldErrors(errors);
   if(Object.keys(errors).length){setError('راجع الحقول المحددة قبل الحفظ.');requestAnimationFrame(()=>{const first=dialog.current?.querySelector<HTMLInputElement|HTMLSelectElement>('[aria-invalid="true"]');if(first){first.dispatchEvent(new CustomEvent('fodo:reveal-control',{bubbles:true}));requestAnimationFrame(()=>{first.focus();first.scrollIntoView({block:'center'});});}});return;}
   setSaving(true);setError('');try{
-   const command=setupCommandSchema.parse(payload(record,crypto.randomUUID()));await saveSetup(command);if(quickCreate&&command.type==='item.save')quickCreate.created(command.record);else saved(composeAfterSave&&command.type==='item.save'&&command.record.active?command.record:undefined);
+   const command=setupCommandSchema.parse(payload(record,crypto.randomUUID()));await saveSetup(command);
+   if(addAnother&&command.type==='item.save'){
+    setRecord(blankRecord(command.record));setFieldErrors({});setSubmitted(false);setComposeAfterSave(false);setError('');setSaveNotice('تم حفظ المادة. أدخل المادة التالية.');requestAnimationFrame(()=>dialog.current?.querySelector<HTMLInputElement>('[aria-label="اسم السجل"]')?.focus());
+   }else if(quickCreate&&command.type==='item.save')quickCreate.created(command.record);
+   else saved(composeAfterSave&&command.type==='item.save'&&command.record.active?command.record:undefined);
   }catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'تعذّر حفظ الإعدادات. راجع البيانات وحاول مرة أخرى.');}finally{setSaving(false);}
  }
  return <dialog ref={dialog} className="modal setup-modal structured-modal" aria-labelledby="setup-editor-title" aria-describedby="setup-editor-description" onCancel={e=>{e.preventDefault();if(!saving)close();}}>
@@ -106,8 +111,8 @@ export function SetupEditor({section,initial,snapshot,close,saved,composeAvailab
     </>}
     {section==='suppliers'&&<CollapsibleSection className="form-section" aria-labelledby="setup-contact-title"><h3 id="setup-contact-title">بيانات الاتصال <small>اختياري</small></h3><div className="form-row"><label><span className="form-label">الهاتف</span><input {...control('phone')} aria-label="هاتف المورد" type="tel" autoComplete="tel" maxLength={40} dir="ltr" placeholder="010 1234 5678" value={record.phone} onChange={e=>field('phone',e.target.value)}/>{message('phone')}</label><label><span className="form-label">البريد الإلكتروني</span><input {...control('email')} aria-label="بريد المورد" type="email" autoComplete="email" maxLength={200} dir="ltr" placeholder="name@example.com" value={record.email} onChange={e=>field('email',e.target.value)}/>{message('email')}</label></div><label><span className="form-label">العنوان</span><input {...control('address')} aria-label="عنوان المورد" maxLength={300} value={record.address} onChange={e=>field('address',e.target.value)}/>{message('address')}</label></CollapsibleSection>}
     {section!=='units'&&!quickCreate&&<CollapsibleSection className="form-section" aria-labelledby="setup-status-title"><h3 id="setup-status-title">إتاحة السجل</h3><label><span className="form-label">الحالة</span><select aria-label="حالة السجل" aria-describedby="setup-active-hint" value={record.active?'active':'inactive'} onChange={e=>field('active',e.target.value==='active')}><option value="active">نشط</option><option value="inactive">غير نشط</option></select><small id="setup-active-hint" className="field-hint">السجل غير النشط يحتفظ بتاريخه، ولا يُستخدم في عمليات مخزون جديدة.</small></label></CollapsibleSection>}
-   </fieldset>{error&&<p className="error form-error-summary" role="alert">{error}</p>}</div>
-   <div className="modal-footer"><div className="document-actions"><DocumentSummary label={singular} value={record.name||`إضافة ${singular}`} detail="يُحفظ على الجهاز أولاً، ثم يُؤكد بعد المزامنة"/><div className="document-buttons"><div className="modal-actions"><button className="primary" type="submit" disabled={saving}>{saving?'جارٍ الحفظ…':quickCreate?'حفظ واختيار':'حفظ الإعدادات'}</button><button className="secondary" type="button" disabled={saving} onClick={close}>إلغاء</button></div></div></div></div>
+   </fieldset>{saveNotice&&<p className="form-note" role="status">{saveNotice}</p>}{error&&<p className="error form-error-summary" role="alert">{error}</p>}</div>
+   <div className="modal-footer"><div className="document-actions"><DocumentSummary label={singular} value={record.name||`إضافة ${singular}`} detail="يُحفظ على الجهاز أولاً، ثم يُؤكد بعد المزامنة"/><div className="document-buttons"><div className="modal-actions">{section==='items'&&!initial&&!quickCreate&&<button className="secondary" type="button" disabled={saving} onClick={event=>void submit(event as unknown as React.FormEvent,true)}>حفظ وإضافة مادة جديدة</button>}<button className="primary" type="submit" disabled={saving}>{saving?'جارٍ الحفظ…':quickCreate?'حفظ واختيار':'حفظ الإعدادات'}</button><button className="secondary" type="button" disabled={saving} onClick={close}>إلغاء</button></div></div></div></div>
   </KeyboardForm>
  </dialog>;
 }

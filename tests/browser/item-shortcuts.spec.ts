@@ -24,6 +24,16 @@ test('inventory adds a material offline without creating stock and restores focu
  expect(s.entries.some((e:any)=>e.itemId===item.id)).toBe(false);
 });
 
+test('item form saves and starts another item without closing',async({page})=>{
+ const first=`مادة متتابعة أولى ${Date.now()}`,second=`مادة متتابعة ثانية ${Date.now()}`;
+ await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await page.getByRole('button',{name:'المخزون',exact:true}).click();
+ const add=page.getByRole('button',{name:'إضافة مادة',exact:true});await add.click();const editor=page.getByRole('dialog',{name:'إضافة مادة',exact:true});
+ await editor.getByLabel('اسم السجل',{exact:true}).fill(first);await editor.getByRole('button',{name:'حفظ وإضافة مادة جديدة',exact:true}).click();
+ await expect(editor).toBeVisible();await expect(editor.getByRole('status')).toContainText('تم حفظ المادة');await expect(editor.getByLabel('اسم السجل',{exact:true})).toHaveValue('');await expect(editor.getByLabel('اسم السجل',{exact:true})).toBeFocused();
+ await editor.getByLabel('اسم السجل',{exact:true}).fill(second);await editor.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();await expect(editor).not.toBeVisible();
+ await page.getByLabel('بحث المواد',{exact:true}).fill(second);await expect(page.getByRole('table').getByText(second,{exact:true})).toBeVisible();
+});
+
 test('receiving visible shortcut preserves quantity and cost and selects a new material offline',async({page,context})=>{
  const name='مادة استلام اختصار '+Date.now(),sku='REC-'+Date.now();
  await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();

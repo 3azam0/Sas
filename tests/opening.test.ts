@@ -40,6 +40,7 @@ it('rejects a whole document when a later line fails with no partial document or
 it('validates dates, duplicate materials, units, quantities, tenant and access before accepting',async()=>{
  const site=await fixture(),doc=document(site);
  await expect(postOpening(db,access,{...doc,businessDate:'2099-01-01'})).rejects.toMatchObject({code:'FUTURE_DATE'});
+ expect(openingSchema.safeParse({...doc,reason:''}).success).toBe(true);expect(openingSchema.safeParse({...doc,reason:'x'}).success).toBe(false);
  expect(openingSchema.safeParse({...doc,lines:[...doc.lines,{...doc.lines[0],lineId:randomUUID()}]}).success).toBe(false);
  await expect(postOpening(db,access,{...doc,lines:[{...doc.lines[0],unitId:'لتر'}]})).rejects.toMatchObject({code:'INVALID_UNIT'});
  await expect(postOpening(db,access,{...doc,lines:[{...doc.lines[0],unitCost:'-1'}]})).rejects.toMatchObject({code:'INVALID_OPENING'});

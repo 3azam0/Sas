@@ -63,7 +63,7 @@ export type SetupCommand=z.infer<typeof setupCommandSchema>;
 
 export const openingSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),locationId:recordId,type:z.literal('opening.post'),
- businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),
+ businessDate:z.iso.date(),reason:z.string().trim().max(200).refine(value=>!value||value.length>=2,'أدخل حرفين على الأقل أو اترك المرجع فارغاً').default(''),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1),currency:z.literal('EGP'),
  lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,quantity:quantitySchema,unitCost:nonNegative,lot:stockLotSchema.optional()})).min(1).max(200),
  source:z.object({fileName:z.string().max(200),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).optional()
 }).superRefine((doc,ctx)=>{
