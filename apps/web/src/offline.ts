@@ -179,7 +179,7 @@ export async function saveOpening(input:OpeningDocument,replacesId?:string){
   const snapshot=requireGrant(await local.snapshots.get(document.organizationId));bindGeneration(snapshot,document);
   const projected=projectSetup(snapshot,await local.setups.where('scope').equals(document.organizationId).toArray());
   const old=replacesId?await local.openings.get(replacesId):undefined;
-  if(replacesId&&(!old||old.scope!==document.organizationId||old.document.locationId!==document.locationId||old.status!=='needsReview'||snapshot.acceptedOperationIds.includes(replacesId)))throw new Error('يمكن تصحيح المستندات المرفوضة فقط في الموقع نفسه.');
+  if(replacesId&&(!old||old.scope!==document.organizationId||old.document.locationId!==document.locationId||!['pending','needsReview'].includes(old.status)||snapshot.acceptedOperationIds.includes(replacesId)))throw new Error('يمكن تعديل المستند المحلي أو تصحيح المستند المرفوض فقط في الموقع نفسه.');
   const owners=await identityOwners();
   if([document.operationId,...document.lines.map(l=>l.lineId)].some(id=>owners.has(id)||snapshot.acceptedOperationIds.includes(id)))throw new Error('معرّف المستند أو السطر مستخدم بالفعل.');
   const pending=await local.openings.where('scope').equals(document.organizationId).toArray();

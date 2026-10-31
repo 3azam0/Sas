@@ -48,6 +48,7 @@ test('enhanced setup form keeps actions visible, explains invalid fields and res
  await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();
  await expectErrorDescribed(page.getByLabel('اسم السجل',{exact:true}),page);
  await page.getByLabel('اسم السجل',{exact:true}).fill(itemName);
+ await page.getByRole('button',{name:/^توسيع قسم وحدات الشراء/}).click();
  for(let index=1;index<=8;index++){
   await page.getByRole('button',{name:'إضافة وحدة شراء',exact:true}).click();
   await page.getByLabel(`اسم العبوة ${index}`,{exact:true}).fill(`عبوة ${index}`);

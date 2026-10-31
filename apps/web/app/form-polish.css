@@ -86,6 +86,52 @@ tbody tr:hover{background:#fbfcfe}
 .form-error-summary{font-size:13px;line-height:1.7;padding:10px 12px;background:#fff2f0;border:1px solid #f5c9c4;border-radius:9px;margin:12px 0 0}
 .setup-modal{width:680px}
 .setup-editor-form>.modal-body>.form-note{margin:0 0 18px;padding:0;background:none;border:0;font-size:12px}
+.item-editor{width:min(800px,calc(100vw - 32px))}
+.setup-editor-heading{min-width:0}
+.setup-editor-eyebrow{display:block;width:max-content;margin-bottom:5px;padding:3px 8px;border-radius:999px;background:#fff1e8;color:#a83b18;font-size:10px;font-weight:700;line-height:1.6}
+.item-form-readiness{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-bottom:12px;border:1px solid #e3e8ef;border-radius:10px;background:#f8fafc;color:#526071;font-size:11px}
+.item-form-readiness>strong{color:#334155;font-size:11px;white-space:nowrap}
+.item-form-readiness>div{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.item-form-readiness span{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:#fff;border:1px solid #dfe5ed;color:#7b8796}
+.item-form-readiness span>span{padding:0;border:0;background:none;font-size:12px}
+.item-form-readiness .is-ready{border-color:#cfe4d7;background:#f1f8f4;color:#267247}
+.item-editor .form-fields{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:14px;align-items:start}
+.item-editor .form-fields>.form-section{margin:0}
+.item-editor .form-fields>.item-optional-section{grid-column:1/-1}
+.setup-section-heading{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.setup-section-heading>div{min-width:0}
+.setup-section-heading h3{margin:0!important}
+.setup-section-heading p{margin:3px 0 0!important;color:#667085;font-size:10px!important;line-height:1.6}
+.setup-section-step{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border-radius:8px;background:#fff0e6;color:#b83f19;font-size:11px;font-weight:750}
+.item-editor .item-basic-section,.item-editor .item-stock-section{border-color:#dfe5ed;box-shadow:0 5px 16px #172a4008}
+.item-editor .item-basic-section h3{font-size:16px!important;font-weight:750;letter-spacing:-.15px}
+.item-editor .item-basic-section .form-label{font-size:13px;font-weight:700;color:#25364c}
+.item-editor .item-basic-section input:not([readonly]),.item-editor .item-basic-section select{font-size:15px;color:#172a40}
+.item-editor .item-basic-section input[aria-label="اسم السجل"]{font-size:17px;font-weight:650;letter-spacing:-.1px}
+.item-editor .item-basic-section .collapsible-body,.item-editor .item-stock-section .collapsible-body{padding-top:2px}
+.item-editor .item-basic-section label,.item-editor .item-stock-section label{margin-bottom:12px}
+.item-editor .item-code-field{padding:10px 11px;border:1px dashed #d9e0e9;border-radius:10px;background:#f8fafc}
+.item-editor .item-code-field input{min-height:40px;background:#f1f4f7;border-color:transparent;color:#526071;font-size:12px}
+.auto-value-badge{margin-inline-start:auto;padding:2px 7px;border-radius:999px;background:#eaf1f7;color:#53687a;font-size:9px;font-weight:650}
+.item-editor .item-optional-section{background:#fbfcfe;border-color:#e5eaf0}
+.item-editor .item-optional-section[data-section-open=false]{padding-block:12px}
+.item-editor .item-optional-section[data-section-open=false] .collapsible-heading{margin-bottom:0}
+.item-editor .item-optional-section .collapsible-heading :is(h3,legend){color:#475569}
+.item-editor .item-save-notice{display:flex;align-items:center;gap:7px!important;margin:12px 0 0!important;padding:10px 12px!important;border:1px solid #cfe4d7!important;border-radius:9px!important;background:#f1f8f4!important;color:#267247!important;font-weight:600}
+.item-editor .item-save-notice::before{content:'✓';display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#dcefe3;color:#267247;font-size:11px}
+.item-import-modal{width:min(820px,calc(100vw - 32px))}
+.item-import-tools{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:end;gap:14px;padding:14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}
+.item-import-tools>label{margin:0!important}
+.item-import-result{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 10px;padding:10px 12px;border-radius:9px;background:#f2f7f4;color:#356b4d;font-size:12px}
+.item-import-result strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-import-result span{white-space:nowrap}
+.item-import-preview{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px}
+.item-import-preview th{position:sticky;top:0;z-index:1;padding:10px 12px;background:#f4f7fa}
+.item-import-preview td{padding:10px 12px}
+.item-import-preview td small{display:block;margin-top:2px}
+.item-import-errors{max-height:180px;overflow:auto;margin-top:12px;padding:12px;border:1px solid #f1c8c1;border-radius:9px;background:#fff7f5}
+.item-import-errors>strong{display:block;margin-bottom:7px;font-size:12px;color:#9d2e21}
+.item-import-errors p{margin:3px 0;font-size:11px;line-height:1.6}
 .pack-empty{display:grid;gap:5px;padding:14px;background:#f8fafc;border:1px dashed #d7dee8;border-radius:10px;margin-bottom:14px;color:var(--muted)}
 .pack-empty strong{font-size:13px;font-weight:550}
 .pack-empty small{font-size:12px;line-height:1.7}
@@ -198,6 +244,18 @@ tbody tr:hover{background:#fbfcfe}
  .modal-footer .operation-summary strong{font-size:19px}
  .modal-footer>.field-hint{font-size:11px;line-height:1.6}
  .modal .form-section{padding:14px;margin-bottom:14px}
+ .item-editor .form-fields{grid-template-columns:1fr;gap:12px}
+ .item-editor .form-fields>.form-section{margin:0}
+ .item-form-readiness{align-items:flex-start;flex-direction:column;padding:9px 10px}
+ .item-form-readiness>div{justify-content:flex-start;width:100%}
+ .item-form-readiness span{flex:1;justify-content:center;min-width:72px}
+ .item-editor .document-buttons>.modal-actions{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .item-editor .document-buttons>.modal-actions .primary{grid-column:1/-1;grid-row:1;min-width:0;width:100%}
+ .item-editor .document-buttons>.modal-actions .secondary{min-width:0}
+ .item-import-tools{grid-template-columns:1fr;align-items:stretch}
+ .item-import-tools>.secondary{width:100%}
+ .item-import-result{align-items:flex-start;flex-direction:column}
+ .item-import-preview{max-height:300px}
  .modal .form-row{flex-direction:column;gap:16px}
  .modal form label{font-size:13px}
  .modal input,.modal select,.modal textarea{font-size:16px}

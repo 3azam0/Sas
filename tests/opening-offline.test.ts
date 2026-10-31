@@ -14,6 +14,12 @@ it('preserves opening documents through reload without changing confirmed balanc
  await expect(saveOpening(opening())).rejects.toThrow('افتتاحي سابق');
  const accepted={...snapshot,acceptedOperationIds:[doc.operationId],balances:[{locationId:'central',itemId:'rice',quantity:'10',value:'200',average:'20'}]};await acceptSnapshot(accepted);expect(projectedQuantity(accepted,[],'central','rice',[doc])).toBe('10.000000');expect((await local.openings.get(doc.operationId))?.status).toBe('accepted');
 });
+it('edits a pending opening by preserving the old local document as superseded history',async()=>{
+ await acceptSnapshot(snapshot);const original=opening();await saveOpening(original);const replacement=opening();replacement.reason='Edited opening';replacement.lines[0].quantity='12';
+ await saveOpening(replacement,original.operationId);
+ expect(await local.openings.get(original.operationId)).toMatchObject({status:'superseded',replacementId:replacement.operationId});
+ expect(await local.openings.get(replacement.operationId)).toMatchObject({status:'pending',replacesId:original.operationId,document:replacement});
+});
 it('uploads openings before dependent stock commands and reconciles accepted quantities',async()=>{
  await acceptSnapshot(snapshot);const doc=opening(),c=stock();await saveCommand(c);await saveOpening(doc);const calls:string[]=[];vi.stubGlobal('navigator',{});
  vi.stubGlobal('fetch',vi.fn(async(url:string,options?:{body?:string})=>{calls.push(url);if(options?.body){const payload=JSON.parse(options.body);return Response.json({operationId:payload.operationId,outcome:'accepted'});}if(!calls.includes('/api/v1/openings'))return Response.json(snapshot);return Response.json({...snapshot,acceptedOperationIds:calls.includes('/api/v1/commands')?[doc.operationId,c.operationId]:[doc.operationId]});}));
