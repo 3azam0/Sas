@@ -1,6 +1,6 @@
 # Fodo — inventory and cost control
 
-Hosted client workspace: https://fodo.am-agent2026.workers.dev. See [Hosted release](docs/Hosted-Release.md) for the current scope, cloud architecture and verification. Sales calculate theoretical consumption and estimated cost without deducting inventory. Local development and client cloud storage are separate.
+Hosted client workspace: https://fodo.am-agent2026.workers.dev. Start a new machine or conversation with the consolidated [project handoff and decision log](docs/Project-Handoff-2026-11-01.md), then use [Hosted release](docs/Hosted-Release.md) for the cloud architecture and verification history. Sales calculate theoretical consumption and estimated cost without deducting inventory. Local development and client cloud storage are separate.
 
 
 Fodo supports Arabic RTL screens, EGP costing, offline inventory workflows and a hosted first-client workspace. The local launcher remains available for development. Full POS, fiscal integrations, billing and account self-service are later releases.
