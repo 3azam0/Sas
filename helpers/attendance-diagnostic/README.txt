@@ -47,3 +47,24 @@ Security
 --------
 Keep port 4370 inside the branch LAN. Do not expose it on the public internet.
 Do not send the device serial number or communication key in public messages.
+
+Additional read-only maintenance helpers (1 November 2026)
+--------------------------------------------------------
+Test-K14ConnectionFromBackup.ps1 reads the communication key from a local MDB
+copy without displaying it. Run-K14-DirectCableUsingBackup.ps1 runs that check
+with a temporary Ethernet address and removes the address afterwards.
+
+Backup-K14SelectedData.ps1 reads employee IDs and fingerprint templates using
+an explicitly supplied mapping JSON and saves a sensitive LOCAL JSON file.
+Run-K14-DirectCableBackup.ps1 wraps that download for a direct Ethernet cable.
+These are maintenance scripts for the completed 65-person migration, not a
+general HR integration. They validate 51 matched employees and 101 templates.
+Use 32-bit Windows PowerShell with Jet OLEDB and the registered ZKTeco SDK.
+MapPath/OutputPath/DatabasePath must be explicit local paths outside Git.
+The original diagnostic remains read-only and does not download templates;
+the selected-data backup helper DOES download biometric templates.
+
+The completed device replacement used private one-time scripts. Those scripts
+and biometric files are excluded from Git and preserved in the private transfer
+archive. Do not rerun replacement on the already prepared device. See
+docs/Device-Migration-2026-11-01.md and docs/Move-To-New-Laptop.md.

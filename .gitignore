@@ -25,3 +25,8 @@ apps/web/public/downloads/foodo-print-windows.json
 
 # Supabase CLI local cache
 supabase/.temp/
+
+# Private employee/biometric exports, one-off scripts and migration archives
+/outputs/
+/tmp/
+/transfer-private/
