@@ -20,6 +20,14 @@ it('posts a multi-line baseline atomically with layers, document history and act
  expect((await db.query<{actor:string}>('SELECT actor FROM audit_events WHERE operation_id=$1',[doc.operationId])).rows[0].actor).toBe('owner');
  await db.exec(schema);expect((await getSnapshot(db,access)).openings?.some(d=>d.document.operationId===doc.operationId)).toBe(true);
 });
+it.each(['', '   ', undefined, '1'])('accepts an optional opening reference %j and preserves stock posting',async(reason)=>{
+ const site=await fixture(),doc={...document(site),reason};
+ expect((await postOpening(db,access,doc)).amount).toBe('200.000000000000');
+ const snapshot=await getSnapshot(db,access);
+ expect(snapshot.openings?.find(d=>d.document.operationId===doc.operationId)?.document.reason).toBe(reason?.trim()??'');
+ expect(snapshot.balances.find(b=>b.locationId===site)?.quantity).toBe('10.000000');
+ expect((await postOpening(db,access,doc)).outcome).toBe('accepted');
+});
 it('deduplicates concurrent same-ID delivery and rejects changed payload or line-ID reuse',async()=>{
  const site=await fixture(),doc=document(site);const results=await Promise.all([postOpening(db,access,doc),postOpening(db,access,doc)]);expect(results[0]).toEqual(results[1]);
  expect((await getSnapshot(db,access)).entries.filter(e=>e.locationId===site)).toHaveLength(1);
