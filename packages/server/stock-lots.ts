@@ -1,0 +1,5 @@
+import {stockLotSchema,type StockLot,type LotMetadata} from '../contracts/inventory-operations';
+import type {QueryDatabase} from './database';
+export function lotMetadata(lot:StockLot|LotMetadata,operationId:string):LotMetadata{return {...stockLotSchema.parse(lot),originId:'originId' in lot?lot.originId:operationId};}
+export async function sourceLot(tx:QueryDatabase,org:string,layerId:string){return (await tx.query<{lot:LotMetadata|null}>('SELECT lot FROM cost_layers WHERE organization_id=$1 AND id=$2',[org,layerId])).rows[0]?.lot??undefined;}
+export async function tagOutputLot(tx:QueryDatabase,org:string,operationId:string,lot?:StockLot){if(!lot)return;const metadata=JSON.stringify(lotMetadata(lot,operationId));await tx.query('UPDATE stock_entries SET lot=$3 WHERE organization_id=$1 AND operation_id=$2',[org,operationId,metadata]);await tx.query('UPDATE cost_layers SET lot=$3 WHERE organization_id=$1 AND sequence=(SELECT sequence FROM stock_entries WHERE organization_id=$1 AND operation_id=$2)',[org,operationId,metadata]);}

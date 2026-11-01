@@ -1,0 +1,10 @@
+/* FooDo brand assets use their native transparent backgrounds. */
+.foodo-brand{display:flex;flex-direction:column;align-items:center;gap:0;min-width:0;direction:ltr}
+.foodo-logo{display:block;width:210px;max-width:100%;height:auto;object-fit:contain}
+.foodo-tagline{font-size:11px;line-height:1.7;color:var(--muted);text-align:center;margin-top:-6px}
+.sidebar .foodo-brand{margin-inline:-4px}
+.sidebar .foodo-logo{width:210px}
+.welcome-card .foodo-brand{margin-bottom:30px}
+.welcome-card .foodo-logo{width:252px}
+.foodo-mark{display:block;width:72px;height:72px;object-fit:contain}
+@media(max-width:760px){.sidebar .foodo-logo{width:174px}.sidebar .foodo-tagline{font-size:10px;margin-top:-4px}.welcome-card .foodo-logo{width:228px}}

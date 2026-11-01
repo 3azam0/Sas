@@ -1,0 +1,74 @@
+# Shared document forms delivery — 12 October 2026
+
+The accepted stock-issue pattern is now applied across receiving, opening stock, purchase drafts/partial receiving, supplier returns, transfers, counts, recipes, production, sales mapping/import and supporting setup/balance/waste editors. Compact details, item cards, labeled phone rows, optional help and pinned summaries/actions replace the earlier inconsistent layouts. Filters and pagination retain values; an empty purchase row preserves the known subtotal and marks it incomplete. See [verified release](./releases/document-forms-ux-2026-10-12.md). Developer guide version 2.34.
+
+Desktop and phone draft checks covered the available client flows without saving operations. Transfer posting and partial purchase receiving still need an isolated browser fixture with multiple active locations and an eligible submitted purchase order; the current client data does not supply those prerequisites. Physical-device and assistive-technology checks remain separate verification work. Full server-history pagination and later business modules remain outside this UI delivery.
+
+# Stock issue form delivery update — 12 October 2026
+
+The stock issue form now has compact document details, readable item/quantity rows, available/remaining stock and average-cost previews, live shortage cues, optional retained notes and a fixed estimate/action footer. Paging and keyboard row navigation are preserved. See [verified release](./releases/stock-issue-form-ux-2026-10-12.md). Developer guide version 2.33.
+
+# Unified catalog delivery update — 12 October 2026
+
+Catalog selectors use one searchable field with focus-open results, name/code filtering, mouse and keyboard selection, preserved uncommitted search, visible validation and menus outside scrolling form bodies. This supersedes earlier search-box-plus-native-selector instructions. See [forms controls](./runbooks/UI-Forms.md) and [verified release](./releases/unified-searchable-dropdown-2026-10-12.md). Guide version 2.32.
+
+# Keyboard delivery update — 12 October 2026
+
+The **اختصارات** button now opens an Arabic keyboard guide on every workspace screen, with compact hints inside forms. Shared forms use Enter/Shift+Enter to move between fields, Ctrl/Command+Enter to explicitly validate/save and Alt+Insert for available row additions; paged rows are revealed before focus. Multiline/file inputs and disabled confirmations retain their behavior. The guide is version 2.31. See [forms controls](./runbooks/UI-Forms.md) and [verified release](./releases/form-keyboard-2026-10-12.md). This supersedes older ordinary-Enter submission instructions below; earlier checkpoints remain history.
+
+# Current delivery update — 11 October 2026
+
+All 14 main workspace screens now use shared pagination, filters and sorting on their relevant lists. Dropdown horizontal padding and responsive forms are improved. The hosted release is verified at `fb6bc4d544733047`; see [list behavior](./runbooks/UI-Lists.md) and [release evidence](./releases/all-screen-ui-2026-10-11.md). The guide is version 2.27. No client data was posted or reset during this work. The dated local checkpoint below is retained as history; its catalog counts, delivery state and proposed next phases are not the current hosted state.
+
+---
+
+# Fodo — إكمال الواجهة والنماذج
+
+آخر تحديث: ١١ أكتوبر ٢٠٢٦. الحالة: **تنفيذ مراحل الواجهة 0–5 مكتمل محلياً** على `feat/ui-form-polish`. النطاق هو تطبيق الويب العربي الحالي للمخزون والتحكم في التكاليف والعمل دون اتصال، للعميل الأول.
+
+المراجع: [دليل التطوير](./Developer-Guide.md)، [الخطة الرئيسية](./Master-Plan.md)، [مراجعة التنفيذ](./Implementation-Review.md)، [دليل تجربة النماذج](./runbooks/UI-Forms.md).
+
+## المراحل المنفذة
+
+| المرحلة | التنفيذ | التحقق |
+|---|---|---|
+| 0 — الإعداد والاستلام والهالك والاسترداد | مجموعات حقول ومطلوب/اختياري ومساعدة وأخطاء مرتبطة بالحقول. عنوان وأزرار ثابتة في الحوار وجسم قابل للتمرير. رفض ملف الاسترداد غير الصالح برسالة عربية وتركيز على الحقل | إعداد بعبوات كثيرة، استلام عدة مواد ووحدات، الهالك، استرداد صالح/خاطئ، Escape وعودة التركيز، حفظ دون اتصال وإعادة التحميل والمزامنة |
+| 1 — نماذج المخزون اليومية | نمط مشترك للرّصيد الافتتاحي والمشتريات والاستلام الجزئي والمرتجعات والتحويلات والجرد. Enter يحفظ الإجراء الأساسي؛ الإضافة والحذف والإغلاق لا ترسل النموذج. فصل مراجعة الجرد واعتماده عن المسودة | أخطاء السطور، حفظ مسودة دون تغيير المخزون، استلام جزئي، عكس وتصحيح، مرتجع من المصدر، تكلفة التحويل، صفر الجرد، تكلفة الزيادة الصريحة ورفض الأساس القديم |
+| 2 — الوصفات والإنتاج والمبيعات | حقول موحدة للوصفات والمكونات والإنتاج وربط أصناف البيع. خطوات ظاهرة للمصدر/الملف/ربط الأعمدة/المعاينة. توضيح المخطط والفعلي والهالك والتقدير والتكلفة المقبولة | إصدارات الوصفات المثبتة، تحويلات الكمية، إنتاج ناجح وفاشل وتصحيح مرتبط، CSV غير صالح/غير مربوط/مكرر، حفظ ومزامنة دون تكرار |
+| 3 — القائمة الكاملة للأصناف | بحث بالاسم العربي أو الكود في اختيار المواد، يحتفظ بالاختيار عند تغيير البحث. بحث الجرد وتصنيفه وحالة العد لا تفقد القيم، وتكشف السطر الخاطئ المخفي عند الحفظ. جداول داخل نطاق تمريرها | قائمة اختبار ٣٢٨ صنفاً، بحث عربي وكود دون اتصال، مسح البحث، حفظ الاختيار والعدد صفر، كشف الخطأ المخفي، عدم إدخال بيانات مؤسسة أخرى |
+| 4 — الحالات والمزامنة | حالات مشتركة بالنص واللون؛ انتظار التأكيد منفصل عن القبول. المراجعة أولاً مع أسباب الرفض وإجراءاتها. روابط المصدر والبديل تفتح السجل وتوسعه وتبرز المستند. أسباب ظاهرة للمتطلبات الناقصة والإجراءات المعطلة | انتهاء الجلسة وتجديدها مع حفظ الطابور، إعادة المحاولة والتصحيح والإلغاء، فتح استلام المصدر من المرتجع، عدم تكرار أثر المخزون |
+| 5 — الموبايل وRTL وإتاحة الاستخدام | تنقل موبايل مضغوط مع ظهور القسم النشط؛ حقول وأزرار رئيسية 44px، تركيز واضح، تقليل الحركة، تمرير خطأ المستند داخل جسم النموذج مع بقاء إجراء الحفظ ظاهرًا | كمبيوتر، تابلت 820×1180، هاتف 390×844 وهاتف قصير 390×640. Enter/Escape، أخطاء مرتبطة بالحقل، أسماء عربية وأرقام عربية، لقطات تمت مراجعتها |
+
+## النمط المشترك للنماذج
+
+[FormControls](../apps/web/src/FormControls.tsx) يوفر الحقول والتحقق الأولي والبحث ونموذج المستند ذي الجسم القابل للتمرير والإجراءات المنفصلة. تبقى قواعد Zod والنطاق المؤسسي والتحقق المحلي وقبول الخادم هي المرجع النهائي. إعداد المخزون والاستلام والهالك يحتفظ كل منها بتحققه الحالي مع تحسين عرضه.
+
+- الكمية توضح وحدتها والتكلفة توضح أساس السعر. لا تُفترض معاملات عبوة غير معروفة.
+- أول حقل خاطئ يظهر ويحصل على التركيز، دون تحريك الصفحة بما يخفي أزرار النموذج خلف تنقل الهاتف.
+- الحفظ يعطّل الحقول والأزرار أثناء المعالجة، وتبقى الرسالة بجوار الحقل أو في ملخص المستند.
+- في الجرد: الفراغ غير معدود، والصفر قيمة عد فعلية. يمكن حفظ مسودة الزيادة دون تكلفة، لكن الاعتماد يحتاج تكلفة صريحة لكل زيادة.
+- البيانات المدخلة تبقى أثناء البحث والفلترة وتصحيح الخطأ في النموذج المفتوح. المستند المحفوظ محلياً يستمر بعد إعادة التحميل؛ النص الذي لم يُحفظ ليس مسودة دائمة تلقائية.
+
+## حالات العمليات
+
+[OperationStatus](../apps/web/src/OperationStatus.tsx) يوحد: **محفوظ محلياً، انتظار تأكيد الخادم، مقبول، تحتاج مراجعة، ملغى محلياً، تم التصحيح**. تبقى حالات الأعمال الخاصة مثل «مسودة شراء» و«جرد معتمد» ظاهرة إلى جانب حالة المزامنة المناسبة. المستند غير المتاح محلياً يعطي رسالة تدعو للمزامنة؛ الروابط لا تنشئ حركات أو تغيّر أرصدة.
+
+## نتيجة التحقق
+
+نجح TypeScript والبناء الإنتاجي وملف أصول العمل دون اتصال (٤١ أصلًا)، ونجح **٢١٦ اختبار وحدة وتكامل في ٣٤ ملفاً** و**٤٣ سيناريو متصفح/مشغّل**: ٤١ حالة ببيانات اختبار منفصلة وحالتان من حساب فارغ.
+
+قياس البحث بين ٣٢٨ صنفاً: **388 مللي ثانية** من تعبئة البحث حتى ظهور الخيارات المطابقة، شاملًا كلفة أتمتة المتصفح. هذه قراءة محلية واحدة وليست قياساً لأجهزة العملاء أو وعداً بزمن ثابت؛ أضيف تقسيم الصفحات لاحقًا بطلب المستخدم كما هو موضح في تحديث التسليم أدناه.
+
+تُراجع اللقطات في مجلد مخرجات `Fodo-UI-Verification-20261011` ومع لقطات الإعداد والاستلام والوصفات والإنتاج والمبيعات. التحقق في متصفحات وشاشات محاكاة؛ لم يُختبر كل جهاز فعلي أو لوحة مفاتيح نظام تشغيل.
+
+تم التحقق من أن بيانات العميل ما زالت **٣٢٨ صنفاً، ٢٠ تصنيفاً مستقلاً، ٦ وحدات، المخزن الرئيسي، وصفر حركات/أرصدة/وصفات**. الاختبارات تستخدم قواعد بيانات ومنافذ منفصلة.
+
+## عرض التحديث وتسليمه
+
+التعديلات محفوظة محلياً على `feat/ui-form-polish` من نقطة الاستلام `a4fd1dc`. دليل التطوير أصبح 2.22. التحقق من المشغّل ونسخة البناء وبيانات العميل تم داخل عملية تملكها جلسة الأدوات؛ اتصال عملية أخرى بالخادم المحلي بقي محجوباً في هذه الجلسة، ولم يمكن تهيئة أداة المتصفح الحي. لذلك أُغلقت عملية التحقق المملوكة للجلسة، ويُعرض البناء من [Start-Fodo.cmd](../Start-Fodo.cmd) المعتاد على العنوان المحفوظ `http://127.0.0.1:3108/`. بعد تشغيله، حدّث المتصفح؛ إذا كان خادم سابق يعمل، أوقف نافذته بـ Ctrl+C قبل تشغيل البناء الجديد.
+
+لا يعني الحفظ المحلي دفع Git أو دمج PR أو نشرًا. تُتبع قواعد الفروع والدفع وPR وCI والبيئات الموجودة في دليل التطوير عند نشر الدفعة.
+
+## العمل الوظيفي التالي
+
+المرحلة التالية في الخطة الرئيسية هي **4C2: استهلاك المخزون من المبيعات بالإصدارات المثبتة، مع قواعد صريحة للمرتجعات والإلغاء**، ثم **4C3: الفعلي مقابل النظري ونسبة تكلفة الغذاء وتقارير الانحراف**. تحسين الواجهة الحالي لا يضيف هذه الحسابات. العضويات والاشتراكات وPOS وبيئة demo مستقلة وتطبيقات الموبايل والكمبيوتر الأصلية تظل خارج هذه الدفعة.

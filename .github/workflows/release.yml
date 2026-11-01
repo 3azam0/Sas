@@ -1,0 +1,50 @@
+name: Fodo draft release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  draft:
+    name: Prepare verified draft
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Validate tag, source and release notes
+        run: node scripts/release-manifest.mjs
+        env:
+          FODO_RELEASE_TAG: ${{ github.ref_name }}
+          FODO_RELEASE_SHA: ${{ github.sha }}
+          FODO_RELEASE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - name: Create draft release with source manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          FODO_RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$FODO_RELEASE_TAG" .cache/release-manifest.json \
+            --verify-tag --draft --title "Fodo $FODO_RELEASE_TAG" \
+            --notes-file "docs/releases/$FODO_RELEASE_TAG.md"
