@@ -8,7 +8,7 @@ test('receiving affects only the selected branch and tenant switching isolates l
  await page.getByLabel('المادة',{exact:true}).selectOption('beef');
  await page.getByLabel('الكمية (كجم)',{exact:true}).fill('2');
  await page.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('100');
- await page.getByLabel('مرجع الاستلام',{exact:true}).fill('اختبار استلام فرع القاهرة');
+ await page.getByLabel('ملاحظة الاستلام (اختياري)',{exact:true}).fill('اختبار استلام فرع القاهرة');
  await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();
  await page.getByRole('button',{name:'مركز المزامنة',exact:false}).first().click();
  await expect(page.getByText('مقبولة',{exact:true})).toBeVisible({timeout:30000});
@@ -34,19 +34,19 @@ test('offline capture survives reload, converges after sync, and rejects overdra
  await page.reload();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();await page.getByRole('button',{name:'مركز المزامنة',exact:false}).first().click();await expect(page.getByText('محفوظة محلياً',{exact:true})).toBeVisible();
  await context.setOffline(false);await page.getByRole('button',{name:'مزامنة الآن',exact:true}).last().click();await expect(page.getByText('مقبولة',{exact:true})).toBeVisible({timeout:30000});
  await page.getByRole('button',{name:'تسجيل هالك',exact:true}).click();await page.getByLabel('المادة',{exact:true}).selectOption('beef');await page.getByLabel('الكمية (كجم)',{exact:true}).fill('999999');await page.getByLabel('سبب الهالك',{exact:true}).fill('اختبار رصيد غير كاف');await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();await expect(page.getByText('تحتاج مراجعة',{exact:true})).toBeVisible({timeout:30000});
- await page.screenshot({path:'../../work/desktop-preview.png',fullPage:true});
+ await page.screenshot({path:'test-results/desktop-preview.png',fullPage:true});
 });
-test('mobile workspace fits a phone viewport',async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.screenshot({path:'../Fodo-Mobile.png',fullPage:false});});
+test('mobile workspace fits a phone viewport',async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.screenshot({path:'test-results/Fodo-Mobile.png',fullPage:false});});
 
 
 
 
 
 test('Fodo filters, Arabic decimal input, cost preview, and keyboard dialog work',async({page})=>{
- await page.goto('/');await expect(page).toHaveTitle(/Fodo/);await page.screenshot({path:'../Fodo-Welcome.png',fullPage:true});
+ await page.goto('/');await expect(page).toHaveTitle(/Fodo/);await page.screenshot({path:'test-results/Fodo-Welcome.png',fullPage:true});
  await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();
  await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();
- await page.screenshot({path:'../Fodo-Desktop.png',fullPage:true});
+ await page.screenshot({path:'test-results/Fodo-Desktop.png',fullPage:true});
  await page.getByRole('button',{name:'المخزون',exact:true}).click();
  await page.getByLabel('تصفية حسب الفئة').selectOption({label:'لحوم'});
  const table=page.getByLabel('جدول مواد المخزون');
@@ -61,7 +61,7 @@ test('Fodo filters, Arabic decimal input, cost preview, and keyboard dialog work
  await page.getByLabel('الكمية (كجم)',{exact:true}).fill('٢٫٥');
  await page.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('١٠');
  await expect(dialog.locator('.operation-summary strong')).toHaveText('٢٥ ج.م');
- await page.screenshot({path:'../Fodo-Form.png',fullPage:false});
+ await page.screenshot({path:'test-results/Fodo-Form.png',fullPage:false});
  await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
  await expect(page.getByRole('button',{name:'استلام مواد',exact:true})).toBeFocused();
 });

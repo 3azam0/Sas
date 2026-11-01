@@ -1,5 +1,8 @@
 # Fodo — Modular Business Management SaaS Master Plan
 
+> Updated costing decision, 29 October 2026: use perpetual weighted average per item/location, not FIFO. [Central Kitchen plan](Central-Kitchen-Plan.md) supersedes older costing and kitchen sequencing below. Existing historical quantities, values and accepted records are preserved. The current implementation includes staged production and general kitchen transfers; production authentication and later recipe/sales/purchasing work remain pending.
+
+
 Updated: 9 October 2026
 
 Status: planning baseline. Client-specific inputs are deferred. This document specifies intended behavior; it does not claim that integrations, compliance, or software have already been implemented.
@@ -90,7 +93,7 @@ Enable modules at organization level and assign them to outlets. Validate depend
 
 ## 6. First-release scope
 
-Include multi-branch access, central locations, catalog and units, suppliers, opening imports, purchasing, receiving, returns, FIFO, transfers, recipes/BOMs, production, yield, waste, counts, external POS imports, consumption reconciliation, basic expenses, dashboards, and audit history.
+Include multi-branch access, central locations, catalog and units, suppliers, opening imports, purchasing, receiving, returns, weighted average, transfers, recipes/BOMs, production, yield, waste, counts, external POS imports, consumption reconciliation, basic expenses, dashboards, and audit history.
 
 Offline-first applies to operational reading and capture from the first release. Authoritative stock posting follows the synchronization policy below.
 
@@ -218,13 +221,13 @@ Rules:
 
 Cache valid published definitions offline. Revoked or superseded definitions follow explicit acceptance rules; never silently substitute a recipe.
 
-## 12. Multi-device stock authority and FIFO ordering
+## 12. Multi-device stock authority and weighted-average posting order
 
 Two disconnected devices cannot guarantee exclusive access to the same stock. V1 shows local provisional availability but validates global stock at server acceptance.
 
 Example: two devices both see 10 kg and request 8 kg. Both may save locally; the server can accept only what the stock policy permits. The other operation remains reviewable. Physical activity already performed must be reconciled explicitly, not erased from history.
 
-V1 authoritative FIFO follows a deterministic server posting sequence. Retain business dates separately for reporting. Late uploads do not silently reallocate finalized costs or rewrite closed periods. Counts and period closure require resolution of known pending work and a defined late-arrival process.
+V1 authoritative weighted-average valuation follows a deterministic server posting sequence. Retain business dates separately for reporting. Late uploads do not silently reallocate finalized costs or rewrite closed periods. Counts and period closure require resolution of known pending work and a defined late-arrival process.
 
 If a customer requires final posting during long disconnections, add either preallocated stock authority or a branch-local posting service with a controlled authority handover. That is a future deployment mode, not an assumed capability of basic sync.
 
@@ -260,7 +263,7 @@ Derive quantities, values, and price indicators from transactions. Normalize pos
 
 ## 16. Inventory and purchasing
 
-Maintain posted ledger, balances, cost layers, and allocations. Atomic server posting validates, locks stock, consumes FIFO, writes movements, updates balances, and audits. Block negative authoritative stock in V1.
+Maintain posted ledger, balances, cost layers, and allocations. Atomic server posting validates, locks stock, issues at current weighted average, writes movements, updates balances, and audits. Block negative authoritative stock in V1.
 
 Purchases support approvals, partial receiving, discounts, charges, tax treatment, price history, and receipt-linked supplier returns. Only accepted posted receiving increases authoritative stock.
 
@@ -296,7 +299,7 @@ V1 supports one primary production output. Co-products/by-products require a def
 
 ## 20. Costing
 
-Provide actual FIFO transaction cost, latest-purchase replacement estimate, and remaining-stock weighted-average estimate.
+Provide actual weighted-average transaction cost, latest-purchase replacement estimate, and remaining-stock weighted-average estimate.
 
 Prepared-item replacement estimates derive from definitions. Show scope, timestamp, missing costs, and fallback source. Keep latest/previous receipt price history. Recalculate affected estimates after prices, layers, or definitions change.
 
@@ -304,7 +307,7 @@ Retain historical transaction allocations. Offline cost views explicitly disting
 
 ## 21. Counts and consumption reconciliation
 
-Counts capture physical observations offline. Finalization resolves intervening movements, cutoffs, pending operations, and approvals online. Negative adjustments use FIFO; positive adjustments use an explicit valuation policy.
+Counts capture physical observations offline. Finalization resolves intervening movements, cutoffs, pending operations, and approvals online. Negative adjustments use the current weighted average; positive adjustments use an explicit valuation policy.
 
 Imported sales generate theoretical consumption without a second physical issue in V1. Compare production actuals against standards separately from sales residual depletion.
 
@@ -410,7 +413,7 @@ Current status: the local receiving/waste/FIFO prototype, Fodo UI and tested loc
 | 0 | Fix session renewal, stable startup, review resolution, recovery import, Git and verified backups |
 | 1 | Real tenant/entity/location foundation, production identity, permissions and sync contracts |
 | 2 | Offline prototype: persistent reload, outbox, retries, conflicts, scoped downloads |
-| 3 | Inventory/FIFO posting engine and reconciliation |
+| 3 | Inventory/average-cost posting engine and reconciliation |
 | 4 | Opening imports, purchasing, receiving, transfers, waste, counts |
 | 5 | Recipes/BOMs, central/local production, yield, costing |
 | 6 | POS imports, consumption reconciliation, expenses, reports |
@@ -447,7 +450,7 @@ Offline checks:
 - Offline permission expiry and tenant switching preserve correct scope.
 - Pending operations survive compatible schema upgrades.
 - Storage exhaustion, attachment failures, and stale snapshots are visible.
-- FIFO acceptance ordering and late uploads do not rewrite finalized history.
+- Average-cost acceptance ordering and late uploads do not rewrite finalized history.
 
 Country/launch checks:
 

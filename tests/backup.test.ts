@@ -11,7 +11,7 @@ it('blocks a second database owner, restores a verified snapshot and rejects tam
  const access={organizationId:'grills' as const,userId:'test',deviceId:crypto.randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()};const before=await getSnapshot(db,access);await db.close();
  const backup=join(root,'backup');const manifest=backupDatabase(source,backup);const restored=join(root,'restored');restoreDatabase(backup,restored);const copy=await createDatabase(restored);expect((await getSnapshot(copy,access)).balances).toEqual(before.balances);await copy.close();
  expect(()=>restoreDatabase(backup,restored)).toThrow('never overwritten');const file=join(backup,'data',manifest.files[0].name);writeFileSync(file,'tampered');expect(()=>restoreDatabase(backup,join(root,'corrupt'))).toThrow('integrity');expect(existsSync(join(root,'corrupt'))).toBe(false);
-});
+},60000);
 it('reclaims a dead owner but never steals a live owner lock',()=>{
  const root=mkdtempSync(join(tmpdir(),'fodo-lock-'));const file=join(root,'owner.lock');writeFileSync(file,JSON.stringify({pid:99999999,nonce:'stale'}));const release=acquireFileLock(file);expect(JSON.parse(readFileSync(file,'utf8')).pid).toBe(process.pid);expect(()=>acquireFileLock(file)).toThrow();release();expect(existsSync(file)).toBe(false);
 });

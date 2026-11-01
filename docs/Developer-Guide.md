@@ -1,5 +1,8 @@
 # Fodo SaaS Developer Guide
 
+> Updated costing decision, 29 October 2026: use perpetual weighted average per item/location, not FIFO. [Central Kitchen plan](Central-Kitchen-Plan.md) supersedes older costing and kitchen sequencing below. Existing historical quantities, values and accepted records are preserved. The current implementation includes staged production and general kitchen transfers; production authentication and later recipe/sales/purchasing work remain pending.
+
+
 Version 2.2 — 9 October 2026
 
 Companion specification: [Modular SaaS Master Plan](./Master-Plan.md).
@@ -380,7 +383,7 @@ BEGIN
   Validate document revision, approval, period, and dependencies
   Lock posting scope and affected item/location balances in stable order
   Normalize quantities and verify availability
-  Allocate FIFO input layers in stable order
+  Issue input stock at the current location weighted average
   Write stock entries and allocation links
   Create output/transit layers where required
   Update quantity and value projections
@@ -391,7 +394,7 @@ COMMIT
 
 Lock ordering must be consistent across receipt, transfer, waste, and production handlers. Retry deadlocks/serialization failures safely under the same operation ID.
 
-Assign a committed posting ordinal within the locked stock scope. FIFO uses layer creation order plus a deterministic tie-breaker, not client clocks. Business dates remain report attributes. Multiple independent scopes need not be globally serialized.
+Assign a committed posting ordinal within the locked stock scope. Weighted-average valuation uses committed posting order, not client clocks. Business dates remain report attributes. Multiple independent scopes need not be globally serialized.
 
 Cost allocations for an issue must equal its issued quantity and amount. Transfers carry allocation fragments; destination layers preserve origin lineage. Production allocates input cost to actual usable output under the V1 single-output policy.
 
@@ -515,7 +518,7 @@ Sources to recheck at country implementation:
 | 0: Setup | Workspace, strict checks, environments, ADRs, fixtures | Clean setup and build documented |
 | 1: Foundation | Tenants/entities/locations, auth, roles, module access, Arabic shell | Two-tenant allow/deny tests pass |
 | 2: Offline prototype | Local DB, PWA, commands, retry, acknowledgment convergence | Offline restart, replay, migration and conflict demos pass |
-| 3: Inventory engine | Units, FIFO, balances, atomic posting, reversals | Ledger/layers reconcile under concurrent issues |
+| 3: Inventory engine | Units, weighted average, balances, atomic posting, reversals | Ledger/layers reconcile under concurrent issues |
 | 4: Operations | Opening imports, suppliers, receipts, transfers, waste, counts | Receive → dispatch → partial receive → count scenario passes |
 | 5: Definitions/production | Versions, resolver, costing, local/central preparation | Nested recipe and yield scenario passes without double consumption |
 | 6: Cost control | POS imports, mappings, periods, theoretical/actual reports, expenses | Seeded reconciled period matches independent expected results |
@@ -527,7 +530,7 @@ Build complete vertical slices in each phase: contract, database, handler, offli
 
 | Scenario | Expected outcome |
 |---|---|
-| Receipt 10 kg at 100, then 20 kg at 130; issue 6 kg | FIFO issue 600; 24 kg remains valued 3,000; average 125 |
+| Receipt 10 kg at 100, then 20 kg at 130; issue 6 kg | Weighted-average issue 720; 24 kg remains valued 2,880; average 120 |
 | Production input cost 1,840; output 9.2 kg | Output layer unit cost 200; no duplicate loss issue |
 | Transfer 5 kg; receive 3 kg | 2 kg remains in transit, cost conserved |
 | Two online issues of 8 and 7 against 10 | At most one can post; no negative accepted stock |
@@ -603,6 +606,6 @@ A task is done when its behavior, error recovery, access scope, offline effects,
 
 Start with a thin vertical slice: two tenants, one permitted stock location each, an item, an opening receipt command, and an offline waste command.
 
-Prove online enrollment, offline reload/capture, durable restart, same-ID retry, transactional FIFO posting, tenant isolation, and projection convergence. Then freeze the initial command and local-storage contracts and expand to receiving and transfers.
+Prove online enrollment, offline reload/capture, durable restart, same-ID retry, transactional average-cost posting, tenant isolation, and projection convergence. Then freeze the initial command and local-storage contracts and expand to receiving and transfers.
 
 No customer-specific file is required for this slice. Use deterministic demonstration data and keep tax, cutoff, count, and browser policy assumptions recorded for later pilot configuration.

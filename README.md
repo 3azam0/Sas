@@ -5,10 +5,11 @@ This is a working local development slice of the master plan, with Arabic RTL sc
 ## What works
 
 - Separate organizations, shared item catalog, and stock per location: Cairo, Alexandria, and a combined central warehouse/preparation kitchen.
-- Material receipts and waste capture, movement history, stock quantity/value, and inspectable FIFO layers.
+- Material receipts and waste capture, movement history, stock quantity/value, and inspectable weighted-average valuation pools.
+- Central-kitchen butchery: user-named beef/lamb products, live-sheep slaughter and beef cutting batches, assigned cost shares, weight/loss reconciliation, and transfers to inventory or branch kitchens with partial receipts and in-transit balances.
 - IndexedDB outbox, provisional local quantities, automatic reconnect sync, and server acceptance without duplicate stock effects.
 - Offline reopening after the application shell and initial data have downloaded.
-- Atomic PostgreSQL posting: command receipt, stock movement, FIFO allocation, balance, and audit record commit together. Insufficient stock rolls back and remains visible for review.
+- Atomic PostgreSQL posting: command receipt, stock movement, average-cost allocation, balance, and audit record commit together. Insufficient stock rolls back and remains visible for review.
 - Responsive web interface and a downloadable JSON recovery archive with preview, validation, and idempotent import.
 - Review queue for rejected offline operations, including retry, correction, and cancellation with linked history.
 - Stable local origin, single-process database ownership, startup health checks, and verified local backup/restore helpers.
@@ -68,13 +69,23 @@ At launcher startup, Fodo creates at most one daily cold backup under `backups/a
 | Money and costing | Decimal.js; six-place quantities/costs, twelve-place extended amounts |
 | Synchronization | Command outbox and atomic full snapshots |
 
-`packages/contracts` defines versioned commands. `packages/domain` contains pure FIFO/projection calculations. `packages/server` owns authoritative posting and tenant scope. `apps/web/src/offline.ts` owns local persistence and synchronization. UI state is never the authoritative inventory balance.
+`packages/contracts` defines versioned commands. `packages/domain` contains decimal costing/projection calculations. `packages/server` owns authoritative posting and tenant scope. `apps/web/src/offline.ts` owns local persistence and synchronization. UI state is never the authoritative inventory balance.
 
 The contracts/domain separation supports future mobile and desktop clients. This slice has not implemented those clients or selected their local database drivers.
 
 Server data and the demo signing key live under `.data-local` for production preview and `.data-dev` for development. Browser tests use `.data-browser-test` (or an explicit `TEST_DATA_DIR`). Do not commit these directories or share their session keys. The launcher configures the allowed origin and enables `SAAS_DEMO_MODE=1` on loopback. `SAAS_DATA_DIR` can select an explicit isolated data directory for checks.
 
 The selected Supabase project is `bkkxrptgwbrwredauopq`. Its public URL and publishable key are configured in ignored `apps/web/.env.local`; `.env.example` contains placeholders only. `./scripts/run.ps1 cloud-check` verifies Auth connectivity without signing anyone in or changing cloud data. This configuration prepares the next SaaS stage; existing inventory sessions and posting remain local until production Auth, tenant permissions, and migrations are implemented. The connected Supabase management account currently lacks access to this project.
+
+## Central Kitchen implementation (29 October 2026)
+
+The warehouse-operated Central Kitchen supports multi-input batches, additional issues, WIP, original-issue-cost unused returns, recorded losses, partial product receipts, processing costs, explicit output shares and closure validation. Finished products return to the main warehouse before general kitchen dispatch/partial receipt. Basic physical counts use an optimistic movement revision and a stated variance reason.
+
+All current receipts/issues, legacy butchery and transfers now use **perpetual weighted average cost per item/location**. Server posting order determines issue cost. Existing quantities, values and accepted history are retained; no dummy-data reset is performed. Old FIFO layer records are retained as history, and active balances become average pools. Receipt revaluation follows value-flow links into present stock, transit, open production and consumed-cost adjustment records.
+
+Partial receipts require an explicit provisional total value within available WIP. Close source production before any dependent production batch closes; a downstream closed batch blocks upstream revaluation. Direct reversal is limited to untouched, isolated output receipts and unallocated processing costs. Returns provide an issue-linked correction; arbitrary dependent reversals are not yet implemented. Mass reconciliation supports kg/g; mixed units require a documented settlement, without inventing density conversions.
+
+The full updated scope and release boundaries are in [Central Kitchen plan](docs/Central-Kitchen-Plan.md). Recipes, sales imports, supplier purchasing, lot expiry, production identities/roles and full count approval/cutoff workflows remain subsequent work. This remains a local demo.
 
 ## Next implementation stages
 
@@ -87,3 +98,16 @@ The selected Supabase project is `bkkxrptgwbrwredauopq`. Its public URL and publ
 Egyptian e-invoicing/e-receipts, other Arab country tax integrations, multi-currency accounting, production authorization, and SaaS billing are not implemented here. Tax settings must remain country adapters in the master plan. This local demo does not establish compliance.
 
 See [the environment report](docs/Environment-Setup.md), [the master plan](docs/Master-Plan.md), and [the developer guide](docs/Developer-Guide.md).
+
+## Central kitchen butchery
+
+Implementation plan and boundaries: [Butchery plan](docs/Butchery-Plan.md).
+
+1. Open **الجزارة → تعريف الأصناف**. Define purchased beef or live-sheep inputs and your own kitchen-product names. All butchery items use kg; sheep batches also record head count. Existing demo beef is already classified as purchased beef. Birds and other inventory categories are excluded from butchery processing.
+2. Receive purchased inputs at main inventory using **استلام مواد**. Use live weight for sheep and the corresponding purchase cost per live kg.
+3. Open **الجزارة → إرسال تحويل**, send inputs to **الجزارة · المطبخ المركزي**, then confirm them under **استلام تحويل**. Only received stock can be processed.
+4. Under **دفعة تجهيز**, choose beef cutting or sheep slaughter/cutting. Enter actual input/output weights, losses, optional processing costs and output cost percentages totaling 100. For sheep, usable carcass weight includes kitchen-usable organs; live weight equals usable weight plus slaughter loss. Output weights plus cutting loss equal usable weight. Record usable by-products as outputs, including zero-cost outputs if needed. Loss cost is absorbed into the outputs, not issued again.
+5. Dispatch finished products directly to main inventory or any branch kitchen. Split deliveries using multiple transfers. Receiving can be partial; remaining quantity and value stay in transit. The destination receives assigned cost, not a new purchase price.
+6. Review confirmed stock, in-transit products and accepted batch costs under **السجل والأرصدة**. Pending/rejected operations appear below the forms; retry after resolving dependencies, or cancel a rejected operation and enter a replacement. Accepted operations are immutable.
+
+Capture works offline after enrollment. Confirmed quantities remain authoritative; workshop commands do not create provisional available stock. Sync newly created items and dispatches before selecting them in downstream forms. The sync center's recovery archive includes both inventory and workshop queues. Existing organization-wide demo permissions apply; production location-specific roles remain planned.

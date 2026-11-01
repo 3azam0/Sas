@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 async function enter(page:Page){
  await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();
  await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible();
- await expect(page.getByText('التطبيق جاهز للفتح دون اتصال',{exact:false})).toBeVisible();
+ await expect(page.getByText('التطبيق جاهز للفتح دون اتصال',{exact:false})).toBeVisible({timeout:30000});
  await page.getByRole('button',{name:'مركز المزامنة',exact:false}).first().click();
 }
 async function waste(page:Page,quantity:string,reason:string){

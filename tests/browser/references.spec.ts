@@ -1,0 +1,14 @@
+import {test,expect} from '@playwright/test';
+
+test('form references are automatic and ordinary forms save without reference or notes',async({page})=>{
+ test.setTimeout(90000);await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible({timeout:30000});
+ const snapshot=async()=>await (await page.request.get('/api/v1/bootstrap')).json();const suffix=Date.now().toString(),name=`صنف تلقائي ${suffix}`;
+ await page.getByRole('button',{name:'المطبخ المركزي',exact:true}).click();await page.getByRole('button',{name:'دليل الأصناف',exact:true}).click();
+ await expect(page.getByLabel('كود المادة',{exact:true})).not.toBeEditable();await page.getByLabel('اسم الصنف',{exact:true}).fill(name);await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();await expect.poll(async()=>(await snapshot()).items.some((i:any)=>i.name===name)).toBe(true);
+ const item=(await snapshot()).items.find((i:any)=>i.name===name);expect(item.sku).toMatch(/^MAT-\d{6,}$/);
+ await page.getByRole('button',{name:'دفعات الإنتاج',exact:true}).click();await expect(page.getByLabel('مرجع الدفعة',{exact:true})).not.toBeEditable();await page.getByLabel('المستلم الفعلي',{exact:true}).fill('أحمد');await page.getByLabel('صنف المخرج 1',{exact:true}).selectOption(item.id);await page.getByLabel('كمية المخرج المخططة 1',{exact:true}).fill('1');await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();
+ await expect.poll(async()=>(await snapshot()).productionBatches.some((b:any)=>b.outputs.some((o:any)=>o.itemId===item.id))).toBe(true);const batch=(await snapshot()).productionBatches.find((b:any)=>b.outputs.some((o:any)=>o.itemId===item.id));expect(batch.reference).toMatch(/^PROD-\d{6,}$/);expect(batch.name).toBe(batch.reference);
+ await page.getByRole('button',{name:'استلام وتسوية',exact:true}).click();await page.getByLabel('الدفعة',{exact:true}).selectOption(batch.id);await page.getByLabel('إجراء التسوية',{exact:true}).selectOption('production.loss');await expect(page.getByLabel('سبب العملية',{exact:true})).toHaveAttribute('required','');
+ await page.getByRole('button',{name:'المخزون',exact:true}).click();await page.getByRole('button',{name:'استلام مواد',exact:true}).click();await page.getByLabel('المادة',{exact:true}).selectOption('beef');
+ await expect(page.getByLabel('مرجع الاستلام',{exact:true})).not.toBeEditable();await page.getByLabel('الكمية (كجم)',{exact:true}).fill('0.123456');await page.getByLabel('تكلفة الوحدة (ج.م)',{exact:true}).fill('10');const before=new Set((await snapshot()).entries.map((e:any)=>e.operationId));await page.getByRole('button',{name:'حفظ العملية',exact:true}).click();await expect.poll(async()=>(await snapshot()).entries.some((e:any)=>!before.has(e.operationId)&&e.type==='receipt.post'&&/^RCV-\d{6,}$/.test(e.reference))).toBe(true);
+});

@@ -7,13 +7,13 @@ let db:PGlite;
 const access:Access={organizationId:'grills',userId:'test-owner',deviceId:randomUUID(),expiresAt:new Date(Date.now()+86400000).toISOString()};
 function command(type:Command['type'],quantity:string,overrides:Partial<Command>={}):Command{return{operationId:randomUUID(),organizationId:'grills',locationId:'central',itemId:'beef',type,quantity,unitCost:type==='receipt.post'?'100':undefined,reason:'test reference',businessDate:'2026-10-09',capturedAt:new Date().toISOString(),schemaVersion:1,...overrides};}
 beforeAll(async()=>{db=await createDatabase();await seed(db);});
-beforeEach(async()=>{await db.exec("TRUNCATE audit_events, layer_allocations, command_receipts, stock_entries, cost_layers, stock_balances RESTART IDENTITY;");});
+beforeEach(async()=>{await db.exec("TRUNCATE valuation_heads,valuation_edges,valuation_nodes,cost_adjustments,production_batches,audit_events, layer_allocations, command_receipts, stock_entries, cost_layers, stock_balances RESTART IDENTITY;");});
 afterAll(async()=>{await db.close();});
 describe('authoritative PostgreSQL posting',()=>{
- it('allocates FIFO independently of current purchase price',async()=>{
+ it('issues at weighted average after receipts at different prices',async()=>{
   await postCommand(db,access,command('receipt.post','10',{unitCost:'100'}));await postCommand(db,access,command('receipt.post','20',{unitCost:'130'}));
-  const result=await postCommand(db,access,command('waste.post','6'));expect(result.amount).toBe('600.000000000000');
-  const snapshot=await getSnapshot(db,access);const beef=snapshot.balances[0];expect(beef.quantity).toBe('24.000000');expect(beef.value).toBe('3000.000000000000');expect(Number(beef.average)).toBe(125);expect(snapshot.layers.map(l=>l.remaining)).toEqual(['4.000000','20.000000']);
+  const result=await postCommand(db,access,command('waste.post','6'));expect(result.amount).toBe('720.000000000000');
+  const snapshot=await getSnapshot(db,access);const beef=snapshot.balances[0];expect(beef.quantity).toBe('24.000000');expect(beef.value).toBe('2880.000000000000');expect(Number(beef.average)).toBe(120);expect(snapshot.layers.map(l=>l.remaining)).toEqual(['24.000000']);
  });
  it('retries the same operation exactly once, including concurrent delivery',async()=>{
   const c=command('receipt.post','10');const results=await Promise.all([postCommand(db,access,c),postCommand(db,access,c)]);expect(results[0]).toEqual(results[1]);
