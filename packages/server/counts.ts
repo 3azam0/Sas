@@ -1,7 +1,8 @@
 import {assertInventoryWrite,assertInventoryManager,assertInventoryDateOpen} from './inventory-permissions';
 import {assertGeneration,planIssue,applyIssue} from './valuation';
 import type {Database} from './database';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
+import {revalueCountStock} from './stock-revaluation';
 import {BusinessError,countCommandSchema,type Access,type CommandResult,type CountDefinition,type CountChange,type FinalizedCount,type StockCount,type StockReconciliation,type Layer} from '@saas/contracts';
 import {allocateFIFO,decimal} from '@saas/domain';
 import {addIncomingStock} from './incoming';
@@ -37,7 +38,7 @@ export async function countSnapshot(tx:Pick<Database,'query'>,org:string){
 
 export async function postCount(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  assertInventoryWrite(access);
- const parsed=countCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من مستند الجرد.',400);const c=parsed.data;if(c.type==='count.finalize')assertInventoryManager(access);
+ const parsed=countCommandSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_COMMAND','تحقق من مستند الجرد.',400);const c=parsed.data;if(c.type==='count.finalize'||c.type==='count.save'&&c.lines.some(l=>l.targetUnitCost!==undefined))assertInventoryManager(access);
  if(c.organizationId!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','ليس لديك صلاحية لهذه المؤسسة.',403);
  const hash=createHash('sha256').update(JSON.stringify(c)).digest('hex');
  return db.transaction(async tx=>{
@@ -81,7 +82,7 @@ export async function postCount(db:Database,access:Access,input:unknown):Promise
     }
     let total=decimal('0');const changes:CountChange[]=[];
     for(const {line,movementId,variance,allocation,value} of prepared){
-     total=total.add(value);
+     let finalValue=value;let revaluation:CountChange['revaluation'];
      if(variance.gt(0))await addIncomingStock(tx,{organizationId:c.organizationId,operationId:movementId,locationId:d.locationId,itemId:line.itemId,quantity:variance.toString(),unitCost:line.surplusUnitCost!,type:'count.adjust',reason:d.reason,businessDate:d.businessDate});
      if(variance.lt(0)){
       await applyIssue(tx,c.organizationId,d.locationId,line.itemId,movementId,variance.neg().toString(),allocation!);
@@ -89,8 +90,10 @@ export async function postCount(db:Database,access:Access,input:unknown):Promise
 
      }
      if(!variance.isZero())await tx.query('UPDATE stock_entries SET count_id=$3,count_line_id=$4 WHERE organization_id=$1 AND operation_id=$2',[c.organizationId,movementId,c.countId,line.lineId]);
-     const change:CountChange={lineId:line.lineId,movementId,itemId:line.itemId,expected:line.expectedQuantity,counted:line.countedQuantity,variance:variance.toString(),amount:value,surplusUnitCost:variance.gt(0)?line.surplusUnitCost:undefined};changes.push(change);
-     await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[c.organizationId,movementId,createHash('sha256').update(JSON.stringify({countOperation:c.operationId,change})).digest('hex'),JSON.stringify({operationId:movementId,outcome:'accepted',amount:value})]);
+     if(line.targetUnitCost!==undefined){revaluation=await revalueCountStock(tx,{organizationId:c.organizationId,locationId:d.locationId,itemId:line.itemId,unitCost:line.targetUnitCost,operationId:variance.isZero()?movementId:randomUUID(),countId:c.countId,lineId:line.lineId,reason:d.reason,businessDate:d.businessDate});finalValue=decimal(value).add(revaluation.difference).toFixed(12);}
+     total=total.add(finalValue);
+     const change:CountChange={lineId:line.lineId,movementId,itemId:line.itemId,expected:line.expectedQuantity,counted:line.countedQuantity,variance:variance.toString(),amount:finalValue,surplusUnitCost:variance.gt(0)?line.surplusUnitCost:undefined,revaluation};changes.push(change);
+     await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[c.organizationId,movementId,createHash('sha256').update(JSON.stringify({countOperation:c.operationId,change})).digest('hex'),JSON.stringify({operationId:movementId,outcome:'accepted',amount:finalValue})]);
     }
     const after=await reconcileStock(tx,c.organizationId);if(after.some(r=>r.locationId===d.locationId&&d.lines.some(l=>l.itemId===r.itemId)&&!r.matches))throw new BusinessError('RECONCILIATION_MISMATCH','فشلت مطابقة الجرد؛ لم تعتمد أي تسوية.');
     amount=total.toFixed(12);await tx.query('INSERT INTO count_finalizations(organization_id,operation_id,count_id,payload,changes,amount) VALUES($1,$2,$3,$4,$5,$6)',[c.organizationId,c.operationId,c.countId,JSON.stringify(c),JSON.stringify(changes),amount]);

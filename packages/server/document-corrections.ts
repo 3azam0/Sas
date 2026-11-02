@@ -35,7 +35,7 @@ export async function postDocumentCorrection(db:Database,access:Access,input:unk
    if(decimal(m.quantity).gt(0)){
     const layer=(await tx.query<{remaining:string}>('SELECT remaining::text FROM cost_layers WHERE organization_id=$1 AND sequence=$2 FOR UPDATE',[org,m.sequence])).rows[0];
     if(!layer||!decimal(layer.remaining).eq(m.quantity))reject('SOURCE_ALREADY_USED','استُهلك أو صُرف جزء من هذا الاستلام. صحح الحركات التابعة أو أرجع المواد أولاً؛ لم يتغير المستند.');
-    if((await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND location_id=$2 AND item_id=$3 AND sequence>$4 AND (quantity<0 OR amount<0)',[org,m.location_id,m.item_id,m.sequence])).rows.length)reject('LATER_STOCK_ACTIVITY','توجد حركات تكلفة أو صرف لاحقة لهذه المادة. صحح الحركات التابعة أولاً.');
+    if((await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND location_id=$2 AND item_id=$3 AND sequence>$4 AND (quantity<0 OR amount<0 OR type=$5)',[org,m.location_id,m.item_id,m.sequence,'count.revalue'])).rows.length)reject('LATER_STOCK_ACTIVITY','توجد حركات تكلفة أو صرف لاحقة لهذه المادة. صحح الحركات التابعة أولاً.');
    }
   }
   const reversalIds:string[]=[];

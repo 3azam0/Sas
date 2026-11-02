@@ -4,7 +4,7 @@ import {createPortal} from 'react-dom';
 import {navigationGroups} from './navigation';
 import type {View} from './store';
 
-type Props={view:View;choose:(view:View)=>void;labels:Record<View,string>;icon:(view:View)=>ReactNode;pending:number;review:number;mobileOpen:boolean;openMobile:(trigger:HTMLButtonElement)=>void;closeMobile:()=>void;mobileTrigger:HTMLElement|null};
+type Props={identity?:ReactNode;view:View;choose:(view:View)=>void;labels:Record<View,string>;icon:(view:View)=>ReactNode;pending:number;review:number;mobileOpen:boolean;openMobile:(trigger:HTMLButtonElement)=>void;closeMobile:()=>void;mobileTrigger:HTMLElement|null};
 const quickViews:View[]=['overview','pos','kitchenDisplay','inventory'];
 function Group({group,view,children}:{group:(typeof navigationGroups)[number];view:View;children:ReactNode}){
  const active=group.views.includes(view),[open,setOpen]=useState(active);
@@ -17,7 +17,7 @@ export default function WorkspaceNavigation(props:Props){
  function item(v:View,close=false){return <button type="button" key={v} aria-current={view===v?'page':undefined} className={view===v?'nav-button active':'nav-button'} onClick={()=>{choose(v);if(close)closeMobile();}}>{icon(v)}{labels[v]}{v==='sync'&&pending+review>0&&<span className="count">{new Intl.NumberFormat('ar-EG').format(pending+review)}</span>}</button>;}
  return <><nav className="workspace-navigation desktop-navigation" aria-label="التنقل الرئيسي">{navigationGroups.map(group=><Group key={group.title} group={group} view={view}>{group.views.map(v=>item(v))}</Group>)}</nav>
   <nav className="workspace-navigation mobile-navigation" aria-label="التنقل السريع">{quickViews.map(v=>item(v))}<button type="button" className={'nav-button '+(!quickViews.includes(view)?'active':'')} aria-haspopup="dialog" aria-expanded={mobileOpen} aria-controls="workspace-mobile-menu" onClick={event=>openMobile(event.currentTarget)}><span className="more-icon" aria-hidden="true">☰</span>القائمة{review>0&&<span className="count">{new Intl.NumberFormat('ar-EG').format(review)}</span>}</button></nav>
-  {mobileOpen&&<MoreNavigation close={closeMobile} trigger={mobileTrigger}>{navigationGroups.map(group=><section className="more-nav-group" key={group.title}><h3>{group.title}</h3>{group.views.map(v=>item(v,true))}</section>)}</MoreNavigation>}
+  {mobileOpen&&<MoreNavigation close={closeMobile} trigger={mobileTrigger}>{props.identity}{navigationGroups.map(group=><section className="more-nav-group" key={group.title}><h3>{group.title}</h3>{group.views.map(v=>item(v,true))}</section>)}</MoreNavigation>}
  </>;
 }
 function MoreNavigation({children,close,trigger}:{children:ReactNode;close:()=>void;trigger:HTMLElement|null}){

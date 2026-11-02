@@ -7,7 +7,7 @@ export type ReconciliationEntry={sequence:string;operationId:string;itemId:strin
 export type ReconciliationCount={countId:string;document:CountDefinition;changes:{itemId:string;counted:string;expected:string;amount:string;movementId:string}[]};
 export type ReconciliationSale=Pick<SalesLine,'versionId'|'outputPerSale'|'quantity'|'businessDate'>&{locationId:string};
 const knownConsumption=new Set(['sales.issue','kitchen.issue','kitchen.reverse']);
-const knownOther=new Set(['opening.reverse','receipt.reverse','kitchen.transfer.reverse.in','kitchen.transfer.reverse.out','opening','opening.post','receipt.post','purchase.receive','purchase.reverse','purchase.return','waste.post','production.input','production.output','butchery.input','butchery.output','transfer.dispatch','transfer.receive','kitchen.transfer.in','kitchen.transfer.out','count.adjust']);
+const knownOther=new Set(['count.revalue','opening.reverse','receipt.reverse','kitchen.transfer.reverse.in','kitchen.transfer.reverse.out','opening','opening.post','receipt.post','purchase.receive','purchase.reverse','purchase.return','waste.post','production.input','production.output','butchery.input','butchery.output','transfer.dispatch','transfer.receive','kitchen.transfer.in','kitchen.transfer.out','count.adjust']);
 
 /** Resolve every recipe ingredient once at its stocked boundary, including unchecked ingredients. */
 export function theoreticalConsumption(sales:ReconciliationSale[],versions:RecipeVersion[]){

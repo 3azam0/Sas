@@ -1,3 +1,7 @@
+# Stock cost edits and opening-save repair — 2 November 2026
+
+Live build `60c04f6fce55e424` / API 31 repairs the browser's zero-row opening-save guard, adds explicit cost-only or combined quantity/cost edits, makes material correction actions easier to find and adds logo/organization disclosures. HR UI improvements are postponed. TypeScript, hosted build, 57 targeted tests and browser checks passed; live reconciliation has zero mismatches. See [release evidence](./releases/stock-price-opening-sidebar-2026-11-02.md). GitHub publication is still blocked by the connected credentials; commits are saved locally.
+
 # Stock document corrections and entry units — 2 November 2026
 
 Build `81c70837fc46bee1` / API 30 adds audited accepted opening/receipt/kitchen-document corrections, compatible entry-unit conversions and fresh opening eligibility for the cleared minced-beef material. The completed employee-profile/job/salary/advance work is included. Migrations `20261102191604` and `20261102191916` are applied; live stock reconciliation has zero mismatches. See [release evidence and restrictions](./releases/stock-document-corrections-units-2026-11-02.md) and [HR profiles](./HR-Profiles.md).

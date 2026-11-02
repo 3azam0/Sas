@@ -131,17 +131,18 @@ export type TransferAction={document:TransferCommand;amount:string;postedAt:stri
 
 const countEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),countId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
 export const countCommandSchema=z.discriminatedUnion('type',[
- z.object({...countEnvelope,type:z.literal('count.save'),entryMode:z.literal('balance_edit').optional(),locationId:recordId,businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),cutoffAt:z.iso.datetime(),stockSequence:z.string().regex(/^(?:0|[1-9]\d{0,18})$/),currency:z.literal('EGP'),lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,expectedQuantity:nonNegative,countedQuantity:nonNegative,surplusUnitCost:nonNegative.optional()})).min(1).max(200)}),
+ z.object({...countEnvelope,type:z.literal('count.save'),entryMode:z.literal('balance_edit').optional(),locationId:recordId,businessDate:z.iso.date(),reason:z.string().trim().min(2).max(200),cutoffAt:z.iso.datetime(),stockSequence:z.string().regex(/^(?:0|[1-9]\d{0,18})$/),currency:z.literal('EGP'),lines:z.array(z.object({lineId:z.uuid(),itemId:recordId,unitId:recordId,expectedQuantity:nonNegative,countedQuantity:nonNegative,surplusUnitCost:nonNegative.optional(),targetUnitCost:nonNegative.optional()})).min(1).max(200)}),
  z.object({...countEnvelope,type:z.literal('count.finalize'),costPolicy:z.literal('explicit'),lines:z.array(z.object({lineId:z.uuid(),movementId:z.uuid()})).min(1).max(200)}),
  z.object({...countEnvelope,type:z.literal('count.cancel'),reason:z.string().trim().min(2).max(200)})
 ]).superRefine((c,ctx)=>{
  if(c.operationId===c.countId)ctx.addIssue({code:'custom',message:'معرّف الجرد مستقل عن العملية'});
- if(c.type==='count.save'&&c.entryMode==='balance_edit'&&(c.lines.length!==1||c.lines[0].expectedQuantity===c.lines[0].countedQuantity))ctx.addIssue({code:'custom',message:'تعديل الرصيد لمادة واحدة وبكمية جديدة مختلفة'});
+ if(c.type==='count.save'&&c.entryMode==='balance_edit'&&(c.lines.length!==1||(c.lines[0].expectedQuantity===c.lines[0].countedQuantity&&c.lines[0].targetUnitCost===undefined)))ctx.addIssue({code:'custom',message:'تعديل الرصيد لمادة واحدة وبكمية جديدة مختلفة'});
+ if(c.type==='count.save'&&c.lines.some(l=>l.targetUnitCost!==undefined)&&(c.entryMode!=='balance_edit'||c.lines.some(l=>Number(l.countedQuantity)<=0)))ctx.addIssue({code:'custom',message:'تعديل التكلفة متاح مع تعديل رصيد مادة واحدة ورصيد جديد موجب'});
  if('lines'in c){const refs=c.lines.map(l=>l.lineId),ids=c.type==='count.save'?c.lines.map(l=>l.itemId):c.lines.map(l=>l.movementId);if(new Set(refs).size!==refs.length||new Set(ids).size!==ids.length||refs.some(id=>id===c.operationId||id===c.countId)||(c.type==='count.finalize'&&ids.some(id=>id===c.operationId||id===c.countId||refs.includes(id))))ctx.addIssue({code:'custom',message:'المواد ومعرّفات سطور الجرد يجب ألا تتكرر'});}
 });
 export type CountCommand=z.infer<typeof countCommandSchema>;
 export type CountDefinition=Extract<CountCommand,{type:'count.save'}>;
-export type CountChange={lineId:string;movementId:string;itemId:string;expected:string;counted:string;variance:string;amount:string;surplusUnitCost?:string};
+export type CountChange={lineId:string;movementId:string;itemId:string;expected:string;counted:string;variance:string;amount:string;surplusUnitCost?:string;revaluation?:{operationId:string;unitCost:string;previousValue:string;value:string;difference:string;layers:{id:string;remaining:string;unitCost:string;remainingValue:string}[]}};
 export type FinalizedCount={document:Extract<CountCommand,{type:'count.finalize'}>;changes:CountChange[];amount:string;postedAt:string};
 export type StockCount={countId:string;revision:number;state:'draft'|'finalized'|'cancelled';document:CountDefinition;postedAt:string;finalization?:FinalizedCount};
 export type StockReconciliation={locationId:string;itemId:string;balanceQuantity:string;balanceValue:string;ledgerQuantity:string;ledgerValue:string;layerQuantity:string;layerValue:string;matches:boolean};

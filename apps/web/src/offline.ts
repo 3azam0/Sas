@@ -187,7 +187,7 @@ export async function saveOpening(input:OpeningDocument,replacesId?:string){
   if(!projected.locations.some(l=>l.id===document.locationId&&l.active!==false))throw new Error('الموقع غير نشط أو غير متاح.');
   for(const line of document.lines){
    if(!projected.items.some(i=>i.id===line.itemId&&i.active!==false))throw new Error('إحدى المواد غير نشطة أو غير متاحة.');
-   if(snapshot.balances.some(b=>b.locationId===document.locationId&&b.itemId===line.itemId)||snapshot.entries.some(e=>e.locationId===document.locationId&&e.itemId===line.itemId)||pending.some(o=>o.id!==replacesId&&o.status!=='cancelled'&&o.status!=='superseded'&&o.document.locationId===document.locationId&&o.document.lines.some(l=>l.itemId===line.itemId)))throw new Error('إحدى المواد لها رصيد أو مستند افتتاحي سابق في الموقع.');
+   if(snapshot.balances.some(b=>b.locationId===document.locationId&&b.itemId===line.itemId&&(!decimal(b.quantity).isZero()||!decimal(b.value).isZero()))||(snapshot.stockHistoryItems?snapshot.stockHistoryItems.some(e=>e.locationId===document.locationId&&e.itemId===line.itemId):snapshot.balances.some(b=>b.locationId===document.locationId&&b.itemId===line.itemId))||snapshot.entries.some(e=>e.locationId===document.locationId&&e.itemId===line.itemId)||pending.some(o=>o.id!==replacesId&&o.status!=='cancelled'&&o.status!=='superseded'&&o.document.locationId===document.locationId&&o.document.lines.some(l=>l.itemId===line.itemId)))throw new Error('إحدى المواد لها رصيد أو مستند افتتاحي سابق في الموقع.');
   }
   await local.openings.add({id:document.operationId,scope:document.organizationId,document,status:'pending',createdAt:document.capturedAt,sourceDeviceId:snapshot.access.deviceId,replacesId});
   if(old)await local.openings.update(old.id,{status:'superseded',replacementId:document.operationId});
@@ -724,7 +724,7 @@ export async function saveBalanceEdit(input:CountDefinition){
  await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions,local.menus,local.sales,local.kitchenIssues,local.finance,local.kitchenOrders,local.butchery,local.central],async()=>{
   const snapshot=requireGrant(await local.snapshots.get(d.organizationId)),line=d.lines[0],rows=await local.counts.where('scope').equals(d.organizationId).toArray();
   if(!snapshot.items.some(i=>i.id===line.itemId&&i.active!==false))throw new Error('المادة غير متاحة أو غير نشطة.');
-  if(decimal(line.expectedQuantity).eq(line.countedQuantity))throw new Error('أدخل رصيداً جديداً مختلفاً عن الرصيد الحالي.');
+  if(decimal(line.expectedQuantity).eq(line.countedQuantity)&&line.targetUnitCost===undefined)throw new Error('أدخل رصيداً جديداً مختلفاً عن الرصيد الحالي.');
   if(decimal(line.countedQuantity).gt(line.expectedQuantity)&&line.surplusUnitCost===undefined)throw new Error('أدخل تكلفة الوحدة المضافة قبل حفظ الزيادة.');
   if(snapshot.reconciliation?.some(r=>r.locationId===d.locationId&&r.itemId===line.itemId&&!r.matches))throw new Error('الرصيد وحركاته غير متطابقة. راجع السجل قبل التعديل.');
   if(await hasUnresolvedStock(d.organizationId,d.locationId)||projectCounts(snapshot,rows).some(c=>c.document.locationId===d.locationId&&c.state==='draft')||rows.some(r=>['pending','acceptedAwaiting','needsReview'].includes(r.status)&&definitionForCount(snapshot,rows,r.command)?.locationId===d.locationId))throw new Error('زامن أو راجع عمليات الموقع والجرد السابقة قبل تعديل الرصيد.');
