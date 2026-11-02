@@ -22,6 +22,7 @@ backups/
 cloud/generated-assets.ts
 apps/web/public/downloads/*.zip
 apps/web/public/downloads/foodo-print-windows.json
+apps/web/public/downloads/foodo-attendance-windows.json
 
 # Supabase CLI local cache
 supabase/.temp/

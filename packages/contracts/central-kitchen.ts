@@ -8,6 +8,7 @@ const base={operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]
 const material={lineId:z.uuid(),itemId:id,unitId:id,quantity};
 const settlement={lineId:z.uuid(),issueLineId:z.uuid(),quantity};
 export const centralCommandSchema=z.discriminatedUnion('type',[
+ z.object({...base,type:z.literal('central.amend'),name:z.string().trim().min(2).max(120),operationType:z.enum(['butchery','preparation','manufacturing']),recipeVersionId:z.uuid().optional(),plannedOutput:quantity.optional(),reason:z.string().trim().min(2).max(500)}),
  z.object({...base,type:z.literal('central.create'),locationId:id,name:z.string().trim().min(2).max(120),operationType:z.enum(['butchery','preparation','manufacturing']),recipeVersionId:z.uuid().optional(),plannedOutput:quantity.optional(),butcheryMode:z.enum(['beef','sheep']).optional()}),
  z.object({...base,type:z.literal('central.issue'),lines:z.array(z.object(material)).min(1).max(200)}),
  z.object({...base,type:z.literal('central.return'),recipient:z.string().trim().min(2).max(120),lines:z.array(z.object({...settlement,sourceId:z.uuid().optional()})).min(1).max(200)}),

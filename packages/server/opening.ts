@@ -6,7 +6,7 @@ import {openingSchema,BusinessError,type Access,type CommandResult} from '@saas/
 import {decimal} from '@saas/domain';
 import {addIncomingStock} from './incoming';
 
-export async function postOpening(db:Database,access:Access,input:unknown):Promise<CommandResult>{
+export async function postOpening(db:Database,access:Access,input:unknown,correctedItems?:ReadonlySet<string>):Promise<CommandResult>{
  assertInventoryWrite(access);
  const parsed=openingSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_OPENING','تحقق من سطور الرصيد الافتتاحي (٢٠٠ سطر كحد أقصى).',400);
  const doc=parsed.data;
@@ -32,8 +32,8 @@ export async function postOpening(db:Database,access:Access,input:unknown):Promi
    if(!item)throw new BusinessError('INVALID_REFERENCE','إحدى المواد خارج نطاق المؤسسة أو لم تتم مزامنتها.');
    if(!item.active)throw new BusinessError('INACTIVE_RECORD','إحدى المواد غير نشطة.');
    if(item.unit_id!==line.unitId)throw new BusinessError('INVALID_UNIT','وحدة أحد السطور لا تطابق وحدة المخزون الأساسية.');
-   const used=await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND location_id=$2 AND item_id=$3 UNION ALL SELECT 1 FROM stock_balances WHERE organization_id=$1 AND location_id=$2 AND item_id=$3',[doc.organizationId,doc.locationId,line.itemId]);
-   if(used.rows.length)throw new BusinessError('OPENING_EXISTS','إحدى المواد لها حركة سابقة في الموقع. الرصيد الافتتاحي ليس تسوية للمخزون.');
+   const used=await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND location_id=$2 AND item_id=$3 UNION ALL SELECT 1 FROM stock_balances WHERE organization_id=$1 AND location_id=$2 AND item_id=$3 AND (quantity<>0 OR value<>0)',[doc.organizationId,doc.locationId,line.itemId]);
+   if(used.rows.length&&!correctedItems?.has(line.itemId))throw new BusinessError('OPENING_EXISTS','إحدى المواد لها حركة سابقة في الموقع. الرصيد الافتتاحي ليس تسوية للمخزون.');
    total=total.add(decimal(line.quantity).mul(line.unitCost));
   }
   const amount=total.toFixed(12);

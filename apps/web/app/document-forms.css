@@ -401,3 +401,16 @@
  .kitchen-issue-modal .kitchen-issue-actions{grid-template-columns:1fr;gap:6px}
  .kitchen-issue-modal .kitchen-save-buttons{display:grid;grid-template-columns:minmax(0,1fr) 84px}
 }
+
+/* Keep every receipt composer/list reachable: one outer body scroll plus a bounded
+   two-axis material list. No flex ancestor may clip the list or its pagination. */
+:is(.receipt-modal,.kitchen-issue-modal):has(.material-list-scroll) :is(.modal-body,.workflow-body){display:block!important;overflow-y:auto!important;min-height:0;overscroll-behavior:auto;scroll-padding:16px}
+:is(.receipt-modal,.kitchen-issue-modal):has(.material-list-scroll) :is(.receipt-fields,.form-fields){display:block!important;flex:none!important;min-height:0;overflow:visible}
+:is(.receipt-modal,.kitchen-issue-modal):has(.material-list-scroll) :is(.receiving-workspace,.kitchen-entry-workspace){display:block!important;flex:none!important;overflow:visible!important;min-height:0}
+:is(.receipt-modal,.kitchen-issue-modal):has(.material-list-scroll) :is(.receiving-composer,.kitchen-entry-composer){overflow:visible!important;margin-bottom:12px}
+:is(.receipt-modal,.kitchen-issue-modal):has(.material-list-scroll) :is(.receiving-receipt-pane,.kitchen-receipt-section){display:block!important;overflow:visible!important;min-height:0}
+:is(.receiving-receipt-pane,.kitchen-receipt-section):has(.material-list-scroll)>.collapsible-body,:is(.receiving-receipt-pane,.kitchen-receipt-section):has(.material-list-scroll)>.collapsible-body>.collection{display:block!important;flex:none!important;min-height:0}
+.material-list-scroll{display:block;flex:none!important;max-height:min(45dvh,420px);min-height:0!important;max-width:100%;overflow:auto!important;overscroll-behavior:auto;scrollbar-gutter:stable;scroll-padding:12px;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+.material-list-scroll:focus-visible{outline:2px solid var(--primary,#d94b20);outline-offset:2px}
+
+.quantity-unit-input{display:flex;flex-direction:column;gap:5px;min-width:0;max-width:100%}.quantity-unit-controls{display:flex;align-items:stretch;gap:6px;min-width:0}.quantity-unit-controls>input{flex:1 1 80px;min-width:0;width:100%}.quantity-unit-controls>select{flex:0 1 110px;min-width:64px;max-width:140px;margin:0;padding:8px;border:1px solid #d7dfe8;border-radius:8px;background:#fff;color:#17212b}.quantity-unit-hint{font-size:10px;line-height:1.5;color:#64748b;white-space:normal}.accepted-correction-reason{display:grid;gap:6px;margin:12px 0}.accepted-correction-reason>input{padding:10px;border:1px solid #d7dfe8;border-radius:8px}.accepted-correction-reason>small{line-height:1.7;color:#64748b}

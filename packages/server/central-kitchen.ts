@@ -121,6 +121,12 @@ export async function postCentralKitchen(db:Database,access:Access,input:unknown
    }
   }else if(c.type==='central.cost'){
    b.processingCosts.push({operationId:c.operationId,amount:c.amount,reason:c.reason});actionAmount=decimal(c.amount);
+  }else if(c.type==='central.amend'){
+   const started=b.issues.length>0||b.receipts.length>0||b.processingCosts.length>0;
+   if(started)check(c.recipeVersionId===b.recipeVersionId&&c.plannedOutput===b.plannedOutput&&c.operationType===b.operationType,'بدأت حركات الدفعة؛ يمكن تعديل الاسم والملاحظات فقط. صحح الحركات من السجل.','PLAN_ALREADY_STARTED');
+   else if(c.recipeVersionId){const version=(await tx.query<{payload:RecipeDefinition}>('SELECT payload FROM recipe_versions WHERE organization_id=$1 AND version_id=$2',[org,c.recipeVersionId])).rows[0]?.payload;check(version&&version.outputMode==='stocked'&&version.effectiveDate<=b.businessDate&&c.plannedOutput,'اختر وصفة مخزنية سارية وكمية إنتاج صالحة.');b.costReference=await freezeRecipeCost(tx,org,b.locationId,c.recipeVersionId,c.plannedOutput!);}
+   else b.costReference=undefined;
+   b.name=c.name;b.notes=c.notes;b.operationType=c.operationType;b.recipeVersionId=c.recipeVersionId;b.plannedOutput=c.plannedOutput;
   }else if(c.type==='central.close'){
    check(b.issues.length||b.processingCosts.length,'لا توجد مواد أو تكاليف لتسويتها.');
    const dates=(await tx.query<{date:string}>("SELECT MAX(command->>'businessDate') AS date FROM central_actions WHERE organization_id=$1 AND batch_id=$2",[org,b.batchId])).rows[0]?.date;check(!dates||c.businessDate>=dates,'تاريخ الإغلاق يسبق آخر عملية في الدفعة.');

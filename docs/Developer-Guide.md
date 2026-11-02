@@ -1,3 +1,19 @@
+# Stock document corrections and entry units — 2 November 2026
+
+Build `81c70837fc46bee1` / API 30 adds audited accepted opening/receipt/kitchen-document corrections, compatible entry-unit conversions and fresh opening eligibility for the cleared minced-beef material. The completed employee-profile/job/salary/advance work is included. Migrations `20261102191604` and `20261102191916` are applied; live stock reconciliation has zero mismatches. See [release evidence and restrictions](./releases/stock-document-corrections-units-2026-11-02.md) and [HR profiles](./HR-Profiles.md).
+
+# Recipe output, production editing and stock forms — 2 November 2026
+
+Build `da29ad9da58b388a` / API 29 adds automatic ingredient-based recipe yield with manual overrides, audited open-batch amendments, one stock navigation category and shared scrollable material lists. The user-requested production/recipe/minced-beef cleanup is complete; clients must refresh and synchronize after generation rotation. See [release evidence and exact scope](./releases/recipe-output-production-edit-stock-menu-2026-11-02.md).
+
+# Flexible shifts — deployed 2 November 2026
+
+The HR shift-planning tab adds attendance-based detection, dated assignments, daily lateness/early-departure/estimated-work/candidate-overtime summaries and four regular monthly days off. See [rules, limitations and release order](./HR-Shifts.md). Deployed as migration 20261102181825, fodo-api 28 and frontend build 3251c732b442d5e4. No actual employee schedules or shift rules are seeded.
+
+# Employees and K14 attendance — 2 November 2026
+
+Employee profiles, raw attendance history, scoped device pairing/revocation and the Windows LAN sync agent are implemented locally. See [HR implementation and deployment](./HR-Attendance.md) and the [Windows helper instructions](../helpers/attendance-sync/README.md). The new additive HR migration, matching `fodo-api` and frontend must be deployed together before use. The actual K14 roster/punch acceptance remains a physical LAN test. Shifts and payroll remain deferred.
+
 # Printing and exports — 29 October 2026
 
 All existing print previews share PDF/Excel downloads and a browser print fallback. Data CSV outputs retain CSV and add Excel/PDF through `TableExport`. Document serializers preserve original values; reports gather every filtered page with checkpoint/count/identity checks. Workbook context moves to a summary sheet, typed numbers/dates remain sortable, IDs stay literal and user strings never become formulas. PDF reuses prepared Arabic raster pages and the existing safe-size limits. See [audit](./Print-Export-Audit.md), [printing guide](./runbooks/Printing.md) and [release evidence](./releases/print-exports-2026-10-29.md). This is a frontend release; API22, recovery24/legacy compatibility and the print helper are unchanged.

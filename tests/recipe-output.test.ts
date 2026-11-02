@@ -1,0 +1,10 @@
+import {expect,it} from 'vitest';
+import {ingredientOutput} from '../packages/domain/recipe-output';
+import type {RecipeDefinition} from '../packages/contracts';
+const units=[{id:'kg',name:'كجم'},{id:'g',name:'جم'},{id:'l',name:'لتر'},{id:'piece',name:'قطعة'}];
+const material=(quantity:string,unitId='kg'):RecipeDefinition['lines'][number]=>({lineId:'x',kind:'material',itemId:'x',unitId,quantity,inputUnit:'base',enteredQuantity:quantity});
+it('sums the whole batch: 23 kg meat and 3 kg onions yield 26 kg',()=>expect(ingredientOutput([material('23'),material('3')],'kg',units).quantity).toBe('26'));
+it('converts canonical grams and kilograms without floating point drift',()=>{expect(ingredientOutput([material('23'),material('3000','g')],'kg',units).quantity).toBe('26');expect(ingredientOutput([material('0.1'),material('0.2')],'g',units).quantity).toBe('300');});
+it('counts used sub-recipe output once rather than expanding raw ingredients',()=>{const child:RecipeDefinition['lines'][number]={lineId:'child',kind:'recipe',versionId:'v',quantity:'3',enteredQuantity:'3',inputUnit:'base',unitId:'kg'};expect(ingredientOutput([material('23'),child],'kg',units).quantity).toBe('26');});
+it('rejects mixed dimensions, count units and incomplete quantities instead of silently excluding them',()=>{for(const lines of [[material('23'),material('3','l')],[material('23'),material('1','piece')],[material('23'),material('')],[]])expect(ingredientOutput(lines,'kg',units).quantity).toBeNull();expect(ingredientOutput([material('23')],'piece',units).quantity).toBeNull();});
+it('supports volume and rejects totals outside save precision or range',()=>{expect(ingredientOutput([material('2','l'),material('3','l')],'l',units).quantity).toBe('5');expect(ingredientOutput([material('0.000001','g')],'kg',units).quantity).toBeNull();expect(ingredientOutput([material('999999999'),material('1')],'kg',units).quantity).toBeNull();});

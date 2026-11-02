@@ -25,6 +25,17 @@ beforeEach(async()=>{
 });
 afterEach(async()=>{await db.close();});
 
+it('amends batch metadata with an audit trail and reverses the amendment without changing stock',async()=>{
+ const id=await create(),before=await snapshot();const r=await command(id,{type:'central.amend',name:'Corrected batch',operationType:'manufacturing',notes:'Updated plan',reason:'Correct name'});
+ expect(r.b.name).toBe('Corrected batch');expect((await snapshot()).balances).toEqual(before.balances);
+ await postCentralKitchen(db,access,r.c);expect((await state(id)).revision).toBe(r.b.revision);
+ await command(id,{type:'central.reverse',targetOperationId:r.c.operationId,reason:'Undo name correction'});expect((await state(id)).name).toBe('دفعة كفتة');
+});
+it('keeps posted stock and reference plans intact when amending an active batch',async()=>{
+ const id=await create();await issue(id);const before=await snapshot();await command(id,{type:'central.amend',name:'Active renamed',operationType:'manufacturing',reason:'Name correction'});expect((await snapshot()).balances).toEqual(before.balances);
+ await expect(command(id,{type:'central.amend',name:'Changed',operationType:'manufacturing',plannedOutput:'5',reason:'Changed plan after issue'})).rejects.toMatchObject({code:'PLAN_ALREADY_STARTED'});
+});
+
 it('issues a multi-ingredient batch at the pooled average, permits additional issues and deduplicates',async()=>{
  const id=await create(),first=await issue(id,[material('beef','10'),material('onion','2')]);
  expect(first.b).toMatchObject({reference:'PROD-000001',status:'in_progress',issuedAmount:'270.000000000000',wipAmount:'270.000000000000'});

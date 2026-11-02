@@ -1,0 +1,38 @@
+-- Additive employee profiles and read-only device attendance ingestion.
+SET LOCAL search_path=fodo,pg_catalog;
+
+CREATE TABLE IF NOT EXISTS hr_devices(
+ organization_id text NOT NULL REFERENCES organizations(id),device_id uuid NOT NULL,name text NOT NULL,
+ token_hash text NOT NULL UNIQUE,active boolean NOT NULL DEFAULT true,revision integer NOT NULL DEFAULT 1,
+ last_seen_at timestamptz,PRIMARY KEY(organization_id,device_id)
+);
+CREATE TABLE IF NOT EXISTS hr_employees(
+ organization_id text NOT NULL,employee_id uuid NOT NULL,device_id uuid NOT NULL,badge text NOT NULL,
+ name text NOT NULL,device_name text NOT NULL DEFAULT '',phone text NOT NULL DEFAULT '',department text NOT NULL DEFAULT '',
+ job_title text NOT NULL DEFAULT '',hire_date date,active boolean NOT NULL DEFAULT true,notes text NOT NULL DEFAULT '',revision integer NOT NULL DEFAULT 1,
+ PRIMARY KEY(organization_id,employee_id),UNIQUE(organization_id,device_id,badge),
+ FOREIGN KEY(organization_id,device_id) REFERENCES hr_devices(organization_id,device_id)
+);
+CREATE TABLE IF NOT EXISTS hr_punches(
+ organization_id text NOT NULL,device_id uuid NOT NULL,event_key text NOT NULL,badge text NOT NULL,
+ local_time timestamp NOT NULL,verify_mode integer NOT NULL,in_out_mode integer NOT NULL,work_code integer NOT NULL,
+ received_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(organization_id,device_id,event_key),
+ FOREIGN KEY(organization_id,device_id) REFERENCES hr_devices(organization_id,device_id)
+);
+CREATE INDEX IF NOT EXISTS hr_punches_date ON hr_punches(organization_id,local_time,device_id,event_key);
+CREATE TABLE IF NOT EXISTS hr_upload_receipts(
+ organization_id text NOT NULL,device_id uuid NOT NULL,batch_id uuid NOT NULL,payload_hash text NOT NULL,
+ result jsonb NOT NULL,PRIMARY KEY(organization_id,device_id,batch_id),
+ FOREIGN KEY(organization_id,device_id) REFERENCES hr_devices(organization_id,device_id)
+);
+
+DO $$ DECLARE t text; BEGIN
+ FOREACH t IN ARRAY ARRAY['hr_devices','hr_employees','hr_punches','hr_upload_receipts'] LOOP
+  EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
+  EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
+  EXECUTE format('REVOKE ALL ON %I FROM PUBLIC,anon,authenticated',t);
+  EXECUTE format('GRANT SELECT,INSERT,UPDATE ON %I TO fodo_api',t);
+  EXECUTE format('CREATE POLICY tenant_scope ON %I TO fodo_api USING(organization_id=current_setting(''fodo.tenant'',true)) WITH CHECK(organization_id=current_setting(''fodo.tenant'',true))',t);
+ END LOOP;
+END $$;
+REVOKE UPDATE ON hr_punches,hr_upload_receipts FROM fodo_api;

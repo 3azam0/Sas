@@ -6,8 +6,8 @@ import {egyptDate} from './reporting';
 export type ReconciliationEntry={sequence:string;operationId:string;itemId:string;locationId:string;quantity:string;amount:string;type:string;businessDate:string;countId:string|null};
 export type ReconciliationCount={countId:string;document:CountDefinition;changes:{itemId:string;counted:string;expected:string;amount:string;movementId:string}[]};
 export type ReconciliationSale=Pick<SalesLine,'versionId'|'outputPerSale'|'quantity'|'businessDate'>&{locationId:string};
-const knownConsumption=new Set(['sales.issue','kitchen.issue']);
-const knownOther=new Set(['opening','opening.post','receipt.post','purchase.receive','purchase.reverse','purchase.return','waste.post','production.input','production.output','butchery.input','butchery.output','transfer.dispatch','transfer.receive','kitchen.transfer.in','kitchen.transfer.out','count.adjust']);
+const knownConsumption=new Set(['sales.issue','kitchen.issue','kitchen.reverse']);
+const knownOther=new Set(['opening.reverse','receipt.reverse','kitchen.transfer.reverse.in','kitchen.transfer.reverse.out','opening','opening.post','receipt.post','purchase.receive','purchase.reverse','purchase.return','waste.post','production.input','production.output','butchery.input','butchery.output','transfer.dispatch','transfer.receive','kitchen.transfer.in','kitchen.transfer.out','count.adjust']);
 
 /** Resolve every recipe ingredient once at its stocked boundary, including unchecked ingredients. */
 export function theoreticalConsumption(sales:ReconciliationSale[],versions:RecipeVersion[]){
@@ -39,7 +39,7 @@ export function compareConsumption(input:{from:string;to:string;itemId:string;lo
  const sum=(rows:ReconciliationEntry[],field:'quantity'|'amount')=>rows.reduce((n,e)=>n.add(e[field]),decimal('0'));
  const recorded=period.filter(e=>knownConsumption.has(e.type)),waste=period.filter(e=>e.type==='waste.post'),production=period.filter(e=>e.type==='production.input'||e.type==='butchery.input');
  const physicalAdjustments=period.filter(e=>e.type==='count.adjust'&&!input.counts.some(c=>c.countId===e.countId&&c.document.entryMode==='balance_edit'));
- const supplies=period.filter(e=>['kitchen.transfer.in','kitchen.transfer.out','transfer.dispatch','transfer.receive'].includes(e.type));
+ const supplies=period.filter(e=>['kitchen.transfer.in','kitchen.transfer.out','kitchen.transfer.reverse.in','kitchen.transfer.reverse.out','transfer.dispatch','transfer.receive'].includes(e.type));
  if(period.some(e=>e.type==='count.adjust'&&(!e.countId||!input.counts.some(c=>c.countId===e.countId)||input.counts.some(c=>c.countId===e.countId&&c.document.entryMode==='balance_edit'))))issues.push('توجد تسوية رصيد يدوية أو تسوية بلا جرد فعلي في الفترة.');
  if(period.some(e=>!knownConsumption.has(e.type)&&!knownOther.has(e.type)))issues.push('توجد حركة غير مصنفة؛ لا يمكن اعتماد الاستهلاك.');
  let actual:string|null=null,unitCost:string|null=null;

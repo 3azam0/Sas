@@ -1,3 +1,6 @@
+import {postDocumentCorrection} from '../packages/server/document-corrections';
+import {limitedText} from './request-body';
+import {postHr,ingestAttendance,hrTokenHash} from '../packages/server/hr';
 import {postInventoryControl} from '../packages/server/inventory-operations';
 import {inventoryDatabaseError} from '../packages/server/inventory-permissions';
 import {postButchery} from '../packages/server/butchery';
@@ -52,11 +55,24 @@ async function accessFor(request:Request):Promise<Access>{
  const device=request.headers.get('X-Fodo-Device')??'';if(!/^[a-f0-9-]{36}$/i.test(device))throw new BusinessError('INVALID_DEVICE','أعد تسجيل الدخول على هذا الجهاز.',400);
  return {organizationId:rows[0].organization_id,userId:user.id,deviceId:device,role:rows[0].role as Access['role'],expiresAt:new Date(Date.now()+86400000).toISOString()};
 }
-const handlers:Record<string,(db:Database,access:Access,input:unknown)=>Promise<unknown>>={'central-kitchen':postCentralKitchen,'inventory-operations':postInventoryControl,butchery:postButchery,reports:getReport,commands:postCommand,setup:postSetupCommand,openings:postOpening,receipts:postReceiptDocument,'kitchen-issues':postKitchenIssue,purchases:postPurchase,transfers:postTransfer,counts:postCount,recipes:postRecipe,production:postProduction,menu:postMenuItem,sales:postSalesImport,finance:postFinance,'kitchen-orders':postKitchenOrder};
+const handlers:Record<string,(db:Database,access:Access,input:unknown)=>Promise<unknown>>={'document-corrections':postDocumentCorrection,'central-kitchen':postCentralKitchen,'inventory-operations':postInventoryControl,butchery:postButchery,reports:getReport,commands:postCommand,setup:postSetupCommand,openings:postOpening,receipts:postReceiptDocument,'kitchen-issues':postKitchenIssue,purchases:postPurchase,transfers:postTransfer,counts:postCount,recipes:postRecipe,production:postProduction,menu:postMenuItem,sales:postSalesImport,finance:postFinance,'kitchen-orders':postKitchenOrder};
 Deno.serve(async request=>{
  try{
   const route=new URL(request.url).pathname.split('/').filter(Boolean).at(-1)!;
+  if(route==='attendance-sync'&&request.method==='POST'){
+   const token=(request.headers.get('Authorization')??'').replace(/^Bearer /,'');
+   if(!/^fodo_hr_[a-f0-9]{64}$/.test(token))throw new BusinessError('AUTH_REQUIRED','Invalid device credential.',401);
+   const devices=await sql.unsafe('SELECT organization_id FROM fodo.hr_devices WHERE token_hash=$1 AND active',[hrTokenHash(token)]);
+   if(devices.length!==1)throw new BusinessError('AUTH_REQUIRED','Invalid device credential.',401);
+   const org=devices[0].organization_id as Access['organizationId'],access:Access={organizationId:org,userId:'attendance-agent',deviceId:'attendance-agent',role:'viewer',expiresAt:new Date(Date.now()+60000).toISOString()};
+   const text=await limitedText(request,256*1024);if(text===null)return json({code:'TOO_LARGE'},413);
+   return json(await ingestAttendance(tenantDatabase(org,access),org,token,JSON.parse(text)));
+  }
   const access=await accessFor(request),db=tenantDatabase(access.organizationId,access);
+  if(route==='hr'&&request.method==='POST'){
+   const text=await limitedText(request,64*1024);if(text===null)return json({code:'TOO_LARGE'},413);
+   return json(await postHr(db,access,generationInput(request,JSON.parse(text))));
+  }
   if(route==='bootstrap'&&request.method==='GET')return json(await getSnapshot(db,access));
   if(request.method!=='POST'||!handlers[route])return json({code:'NOT_FOUND',message:'المسار غير متاح.'},404);
   const text=await request.text();if(new TextEncoder().encode(text).length>1024*1024)return json({code:'TOO_LARGE'},413);

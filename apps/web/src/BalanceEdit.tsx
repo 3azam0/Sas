@@ -1,4 +1,5 @@
 'use client';
+import UnitQuantityInput from './UnitQuantityInput';
 import {HelpButton} from './ClientGuide';
 import {DocumentSummary} from './DocumentForm';
 import {useEffect,useRef,useState} from 'react';
@@ -25,7 +26,7 @@ export default function BalanceEdit({snapshot,location,itemId,close,saved}:{snap
   <WorkflowForm summary={<DocumentSummary label="الرصيد الجديد" value={quantity?num(quantity)+' '+item.unit:'—'} detail="يُسجّل الفرق والسبب بعد قبول المزامنة"/>} busy={busy} error={error} onEdit={()=>setError('')} documentCheck={()=>difference===null?{message:'أدخل كمية صحيحة غير سالبة.',field:'الرصيد الجديد'}:decimal(difference).isZero()?{message:'الرصيد الجديد يساوي الرصيد الحالي.',field:'الرصيد الجديد'}:undefined} onSubmit={()=>void submit()}>
    <fieldset disabled={busy} className="receipt-fields">
     <div className="balance-edit-summary"><span>الرصيد الحالي <strong>{num(expected)} {item.unit}</strong></span><span>فرق التسوية <strong dir="ltr">{difference===null?'—':(decimal(difference).gt(0)?'+':'')+num(difference)}</strong> {item.unit}</span></div>
-    <label><span className="form-label">الرصيد الجديد ({item.unit})<span className="field-required" aria-hidden="true">*</span></span><FormInput aria-label="الرصيد الجديد" required validateAs="nonnegative" inputMode="decimal" dir="ltr" value={quantity} onChange={e=>setQuantity(normalizeNumber(e.target.value))}/></label>
+    <label><span className="form-label">الرصيد الجديد ({item.unit})<span className="field-required" aria-hidden="true">*</span></span><UnitQuantityInput unitName={item.unit} packs={item.purchaseUnits} aria-label="الرصيد الجديد" required validateAs="nonnegative" inputMode="decimal" dir="ltr" value={quantity} onValue={value=>setQuantity(normalizeNumber(value))}/></label>
     {increasing&&<label><span className="form-label">تكلفة الوحدة المضافة (ج.م / {item.unit})<span className="field-required" aria-hidden="true">*</span></span><FormInput aria-label="تكلفة الوحدة المضافة" required validateAs="nonnegative" inputMode="decimal" dir="ltr" value={cost} onChange={e=>setCost(normalizeNumber(e.target.value))}/><small>تُطبق على الزيادة فقط. راجع السعر المقترح؛ أدخل ٠ إذا كانت الزيادة بلا تكلفة.</small></label>}
     <label><span className="form-label">سبب تعديل الرصيد<span className="field-required" aria-hidden="true">*</span></span><FormInput aria-label="سبب تعديل الرصيد" required minLength={2} maxLength={200} value={reason} onChange={e=>setReason(e.target.value)} placeholder="مثل: تصحيح كمية بعد العد الفعلي"/></label>
     <p className="field-hint">يُحفظ الرصيد السابق والجديد والسبب والمستخدم والتاريخ. التخفيض يُقيّم بطريقة {costingLabel(basis)}.</p>

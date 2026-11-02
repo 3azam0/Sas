@@ -1,3 +1,6 @@
+import {documentCorrectionTables} from './document-corrections';
+import {hrTables} from './hr-schema';
+import {hrShiftTables} from './hr-shifts-schema';
 import {butcheryTables} from './butchery';
 import {centralKitchenTables} from './central-kitchen-schema';
 import {inventoryOperationsTables} from './inventory-operations-schema';
@@ -101,4 +104,4 @@ END IF; END $$;
 export {kitchenInventoryMigration} from './kitchen-inventory-schema';
 import {financeTables} from './finance';
 import {kitchenDisplayTables} from './kitchen-display';
-export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables+butcheryTables+inventoryOperationsTables+centralKitchenTables;
+export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables+butcheryTables+inventoryOperationsTables+centralKitchenTables+hrTables+hrShiftTables+documentCorrectionTables;
