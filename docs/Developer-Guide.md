@@ -1,3 +1,7 @@
+# HR daily attendance and interface — 3 November 2026
+
+Deployed frontend `85d29ca38ab97a27` with `fodo-api` version 32. Daily attendance has separate estimated entry/exit columns, AM/PM timestamps and employee workflow improvements. No migration was required; production retains 65 employees and the 45 confirmed November 1 punches. See [release evidence](./releases/hr-daily-ui-2026-11-03.md).
+
 # Stock cost edits and opening-save repair — 2 November 2026
 
 Live build `60c04f6fce55e424` / API 31 repairs the browser's zero-row opening-save guard, adds explicit cost-only or combined quantity/cost edits, makes material correction actions easier to find and adds logo/organization disclosures. HR UI improvements are postponed. TypeScript, hosted build, 57 targeted tests and browser checks passed; live reconciliation has zero mismatches. See [release evidence](./releases/stock-price-opening-sidebar-2026-11-02.md). GitHub publication is still blocked by the connected credentials; commits are saved locally.

@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {createDatabase,seed} from '../packages/server';
 import {postHr,ingestAttendance,hrTokenHash} from '../packages/server/hr';
 import type {Access} from '../packages/contracts';
-import type {AttendanceUpload,HrData} from '../packages/contracts/hr';
+import type {AttendanceUpload,HrData,DailyAttendanceData} from '../packages/contracts/hr';
 let db:Awaited<ReturnType<typeof createDatabase>>,generation:string,deviceId:string,token:string;
 const access:Access={organizationId:'grills',userId:'owner',deviceId:randomUUID(),role:'owner',expiresAt:'2099-01-01T00:00:00Z'};
 const base=()=>({organizationId:'grills',generation,operationId:randomUUID()});
@@ -13,6 +13,18 @@ const baseWithoutId=()=>({organizationId:'grills',generation});
 const batch=(extra:Partial<AttendanceUpload>={}):AttendanceUpload=>({schemaVersion:1,batchId:randomUUID(),deviceId,users:[{badge:'101',name:'Device name'}],punches:[{badge:'101',localTime:'2026-11-02T08:00:00',verifyMode:1,inOutMode:0,workCode:0}],...extra});
 beforeEach(async()=>{db=await createDatabase();await seed(db,'moving_average',false);generation=(await db.query<{g:string}>("SELECT generation::text AS g FROM organizations WHERE id='grills'")).rows[0].g;deviceId=randomUUID();const r=await postHr(db,access,{...base(),type:'device.create',deviceId,name:'K14'}) as {token:string};token=r.token;});
 afterEach(async()=>{await db.close();});
+it('groups a calendar day into separate first/last punches without inventing an exit or joining midnight to the previous day',async()=>{
+ const punch=(badge:string,localTime:string)=>({badge,localTime,verifyMode:1,inOutMode:0,workCode:0});
+ await ingestAttendance(db,'grills',token,batch({users:[{badge:'101',name:'First employee'},{badge:'102',name:'Second employee'}],punches:[punch('101','2026-11-01T01:22:10'),punch('101','2026-11-01T08:00:00'),punch('101','2026-11-01T13:00:52'),punch('102','2026-11-01T12:07:00'),punch('999','2026-11-01T10:00:00'),punch('101','2026-11-02T00:05:00')]}));
+ const result=await postHr(db,access,{...baseWithoutId(),type:'attendance.daily',from:'2026-11-01',to:'2026-11-02',page:0}) as DailyAttendanceData;
+ expect(result).toMatchObject({total:4,complete:1,missingOut:3});expect(result.days[0]).toMatchObject({badge:'101',date:'2026-11-02',first:'2026-11-02T00:05:00',last:null,punches:1});expect(result.days.find(d=>d.badge==='101'&&d.date==='2026-11-01')).toMatchObject({first:'2026-11-01T01:22:10',last:'2026-11-01T13:00:52',punches:3});expect(result.days.find(d=>d.badge==='102')?.last).toBeNull();expect(result.days.find(d=>d.badge==='999')?.employeeId).toBeNull();
+});
+it('aggregates all raw pages before daily pagination and preserves filters, totals and access checks',async()=>{
+ const punches=Array.from({length:130},(_,i)=>({badge:'101',localTime:'2026-11-01T08:'+String(Math.floor(i/60)).padStart(2,'0')+':'+String(i%60).padStart(2,'0'),verifyMode:1,inOutMode:0,workCode:0}));await ingestAttendance(db,'grills',token,batch({punches}));
+ const others=Array.from({length:105},(_,i)=>({badge:String(200+i),name:'Employee '+i}));await ingestAttendance(db,'grills',token,batch({users:others,punches:others.map(e=>({badge:e.badge,localTime:'2026-11-01T09:00:00',verifyMode:1,inOutMode:0,workCode:0}))}));
+ const query={...baseWithoutId(),type:'attendance.daily',from:'2026-11-01',to:'2026-11-01',page:0},result=await postHr(db,access,query) as DailyAttendanceData;expect(result).toMatchObject({total:106,complete:1,missingOut:105});expect(result.days).toHaveLength(100);expect(result.days[0]).toMatchObject({badge:'101',first:'2026-11-01T08:00:00',last:'2026-11-01T08:02:09',punches:130});expect((await postHr(db,access,{...query,page:1}) as DailyAttendanceData).days).toHaveLength(6);expect((await postHr(db,access,{...query,badge:'101'}) as DailyAttendanceData).total).toBe(1);expect((await postHr(db,access,{...query,deviceId:randomUUID()}) as DailyAttendanceData).total).toBe(0);
+ await expect(postHr(db,{...access,role:'operator'},query)).rejects.toMatchObject({code:'FORBIDDEN'});await expect(postHr(db,access,{...query,organizationId:'bistro'})).rejects.toMatchObject({code:'FORBIDDEN'});await expect(postHr(db,access,{...query,generation:randomUUID()})).rejects.toMatchObject({code:'STALE_GENERATION'});
+});
 it('orders employee codes numerically and keeps attendance matched to the same device code',async()=>{
  await ingestAttendance(db,'grills',token,batch({users:[{badge:'165',name:'A'},{badge:'102',name:'B'},{badge:'101',name:'Z'},{badge:'1000',name:'C'}]}));
  const result=await list();expect(result.employees.map(e=>e.badge)).toEqual(['101','102','165','1000']);

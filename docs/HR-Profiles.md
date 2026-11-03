@@ -1,5 +1,7 @@
 # Employee profiles, salary details and salary advances — 2 November 2026
 
+Interface update, 3 November 2026: directory filters, grouped profiles with personal-draft discard protection, clearer salary/advance summaries and responsive mobile layouts are deployed in frontend `85d29ca38ab97a27` with API version 32. The new daily attendance view shows estimated first/last punches in separate AM/PM columns. See [release details and verification](./releases/hr-daily-ui-2026-11-03.md).
+
 HR implementation is ready for the coordinated application release. This chat did not build or deploy the backend or Cloudflare Worker; the other release chat is handling the combined release, and the user requested deployment after HR finishes. Do not report these UI changes as live until that release completes.
 
 ## Included

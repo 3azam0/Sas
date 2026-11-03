@@ -12,12 +12,15 @@ export type AttendanceDevice={deviceId:string;name:string;active:boolean;lastSee
 export const jobTitleSchema=z.object({jobId:z.uuid(),name:field(100).min(1)}).strict();
 export type JobTitle=z.infer<typeof jobTitleSchema>;
 export type AttendancePunch={eventKey:string;deviceId:string;badge:string;localTime:string;verifyMode:number;inOutMode:number;workCode:number;receivedAt:string;employeeId:string|null;name:string|null};
+export type DailyAttendanceRow={deviceId:string;deviceName:string;badge:string;employeeId:string|null;name:string|null;date:string;first:string;last:string|null;punches:number};
+export type DailyAttendanceData={days:DailyAttendanceRow[];total:number;complete:number;missingOut:number};
 const scope={organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),generation:z.uuid()};
 const write={...scope,operationId:z.uuid()};
 export const hrRequestSchema=z.discriminatedUnion('type',[
  ...shiftRequests,
  ...profileRequests(write),
  z.object({...scope,type:z.literal('hr.list'),from:date,to:date,page:z.number().int().min(0).max(100000),deviceId:z.uuid().optional(),badge:badgeSchema.optional()}).strict(),
+ z.object({...scope,type:z.literal('attendance.daily'),from:date,to:date,page:z.number().int().min(0).max(100000),deviceId:z.uuid().optional(),badge:badgeSchema.optional()}).strict(),
  z.object({...write,type:z.literal('employee.save'),employee:employeeSchema,expectedRevision:z.number().int().min(0)}).strict(),
  z.object({...write,type:z.literal('job.create'),job:jobTitleSchema}).strict(),
  z.object({...write,type:z.literal('device.create'),deviceId:z.uuid(),name:field(100).min(1)}).strict(),

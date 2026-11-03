@@ -1,6 +1,6 @@
 import {createHash,randomBytes,randomUUID} from 'node:crypto';
 import {BusinessError,type Access} from '@saas/contracts';
-import {hrRequestSchema,attendanceUploadSchema,type HrData} from '../contracts/hr';
+import {hrRequestSchema,attendanceUploadSchema,type HrData,type DailyAttendanceData} from '../contracts/hr';
 import type {Database} from './database';
 import {attendanceAction} from './hr-shifts';
 import {saveEmployeeDetails} from './hr-profile';
@@ -18,10 +18,17 @@ export async function postHr(db:Database,access:Access,input:unknown){
   const org=(await tx.query<{generation:string}>('SELECT generation::text FROM organizations WHERE id=$1 FOR UPDATE',[access.organizationId])).rows[0];
   if(org?.generation!==c.generation)fail('STALE_GENERATION','زامن مساحة العمل أولاً.');
   if(c.type==='attendance.summary')return attendanceAction(tx,access,c);
-  if(c.type==='hr.list'){
+  if(c.type==='hr.list'||c.type==='attendance.daily'){
    if(c.from>c.to)fail('INVALID_COMMAND','بداية الفترة بعد نهايتها.',400);
    const params:unknown[]=[c.organizationId,c.from,c.to],filters=['p.organization_id=$1','p.local_time >= $2::date','p.local_time < $3::date + interval \'1 day\''];
    if(c.deviceId){params.push(c.deviceId);filters.push(`p.device_id=$${params.length}::uuid`);}if(c.badge){params.push(c.badge);filters.push(`p.badge=$${params.length}`);}
+   if(c.type==='attendance.daily'){
+    const where=filters.join(' AND '),args=[...params,c.page*100];
+    const result=(await tx.query<DailyAttendanceData>(`WITH grouped AS (SELECT p.device_id,p.badge,p.local_time::date AS day,min(p.local_time) AS first,max(p.local_time) AS last,count(*)::int AS punches FROM hr_punches p WHERE ${where} GROUP BY p.device_id,p.badge,p.local_time::date)
+     SELECT (SELECT count(*)::int FROM grouped) AS total,(SELECT count(*)::int FROM grouped WHERE last>first) AS complete,(SELECT count(*)::int FROM grouped WHERE last=first) AS "missingOut",
+     COALESCE((SELECT jsonb_agg(r) FROM (SELECT g.device_id::text AS "deviceId",d.name AS "deviceName",g.badge,e.employee_id::text AS "employeeId",e.name,g.day::text AS date,to_char(g.first,'YYYY-MM-DD"T"HH24:MI:SS') AS first,CASE WHEN g.last>g.first THEN to_char(g.last,'YYYY-MM-DD"T"HH24:MI:SS') END AS last,g.punches FROM grouped g JOIN hr_devices d ON d.organization_id=$1 AND d.device_id=g.device_id LEFT JOIN hr_employees e ON e.organization_id=$1 AND e.device_id=g.device_id AND e.badge=g.badge ORDER BY g.day DESC,CASE WHEN g.badge ~ '^[0-9]+$' THEN g.badge::numeric END NULLS LAST,g.badge,g.device_id LIMIT 100 OFFSET $${args.length}) r),'[]'::jsonb) AS days`,args)).rows[0];
+    return result;
+   }
    const where=filters.join(' AND '),total=Number((await tx.query<{n:string}>(`SELECT count(*)::text AS n FROM hr_punches p WHERE ${where}`,params)).rows[0].n);
    const punches=(await tx.query(`SELECT p.event_key AS "eventKey",p.device_id::text AS "deviceId",p.badge,to_char(p.local_time,'YYYY-MM-DD"T"HH24:MI:SS') AS "localTime",p.verify_mode AS "verifyMode",p.in_out_mode AS "inOutMode",p.work_code AS "workCode",p.received_at::text AS "receivedAt",e.employee_id::text AS "employeeId",e.name FROM hr_punches p LEFT JOIN hr_employees e ON e.organization_id=p.organization_id AND e.device_id=p.device_id AND e.badge=p.badge WHERE ${where} ORDER BY p.local_time DESC,p.device_id,p.event_key LIMIT 100 OFFSET $${params.length+1}`, [...params,c.page*100])).rows;
    const salaries=(await tx.query<{state:Salary;revision:number}>('SELECT state,revision FROM hr_salaries WHERE organization_id=$1',[c.organizationId])).rows.map(r=>({...r.state,revision:r.revision}));
