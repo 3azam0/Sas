@@ -7,7 +7,6 @@ import {orderTotal,qibliTablesAllowed,posCollectionReport,settleOrderDifference,
 import {egyptDate} from '../../../packages/domain/reporting';
 import {bootstrap} from './offline';
 import {pendingPOSOrder,sendPOSOrder} from './pos-order-client';
-import {formatMoney} from './money-format';
 import {normalizeNumber} from '../../../packages/domain/opening-import';
 import {DocumentEditor} from './DocumentForm';
 import {SearchableSelect,FormInput} from './FormControls';
@@ -15,7 +14,8 @@ import {useDeviceSelection} from './useDeviceSelection';
 import PrintPreview,{PrintHeader,PrintTable} from './PrintPreview';
 const services={table:'طاولات',delivery:'دليفري',takeaway:'سفري',counter:'استلام من الكاشير'};
 const methods={cash:'نقدي',instapay:'InstaPay',visa:'Visa'};
-const money=(value:string)=>formatMoney(value)+' ج.م';
+const currencyFormatter=new Intl.NumberFormat('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
+const money=(value:string)=>currencyFormatter.format(Number(value))+' ج.م';
 const emptyData={tables:[],orders:[],changes:[],collections:[],shifts:[]};
 export default function OrdersPOS({snapshot,expired,setup,legacy}:{snapshot:Snapshot;expired:boolean;setup:()=>void;legacy:()=>void}){
  const [live,setLive]=useState(snapshot),[tab,setTab]=useState('cashier'),[draft,setDraft]=useState<OrderDraft>(),[revision,setRevision]=useState(0),[dirty,setDirty]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[search,setSearch]=useState(''),[category,setCategory]=useState(''),[checkout,setCheckout]=useState(false),[tableEdit,setTableEdit]=useState<DiningTable>(),[receipt,setReceipt]=useState<POSOrder>(),[pending,setPending]=useState<POSOrderCommand>();
