@@ -10,6 +10,7 @@ test('Qibli tables, split checkout, paid amendments and mobile cashier',async({p
  await page.route('**/api/v1/pos-orders',async route=>{try{await route.fulfill({json:await postPOSOrder(f.db,f.access,route.request().postDataJSON())});}catch(e){const error=e as {status?:number;code?:string;message:string};await route.fulfill({status:error.status??409,json:{code:error.code,message:error.message}});}});
  await page.route('**/api/v1/reports',async route=>route.fulfill({json:await getReport(f.db,f.access,route.request().postDataJSON())}));
  await page.goto('/');
+ await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();
  await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible({timeout:90000});
  const nav=page.getByRole('navigation',{name:'التنقل الرئيسي'}),posButton=nav.getByRole('button',{name:'نقطة البيع',exact:true});
  if(!await posButton.isVisible())await nav.locator('summary').filter({hasText:/المبيعات/}).click();
@@ -30,6 +31,28 @@ test('Qibli tables, split checkout, paid amendments and mobile cashier',async({p
  await page.screenshot({path:'outputs/pos-development/cashier-desktop.png',fullPage:true});
  await page.getByRole('dialog',{name:'فاتورة نقطة البيع'}).getByRole('button',{name:/إغلاق/}).first().click();
  await page.getByRole('button',{name:'الطاولات',exact:true}).click();await expect(page.getByText('متاحة',{exact:false})).toBeVisible();
+ await page.getByRole('button',{name:/^الطلبات والفواتير/}).click();
+ await page.getByRole('button',{name:'تعديل / مرتجع',exact:true}).click();
+ await page.getByRole('combobox',{name:'نوع الطلب',exact:true}).selectOption('delivery');
+ await page.getByRole('textbox',{name:'اسم العميل',exact:true}).fill('عميل اختبار');
+ await page.getByRole('textbox',{name:'الهاتف',exact:true}).fill('01012345678');
+ await page.getByRole('textbox',{name:'العنوان',exact:true}).fill('شارع الاختبار');
+ await page.getByRole('textbox',{name:'رسوم التوصيل',exact:true}).fill('20');
+ await page.getByRole('button',{name:'مراجعة التعديل وتسوية الفرق',exact:true}).click();
+ const amendment=page.getByRole('dialog',{name:'تسوية تعديل الفاتورة'});
+ await amendment.getByLabel('سبب التعديل').fill('تغيير الطلب إلى دليفري');
+ await amendment.getByRole('button',{name:'حفظ التعديل وتسوية الفرق',exact:true}).click();
+ const amendedReceipt=page.getByRole('dialog',{name:'فاتورة نقطة البيع'});
+ await expect(amendedReceipt).toContainText(s.posOrders!.orders[0].reference);
+ await expect(amendedReceipt).toContainText('شارع الاختبار');
+ await amendedReceipt.getByText(/سجل التعديلات الكامل/).click();
+ await expect(amendedReceipt.getByText(/تغيير الطلب إلى دليفري/)).toBeVisible();
+ const amended=await getSnapshot(f.db,f.access);
+ expect(amended.posOrders!.orders[0]).toMatchObject({total:'100.25',draft:{service:'delivery'}});
+ expect(amended.posOrders!.changes.at(-1)).toMatchObject({reason:'تغيير الطلب إلى دليفري',before:{total:'80.25'},after:{total:'100.25'}});
+ expect(amended.balances).toEqual(s.balances);
+ await amendedReceipt.getByRole('button',{name:/إغلاق/}).first().click();
+ await page.getByRole('button',{name:'الطاولات',exact:true}).click();
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'outputs/pos-development/tables-mobile.png',fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  }finally{await f.db.close();}

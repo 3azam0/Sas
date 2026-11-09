@@ -23,10 +23,19 @@ it('shares and transfers Qibli tables, prevents occupancy conflicts and leaves o
  await f.send({type:'order.save',draft});
  const anotherDevice=await getSnapshot(f.db,{...f.access,deviceId:randomUUID()});expect(anotherDevice.posOrders!.orders[0].draft.tableId).toBe(t.id);expect(anotherDevice.balances).toEqual(before);
  await expect(f.send({type:'order.save',draft:{...draft,id:randomUUID()}})).rejects.toMatchObject({code:'TABLE_OCCUPIED'});
+ await expect(f.send({type:'order.pay',draft:{...draft,id:randomUUID()},payments:[{method:'visa',amount:'80.25'}],cashReceived:'0'})).rejects.toMatchObject({code:'TABLE_OCCUPIED'});
  await expect(f.send({type:'table.save',expectedRevision:1,record:{...t,active:false}})).rejects.toMatchObject({code:'TABLE_OCCUPIED'});
  await f.send({type:'order.save',expectedRevision:1,draft:{...draft,tableId:t2.id}});
  await expect(f.send({type:'order.save',expectedRevision:1,draft})).rejects.toMatchObject({code:'REVISION_CONFLICT'});
  await f.send({type:'table.save',expectedRevision:1,record:{...t,active:false}});
+ const moved={...draft,tableId:t2.id};
+ await f.send({type:'order.pay',expectedRevision:2,draft:moved,payments:[{method:'visa',amount:'80.25'}],cashReceived:'0'});
+ await f.send({type:'table.save',expectedRevision:1,record:{...t2,active:false}});
+ await f.send({type:'order.amend',expectedRevision:3,draft:{...moved,note:'تحديث الملاحظة'},reason:'الطاولة معطلة الآن',payments:[],refunds:[],cashReceived:'0'});
+ expect((await f.order(draft.id)).draft.tableId).toBe(t2.id);
+ const delivery={...moved,service:'delivery',tableId:undefined,deliveryFee:undefined,customer:{name:'عميل',phone:'01012345678',address:'العنوان'}};
+ await f.send({type:'order.amend',expectedRevision:4,draft:delivery,reason:'دليفري بدون رسوم',payments:[],refunds:[],cashReceived:'0'});
+ expect(await f.order(draft.id)).toMatchObject({total:'80.25',draft:{service:'delivery',deliveryFee:'0'}});
  }finally{await f.db.close();}
 });
 it('collects a split payment once, changes a paid invoice in place, returns stock and closes the shift',async()=>{

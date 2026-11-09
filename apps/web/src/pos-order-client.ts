@@ -1,6 +1,6 @@
 import {posOrderCommandSchema,type POSOrderCommand,type Snapshot,type CommandResult} from '@saas/contracts';
 import {local,bootstrap} from './offline';
-const pendingKey=(s:Snapshot)=>'pos-order-pending:'+s.organizationId+':'+s.generation+':'+s.access.deviceId;
+const pendingKey=(s:Snapshot)=>JSON.stringify(['pos-order-pending',s.organizationId,s.generation,s.access.deviceId,s.access.userId]);
 export async function pendingPOSOrder(snapshot:Snapshot):Promise<POSOrderCommand|undefined>{const row=await local.preferences.get(pendingKey(snapshot));return row?posOrderCommandSchema.parse(JSON.parse(row.value)):undefined;}
 export async function sendPOSOrder(snapshot:Snapshot,command:POSOrderCommand):Promise<Snapshot>{
  const c=posOrderCommandSchema.parse(command);if(c.organizationId!==snapshot.organizationId||c.generation!==snapshot.generation)throw new Error('نسخة الطلب لا تطابق الجلسة.');

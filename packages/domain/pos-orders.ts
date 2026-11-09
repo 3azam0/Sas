@@ -7,11 +7,14 @@ export function legacyPOSOrder(sale:ImportedSales):POSOrder|undefined{
  const ids=new Set([...(sale.stockDeductions??[]).map(s=>s.itemId),...(sale.stockShortages??[]).map(s=>s.itemId)]);
  return {draft:{id:d.operationId,posId:d.posId,service:d.checkout.service,customer:{name:'',phone:'',address:''},deliveryFee:'0',note:d.checkout.note,lines:d.lines.map(l=>({...l,unitPrice:d.checkout!.lines.find(m=>m.lineId===l.lineId)!.unitPrice,note:d.checkout!.lines.find(m=>m.lineId===l.lineId)!.note}))},revision:0,reference:d.reference,state:'paid',locationId:d.locationId,kitchenId:d.kitchenId,businessDate:d.lines[0].businessDate,cashier:'سجل سابق',createdAt:d.capturedAt,updatedAt:d.capturedAt,paidAt:d.capturedAt,total:sale.netAmount,stock:[...ids].map(itemId=>{const actual=(sale.stockDeductions??[]).filter(s=>s.itemId===itemId),short=(sale.stockShortages??[]).filter(s=>s.itemId===itemId);return {itemId,deducted:actual.reduce((v,s)=>v.add(s.quantity),decimal('0')).toFixed(6),required:actual.reduce((v,s)=>v.add(s.quantity),decimal('0')).add(short.reduce((v,s)=>v.add(s.shortageQuantity),decimal('0'))).toFixed(6),amount:actual.reduce((v,s)=>v.add(s.amount),decimal('0')).toFixed(12)};})};
 }
-export const qibliTablesAllowed=(pos: {name:string},kitchen?:{name:string})=>[pos.name,kitchen?.name??''].some(s=>s.normalize('NFKC').replace(/[\u064B-\u065F\u0670\u0640]/g,'').includes('قبلي'));
+export function qibliTablesAllowed(kitchen?:{name:string}){
+ const name=kitchen?.name.normalize('NFKC').replace(/[\u064B-\u065F\u0670\u0640]/g,'')??'';
+ return /(?:^|[^\p{L}\p{N}])(?:ال)?قبلي(?:$|[^\p{L}\p{N}])/u.test(name);
+}
 export function validateOrderContext(snapshot:Pick<Snapshot,'pointsOfSale'|'kitchens'|'locations'>,draft:OrderDraft){
  const pos=snapshot.pointsOfSale?.find(p=>p.id===draft.posId&&p.active),kitchen=snapshot.kitchens?.find(k=>k.id===pos?.kitchenId&&k.active),location=snapshot.locations.find(l=>l.id===kitchen?.locationId&&l.active!==false);
  if(!pos||!kitchen||!location)throw new BusinessError('INVALID_POS','نقطة البيع أو المطبخ غير متاح.');
- if(draft.service==='table'&&!qibliTablesAllowed(pos,kitchen))throw new BusinessError('TABLES_QIBLI_ONLY','الطاولات متاحة لقبلي فقط.');
+ if(draft.service==='table'&&!qibliTablesAllowed(kitchen))throw new BusinessError('TABLES_QIBLI_ONLY','الطاولات متاحة لقبلي فقط.');
  return {pos,kitchen,location};
 }
 export function settleOrderDifference(difference:string,payments:OrderPayment[],refunds:OrderPayment[],received:string){

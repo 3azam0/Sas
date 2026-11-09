@@ -14,8 +14,8 @@ import {reconcileStock} from './counts';
 import {projectPOSOrder} from './pos-sales-projection';
 const digest=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export async function posOrdersSnapshot(tx:QueryDatabase,org:string):Promise<{posOrders:POSOrdersSnapshot}>{
- const read=async<T>(table:string)=>(await tx.query<{payload:T}>(`SELECT payload FROM ${table} WHERE organization_id=$1`,[org])).rows.map(r=>r.payload);
- return {posOrders:{tables:(await tx.query<DiningTable>('SELECT id::text,pos_id AS "posId",name,seats,active,revision FROM pos_dining_tables WHERE organization_id=$1 ORDER BY name',[org])).rows,orders:await read<POSOrder>('pos_orders'),changes:await read<OrderChange>('pos_order_changes'),collections:await read<CollectionEntry>('pos_collections'),shifts:await read<POSShift>('pos_shifts')}};
+ const read=async<T>(table:string,order:string)=>(await tx.query<{payload:T}>(`SELECT payload FROM ${table} WHERE organization_id=$1 ORDER BY ${order}`,[org])).rows.map(r=>r.payload);
+ return {posOrders:{tables:(await tx.query<DiningTable>('SELECT id::text,pos_id AS "posId",name,seats,active,revision FROM pos_dining_tables WHERE organization_id=$1 ORDER BY name,id',[org])).rows,orders:await read<POSOrder>('pos_orders',"payload->>'updatedAt',id"),changes:await read<OrderChange>('pos_order_changes',"payload->>'at',order_id,revision"),collections:await read<CollectionEntry>('pos_collections',"payload->>'at',operation_id,method"),shifts:await read<POSShift>('pos_shifts',"payload->>'openedAt',id")}};
 }
 async function context(tx:QueryDatabase,org:string){return {pointsOfSale:(await tx.query<PointOfSale>('SELECT id,name,source,kitchen_id AS "kitchenId",active,revision FROM points_of_sale WHERE organization_id=$1',[org])).rows,kitchens:(await tx.query<Kitchen>('SELECT id,name,active,location_id AS "locationId" FROM kitchens WHERE organization_id=$1',[org])).rows,locations:(await tx.query<Location>('SELECT id,active FROM locations WHERE organization_id=$1',[org])).rows};}
 export async function postPOSOrder(db:Database,access:Access,input:unknown):Promise<CommandResult>{
@@ -27,11 +27,11 @@ export async function postPOSOrder(db:Database,access:Access,input:unknown):Prom
   await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);await assertGeneration(tx,org,c.generation);
   const receipt=(await tx.query<{payload_hash:string;result:CommandResult}>('SELECT payload_hash,result FROM command_receipts WHERE organization_id=$1 AND operation_id=$2',[org,c.operationId])).rows[0];
   if(receipt){if(receipt.payload_hash!==hash)throw new BusinessError('PAYLOAD_CONFLICT','معرّف العملية مستخدم لبيانات مختلفة.');return receipt.result;}
-  const now=new Date().toISOString(),date=egyptDate();
+  const timestamp=new Date(),now=timestamp.toISOString(),date=egyptDate(timestamp);
   const finish=async(amount?:string)=>{const result:CommandResult={operationId:c.operationId,outcome:'accepted',...(amount===undefined?{}:{amount})};await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[org,c.operationId,hash,JSON.stringify(result)]);await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[org,access.userId,c.operationId,c.type]);return result;};
   if(c.type==='table.save'){
    assertInventoryManager(access);const ctx=await context(tx,org),pos=ctx.pointsOfSale.find(p=>p.id===c.record.posId&&p.active),kitchen=ctx.kitchens.find(k=>k.id===pos?.kitchenId&&k.active);
-   if(!pos||!kitchen||!qibliTablesAllowed(pos,kitchen))throw new BusinessError('TABLES_QIBLI_ONLY','إدارة الطاولات لقبلي فقط.');
+   if(!pos||!qibliTablesAllowed(kitchen))throw new BusinessError('TABLES_QIBLI_ONLY','إدارة الطاولات لقبلي فقط.');
    const old=(await tx.query<{revision:number;pos_id:string}>('SELECT revision,pos_id FROM pos_dining_tables WHERE organization_id=$1 AND id=$2',[org,c.record.id])).rows[0];
    if((old?.revision??0)!==c.expectedRevision)throw new BusinessError('REVISION_CONFLICT','تغير تعريف الطاولة. حدّث البيانات.');
    if(old&&old.pos_id!==c.record.posId)throw new BusinessError('IMMUTABLE_POS','الطاولة مرتبطة بنقطة البيع الأصلية.');
@@ -69,8 +69,9 @@ export async function postPOSOrder(db:Database,access:Access,input:unknown):Prom
   const ctx=await context(tx,org),route=validateOrderContext(ctx,c.draft);
   if(original&&(original.locationId!==route.location.id||original.kitchenId!==route.kitchen.id))throw new BusinessError('ROUTING_CHANGED','تغير مطبخ نقطة البيع. راجع الطلب الأصلي قبل المتابعة.');
   if(c.draft.tableId){
-   if(!(await tx.query('SELECT 1 FROM pos_dining_tables WHERE organization_id=$1 AND id=$2 AND pos_id=$3 AND active',[org,c.draft.tableId,c.draft.posId])).rows.length)throw new BusinessError('INVALID_TABLE','اختر طاولة نشطة لنقطة البيع.');
-   if(c.type==='order.save'&&(await tx.query("SELECT 1 FROM pos_orders WHERE organization_id=$1 AND table_id=$2 AND state='open' AND id<>$3",[org,c.draft.tableId,c.draft.id])).rows.length)throw new BusinessError('TABLE_OCCUPIED','الطاولة مشغولة بطلب آخر.');
+   const preserveHistoricalTable=c.type==='order.amend'&&original?.draft.tableId===c.draft.tableId;
+   if(!(await tx.query('SELECT 1 FROM pos_dining_tables WHERE organization_id=$1 AND id=$2 AND pos_id=$3 AND (active OR $4)',[org,c.draft.tableId,c.draft.posId,preserveHistoricalTable])).rows.length)throw new BusinessError('INVALID_TABLE','اختر طاولة نشطة لنقطة البيع.');
+   if(c.type!=='order.amend'&&(await tx.query("SELECT 1 FROM pos_orders WHERE organization_id=$1 AND table_id=$2 AND state='open' AND id<>$3",[org,c.draft.tableId,c.draft.id])).rows.length)throw new BusinessError('TABLE_OCCUPIED','الطاولة مشغولة بطلب آخر.');
   }
   // Resolve trusted prices and recipes on the server. Unchanged paid lines retain their historical price.
   const menus=(await tx.query<{payload:MenuItem;revision:number}>('SELECT payload,revision FROM menu_items WHERE organization_id=$1',[org])).rows;
@@ -87,13 +88,17 @@ export async function postPOSOrder(db:Database,access:Access,input:unknown):Prom
   const paid=c.type!=='order.save',difference=decimal(total).sub(original?.state==='paid'?original.total:'0').toFixed(2);
   let shift:POSShift|undefined,cash={cashChange:'0.00',cashReceived:'0.00'};
   if(paid){
+   await assertInventoryDateOpen(tx,org,route.location.id,date);
    cash=settleOrderDifference(difference,c.payments,c.type==='order.amend'?c.refunds:[],c.cashReceived);
    shift=(await tx.query<{payload:POSShift}>('SELECT payload FROM pos_shifts WHERE organization_id=$1 AND pos_id=$2 AND cashier=$3 AND closed_at IS NULL FOR UPDATE',[org,draft.posId,access.userId])).rows[0]?.payload;
    if(!shift)throw new BusinessError('SHIFT_REQUIRED','افتح وردية قبل التحصيل أو تعديل الفاتورة.');
   }
   const stock=paid?await adjustOrderStock(tx,org,route.location.id,c.operationId,draft,original?.stock??[],versions,date,original?.reference??posSaleReference(draft.id)):[];
-  const order:POSOrder={draft,revision:c.expectedRevision+1,reference:original?.reference??posSaleReference(draft.id),state:paid?'paid':'open',locationId:route.location.id,kitchenId:route.kitchen.id,businessDate:original?.businessDate??date,cashier:original?.cashier??access.userId,createdAt:original?.createdAt??now,updatedAt:now,...(paid?{paidAt:original?.paidAt??now}:{}),total,stock};
+  const order:POSOrder={draft,revision:c.expectedRevision+1,reference:original?.reference??posSaleReference(draft.id),state:paid?'paid':'open',locationId:route.location.id,kitchenId:route.kitchen.id,businessDate:c.type==='order.pay'?date:original?.businessDate??date,cashier:c.type==='order.pay'?access.userId:original?.cashier??access.userId,createdAt:original?.createdAt??now,updatedAt:now,...(paid?{paidAt:original?.paidAt??now}:{}),total,stock};
   await tx.query('INSERT INTO pos_orders VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(organization_id,id) DO UPDATE SET table_id=$4,state=$5,revision=$6,payload=$7',[org,draft.id,draft.posId,draft.tableId??null,order.state,order.revision,JSON.stringify(order)]);
+  const change:OrderChange={operationId:c.operationId,orderId:draft.id,revision:order.revision,actor:access.userId,at:now,reason:c.type==='order.amend'?c.reason:c.type==='order.pay'?'تحصيل الفاتورة':'حفظ الطلب',before:original??null,after:order};
+  await tx.query('INSERT INTO pos_order_changes VALUES($1,$2,$3,$4,$5)',[org,c.operationId,draft.id,order.revision,JSON.stringify(change)]);
+  if(c.type==='order.amend')await tx.query("SELECT set_config('fodo.pos_amendment',$1,true)",[c.operationId]);
   if(paid)await projectPOSOrder(tx,org,order,route.pos,route.kitchen,c.generation,adopting);
   if(adopting&&original){
    const legacyShift:POSShift={id:original.draft.id,posId:draft.posId,cashier:original.cashier,openedAt:original.paidAt!,openingCash:'0',closedAt:original.paidAt!,expectedCash:original.total,countedCash:original.total,difference:'0',note:'فاتورة نقدية سابقة'};
@@ -103,8 +108,6 @@ export async function postPOSOrder(db:Database,access:Access,input:unknown):Prom
     await tx.query('INSERT INTO pos_collections VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[org,row.operationId,row.method,row.kind,draft.id,row.shiftId,row.amount,JSON.stringify(row)]);
    }
   }
-  const change:OrderChange={operationId:c.operationId,orderId:draft.id,revision:order.revision,actor:access.userId,at:now,reason:c.type==='order.amend'?c.reason:c.type==='order.pay'?'تحصيل الفاتورة':'حفظ الطلب',before:original??null,after:order};
-  await tx.query('INSERT INTO pos_order_changes VALUES($1,$2,$3,$4,$5)',[org,c.operationId,draft.id,order.revision,JSON.stringify(change)]);
   if(paid&&shift){
    const refunds=c.type==='order.amend'?c.refunds:[],rows=c.payments.length?c.payments:refunds;
    for(const payment of rows){const row:CollectionEntry={operationId:c.operationId,orderId:draft.id,shiftId:shift.id,posId:draft.posId,actor:access.userId,at:now,businessDate:date,method:payment.method,amount:payment.amount,kind:c.payments.length?'collection':'refund',service:draft.service,tableId:draft.tableId,cashReceived:payment.method==='cash'?cash.cashReceived:'0.00',cashChange:payment.method==='cash'?cash.cashChange:'0.00'};await tx.query('INSERT INTO pos_collections VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[org,c.operationId,row.method,row.kind,draft.id,shift.id,row.amount,JSON.stringify(row)]);}
