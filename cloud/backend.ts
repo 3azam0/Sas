@@ -18,6 +18,7 @@ import {postRecipe} from '../packages/server/recipes';
 import {postProduction} from '../packages/server/production';
 import {postCentralKitchen} from '../packages/server/central-kitchen';
 import {postMenuItem,postSalesImport} from '../packages/server/sales';
+import {postPOSOrder} from '../packages/server/pos-orders';
 import {postFinance} from '../packages/server/finance';
 import {postKitchenOrder} from '../packages/server/kitchen-display';
 import {generationInput} from '../packages/server/request-generation';
@@ -52,7 +53,7 @@ async function accessFor(request:Request):Promise<Access>{
  const device=request.headers.get('X-Fodo-Device')??'';if(!/^[a-f0-9-]{36}$/i.test(device))throw new BusinessError('INVALID_DEVICE','أعد تسجيل الدخول على هذا الجهاز.',400);
  return {organizationId:rows[0].organization_id,userId:user.id,deviceId:device,role:rows[0].role as Access['role'],expiresAt:new Date(Date.now()+86400000).toISOString()};
 }
-const handlers:Record<string,(db:Database,access:Access,input:unknown)=>Promise<unknown>>={'central-kitchen':postCentralKitchen,'inventory-operations':postInventoryControl,butchery:postButchery,reports:getReport,commands:postCommand,setup:postSetupCommand,openings:postOpening,receipts:postReceiptDocument,'kitchen-issues':postKitchenIssue,purchases:postPurchase,transfers:postTransfer,counts:postCount,recipes:postRecipe,production:postProduction,menu:postMenuItem,sales:postSalesImport,finance:postFinance,'kitchen-orders':postKitchenOrder};
+const handlers:Record<string,(db:Database,access:Access,input:unknown)=>Promise<unknown>>={'central-kitchen':postCentralKitchen,'inventory-operations':postInventoryControl,butchery:postButchery,reports:getReport,commands:postCommand,setup:postSetupCommand,openings:postOpening,receipts:postReceiptDocument,'kitchen-issues':postKitchenIssue,purchases:postPurchase,transfers:postTransfer,counts:postCount,recipes:postRecipe,production:postProduction,menu:postMenuItem,sales:postSalesImport,finance:postFinance,'kitchen-orders':postKitchenOrder,'pos-orders':postPOSOrder};
 Deno.serve(async request=>{
  try{
   const route=new URL(request.url).pathname.split('/').filter(Boolean).at(-1)!;

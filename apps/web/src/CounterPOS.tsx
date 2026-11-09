@@ -1,4 +1,5 @@
 'use client';
+import OrdersPOS from './OrdersPOS';
 import {posExport} from './document-export';
 import {useEffect,useRef,useState} from 'react';
 import {useLiveQuery} from 'dexie-react-hooks';
@@ -18,7 +19,8 @@ import {HelpButton} from './ClientGuide';
 import PrintPreview,{PrintHeader,PrintTable} from './PrintPreview';
 const n=(v:string|number,d=2)=>new Intl.NumberFormat('ar-EG',{maximumFractionDigits:d}).format(Number(v));
 type Props={snapshot:Snapshot;rows:LocalSales[];expired:boolean;synchronize:()=>Promise<void>;setup:()=>void;finance:(location:string)=>void;reports:(posId:string,location:string)=>void};
-export default function CounterPOS({snapshot,rows,expired,synchronize,setup,finance,reports}:Props){
+export default function CounterPOS(props:Props){const [legacy,setLegacy]=useState(false);return props.snapshot.capabilities?.posOrders&&!legacy?<OrdersPOS snapshot={props.snapshot} expired={props.expired} setup={props.setup} legacy={()=>setLegacy(true)}/>:<>{props.snapshot.capabilities?.posOrders&&<button className="secondary" onClick={()=>setLegacy(false)}>العودة للكاشير والطاولات</button>}<LegacyCounterPOS {...props}/></>;}
+function LegacyCounterPOS({snapshot,rows,expired,synchronize,setup,finance,reports}:Props){
  const terminals=(snapshot.pointsOfSale??[]).filter(p=>p.active&&snapshot.kitchens?.some(k=>k.id===p.kitchenId&&k.active&&k.locationId));
  const [posId,setPOS,selectionReady]=useDeviceSelection('pos',snapshot.organizationId,snapshot.generation,terminals.map(p=>p.id));
  const [cart,setCart]=useState<POSCart>(),[busy,setBusy]=useState(false),working=useRef(false),cartSection=useRef<HTMLElement>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[cashier,setCashier]=useState(false),[edit,setEdit]=useState<{lineId?:string}|null>(null),[receipt,setReceipt]=useState<SalesImportDocument>(),[lastSale,setLastSale]=useState<SalesImportDocument>(),[showHeld,setShowHeld]=useState(false);

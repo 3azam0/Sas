@@ -42,6 +42,7 @@ export {postRecipe} from './recipes';
 export {postProduction} from './production';
 
 export {postMenuItem,postSalesImport} from './sales';
+export {postPOSOrder} from './pos-orders';
 export {postFinance} from './finance';
 
 export {getReport} from './reports';

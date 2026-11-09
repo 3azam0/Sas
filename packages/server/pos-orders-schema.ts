@@ -1,0 +1,13 @@
+// Additive migration only. Do not fold into hostedBaselineSchema.
+export const posOrdersTables=`
+CREATE TABLE IF NOT EXISTS pos_dining_tables(organization_id text NOT NULL REFERENCES organizations(id),id uuid NOT NULL,pos_id text NOT NULL,name text NOT NULL,seats integer NOT NULL CHECK(seats BETWEEN 1 AND 100),active boolean NOT NULL,revision integer NOT NULL CHECK(revision>0),PRIMARY KEY(organization_id,id),FOREIGN KEY(organization_id,pos_id) REFERENCES points_of_sale(organization_id,id));
+CREATE UNIQUE INDEX IF NOT EXISTS pos_dining_name ON pos_dining_tables(organization_id,pos_id,lower(btrim(name))) WHERE active;
+CREATE TABLE IF NOT EXISTS pos_orders(organization_id text NOT NULL REFERENCES organizations(id),id uuid NOT NULL,pos_id text NOT NULL,table_id uuid,state text NOT NULL CHECK(state IN ('open','paid')),revision integer NOT NULL CHECK(revision>0),payload jsonb NOT NULL,PRIMARY KEY(organization_id,id),FOREIGN KEY(organization_id,pos_id) REFERENCES points_of_sale(organization_id,id),FOREIGN KEY(organization_id,table_id) REFERENCES pos_dining_tables(organization_id,id));
+CREATE UNIQUE INDEX IF NOT EXISTS pos_table_open_order ON pos_orders(organization_id,table_id) WHERE state='open' AND table_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS pos_order_terminal ON pos_orders(organization_id,pos_id,state);
+CREATE TABLE IF NOT EXISTS pos_shifts(organization_id text NOT NULL REFERENCES organizations(id),id uuid NOT NULL,pos_id text NOT NULL,cashier text NOT NULL,closed_at timestamptz,payload jsonb NOT NULL,PRIMARY KEY(organization_id,id),FOREIGN KEY(organization_id,pos_id) REFERENCES points_of_sale(organization_id,id));
+CREATE UNIQUE INDEX IF NOT EXISTS pos_cashier_open_shift ON pos_shifts(organization_id,pos_id,cashier) WHERE closed_at IS NULL;
+CREATE TABLE IF NOT EXISTS pos_order_changes(organization_id text NOT NULL,operation_id uuid NOT NULL,order_id uuid NOT NULL,revision integer NOT NULL,payload jsonb NOT NULL,PRIMARY KEY(organization_id,operation_id),UNIQUE(organization_id,order_id,revision),FOREIGN KEY(organization_id,order_id) REFERENCES pos_orders(organization_id,id));
+CREATE TABLE IF NOT EXISTS pos_collections(organization_id text NOT NULL,operation_id uuid NOT NULL,method text NOT NULL CHECK(method IN ('cash','instapay','visa')),kind text NOT NULL CHECK(kind IN ('collection','refund')),order_id uuid NOT NULL,shift_id uuid NOT NULL,amount numeric(18,2) NOT NULL CHECK(amount>0),payload jsonb NOT NULL,PRIMARY KEY(organization_id,operation_id,method),FOREIGN KEY(organization_id,order_id) REFERENCES pos_orders(organization_id,id),FOREIGN KEY(organization_id,shift_id) REFERENCES pos_shifts(organization_id,id));
+CREATE INDEX IF NOT EXISTS pos_collection_shift ON pos_collections(organization_id,shift_id);
+`;

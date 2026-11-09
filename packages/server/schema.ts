@@ -101,4 +101,5 @@ END IF; END $$;
 export {kitchenInventoryMigration} from './kitchen-inventory-schema';
 import {financeTables} from './finance';
 import {kitchenDisplayTables} from './kitchen-display';
-export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables+butcheryTables+inventoryOperationsTables+centralKitchenTables;
+import {posOrdersTables} from './pos-orders-schema';
+export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables+butcheryTables+inventoryOperationsTables+centralKitchenTables+posOrdersTables;
