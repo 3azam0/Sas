@@ -17,7 +17,10 @@ CREATE INDEX IF NOT EXISTS receipt_cost_lookup ON stock_entries(organization_id,
 export async function recipeSnapshot(tx:Tx,org:string){
  const recipes=(await tx.query<Recipe>('SELECT recipe_id AS "recipeId",revision,state,payload AS definition,published_version_id AS "publishedVersionId" FROM recipes WHERE organization_id=$1 ORDER BY code',[org])).rows;
  const recipeVersions=(await tx.query<RecipeVersion>('SELECT recipe_id AS "recipeId",version_id AS "versionId",version_number AS "versionNumber",payload AS definition,published_at::text AS "publishedAt" FROM recipe_versions WHERE organization_id=$1 ORDER BY recipe_id,version_number',[org])).rows;
- const receiptPrices=(await tx.query<ReceiptPrice>(`SELECT DISTINCT ON(location_id,item_id) location_id AS "locationId",item_id AS "itemId",(amount/quantity)::text AS "unitCost",business_date::text AS "businessDate",posted_at::text AS "postedAt",operation_id AS "sourceOperationId" FROM stock_entries WHERE organization_id=$1 AND quantity>0 AND type IN ('receipt.post','purchase.receive') AND NOT EXISTS(SELECT 1 FROM document_corrections c WHERE c.organization_id=stock_entries.organization_id AND c.source_id=stock_entries.receipt_document_id) ORDER BY location_id,item_id,sequence DESC`,[org])).rows;
+ const receiptPrices=(await tx.query<ReceiptPrice>(`SELECT DISTINCT ON(location_id,item_id) location_id AS "locationId",item_id AS "itemId",(amount/quantity)::text AS "unitCost",business_date::text AS "businessDate",posted_at::text AS "postedAt",operation_id AS "sourceOperationId" FROM stock_entries WHERE organization_id=$1 AND quantity>0 AND type IN ('receipt.post','purchase.receive')
+  AND NOT EXISTS(SELECT 1 FROM document_corrections c WHERE c.organization_id=stock_entries.organization_id AND c.source_id=stock_entries.receipt_document_id)
+  AND NOT EXISTS(SELECT 1 FROM receipt_edits e WHERE e.organization_id=stock_entries.organization_id AND e.receipt_id=stock_entries.receipt_document_id AND stock_entries.operation_id=ANY(e.replaced_line_ids))
+  ORDER BY location_id,item_id,sequence DESC`,[org])).rows;
  return {recipes,recipeVersions,receiptPrices};
 }
 export async function postRecipe(db:Database,access:Access,input:unknown):Promise<CommandResult>{

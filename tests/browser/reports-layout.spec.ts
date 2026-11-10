@@ -1,6 +1,47 @@
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 
+test('stock value in Reports uses the selected cutoff in the table, print and CSV',async({page,baseURL})=>{
+ test.setTimeout(120000);
+ await page.goto('/');
+ await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible({timeout:60000});
+ const snapshot=await(await page.request.get('/api/v1/bootstrap')).json();
+ const locationId=crypto.randomUUID(),rice=snapshot.items.find((item:{id:string})=>item.id==='rice');
+ const headers={Origin:baseURL!,'X-Fodo-Generation':snapshot.generation};
+ const base={organizationId:'grills',generation:snapshot.generation,capturedAt:new Date().toISOString(),schemaVersion:1};
+ const post=async(path:string,data:object)=>{
+  const response=await page.request.post(path,{headers,data:{...base,operationId:crypto.randomUUID(),...data}});
+  expect(response.ok(),await response.text()).toBe(true);
+ };
+ await post('/api/v1/setup',{type:'location.save',expectedRevision:0,record:{id:locationId,name:'مخزن اختبار قيمة المخزون',kind:'مخزن',active:true}});
+ await post('/api/v1/commands',{type:'receipt.post',locationId,itemId:'rice',quantity:'2',unitCost:'10',businessDate:'2026-10-09',reason:'رصيد قبل نهاية الفترة'});
+ await post('/api/v1/commands',{type:'receipt.post',locationId,itemId:'rice',quantity:'3',unitCost:'10',businessDate:'2026-10-10',reason:'استلام اليوم التالي'});
+ await page.getByRole('button',{name:'مزامنة الآن',exact:true}).click();
+ await expect(page.getByLabel('الموقع',{exact:true}).locator(`option[value="${locationId}"]`)).toHaveCount(1);
+ await page.getByLabel('الموقع',{exact:true}).selectOption(locationId);
+ await page.getByRole('button',{name:'التقارير والرسوم ←',exact:true}).click();
+ await page.getByLabel('اختيار التقرير',{exact:true}).selectOption('inventory');
+ await page.getByRole('searchbox',{name:'بحث التقرير',exact:true}).fill(rice.name);
+ await page.getByLabel('من تاريخ التقرير',{exact:true}).fill('2026-10-09');
+ const end=page.getByLabel('إلى تاريخ التقرير',{exact:true});
+ await end.fill('2026-10-09');
+ const table=page.getByLabel('جدول تفاصيل التقرير',{exact:true});
+ const row=table.getByRole('row').filter({hasText:rice.name});
+ await expect(page.getByText('الأرصدة حتى 2026-10-09',{exact:true})).toBeVisible();
+ await expect(row.getByRole('cell').nth(4)).toHaveText('٢٠ ج.م');
+ const download=page.waitForEvent('download');
+ await page.getByRole('button',{name:'تصدير CSV',exact:true}).click();
+ const csv=await readFile((await(await download).path())!,'utf8');
+ expect(csv).toContain('رصيد حتى تاريخ التقرير');
+ expect(csv).toContain('2026-10-09');
+ await page.getByRole('button',{name:'طباعة التقرير',exact:true}).click();
+ await expect(page.getByRole('dialog')).toContainText('الأرصدة حتى 2026-10-09');
+ await page.getByRole('button',{name:'إغلاق معاينة الطباعة',exact:true}).click();
+ await end.fill('2026-10-10');
+ await expect(row.getByRole('cell').nth(4)).toHaveText('٥٠ ج.م');
+});
+
 test('compact reports keep kitchen prices separate through fullscreen CSV print and offline reload',async({page,context,baseURL})=>{
  test.setTimeout(180000);
  await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();
@@ -19,8 +60,12 @@ test('compact reports keep kitchen prices separate through fullscreen CSV print 
  await page.getByRole('button',{name:'مزامنة الآن',exact:true}).click();
  await expect(page.getByLabel('الموقع',{exact:true}).locator(`option[value="${locationId}"]`)).toHaveCount(1);
  await page.getByLabel('الموقع',{exact:true}).selectOption(locationId);
- await page.getByRole('button',{name:'التقارير والرسوم ←',exact:true}).click();
- await page.getByLabel('اختيار التقرير',{exact:true}).selectOption('kitchenSupply');
+ const navigation=page.getByRole('navigation',{name:'التنقل الرئيسي',exact:true});
+ await navigation.locator('summary').filter({hasText:'المبيعات والتقارير'}).click();
+ await navigation.getByRole('button',{name:'التقارير والتحليلات',exact:true}).click();
+ await page.getByLabel('اختيار التقرير',{exact:true}).selectOption({label:'صرف المطابخ'});
+ await expect(page.getByRole('button',{name:'صرف المطابخ',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByLabel('اختيار التقرير',{exact:true})).toHaveValue('kitchenSupply');
  await page.getByLabel('من تاريخ التقرير',{exact:true}).fill('2026-10-10');await page.getByLabel('إلى تاريخ التقرير',{exact:true}).fill('2026-10-10');
  const table=page.getByLabel('جدول تفاصيل التقرير',{exact:true});await expect(table.getByRole('row')).toHaveCount(3);
  const row=table.getByRole('row').filter({hasText:'KI-'+pricedId.toUpperCase()});await expect(row).toContainText('١٥');await expect(row).toContainText('٣٠');
@@ -49,7 +94,7 @@ test('compact reports keep kitchen prices separate through fullscreen CSV print 
  await expect(page.getByText('التطبيق جاهز للفتح دون اتصال',{exact:false})).toBeVisible({timeout:30000});await context.setOffline(true);await page.reload();
  await page.getByLabel('الموقع',{exact:true}).selectOption(locationId);
  await page.getByRole('button',{name:'القائمة',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'التقارير والتحليلات',exact:true}).click();
- await page.getByLabel('اختيار التقرير',{exact:true}).selectOption('kitchenSupply');await page.getByRole('button',{name:'آخر فترة محفوظة',exact:true}).click();
+ await page.getByRole('button',{name:'صرف المطابخ',exact:true}).click();await page.getByRole('button',{name:'آخر فترة محفوظة',exact:true}).click();
  await expect(page.getByLabel('اختيار التقرير',{exact:true})).toHaveValue('kitchenSupply');await expect(table.getByRole('row')).toHaveCount(3);await expect(table.getByRole('row').filter({hasText:'صرف غير مسعّر'})).toContainText('غير مسعّر');
 });
 
@@ -65,11 +110,11 @@ test('arranged sidebar keeps report filters and selects the same routes on a pho
  await expect(page.getByRole('searchbox',{name:'بحث التقرير',exact:true})).toHaveValue('أرز');
  await page.getByRole('button',{name:'فتح القائمة الجانبية',exact:true}).click();await expect(navigation).toBeVisible();
  await expect(page.getByRole('searchbox',{name:'بحث التقرير',exact:true})).toHaveValue('أرز');
- await navigation.locator('summary').filter({hasText:'المطابخ والتحضير'}).click();await navigation.getByRole('button',{name:'الجزارة',exact:true}).click();
- await expect(navigation.getByRole('button',{name:'الجزارة',exact:true})).toHaveAttribute('aria-current','page');
+ await navigation.locator('summary').filter({hasText:'المطابخ والتحضير'}).click();await navigation.getByRole('button',{name:'المطبخ المركزي والجزارة',exact:true}).click();
+ await expect(navigation.getByRole('button',{name:'المطبخ المركزي والجزارة',exact:true})).toHaveAttribute('aria-current','page');
  await page.screenshot({path:'test-results/navigation-arranged-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});const trigger=page.getByRole('button',{name:'فتح القائمة الجانبية',exact:true});await trigger.click();
- const menu=page.getByRole('dialog',{name:'كل أقسام FooDo',exact:true});await expect(menu.getByRole('button',{name:'الجزارة',exact:true})).toHaveAttribute('aria-current','page');
+ const menu=page.getByRole('dialog',{name:'كل أقسام FooDo',exact:true});await expect(menu.getByRole('button',{name:'المطبخ المركزي والجزارة',exact:true})).toHaveAttribute('aria-current','page');
  await menu.getByRole('heading',{name:'المطابخ والتحضير',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/navigation-arranged-mobile.png',fullPage:true});
  await page.keyboard.press('Escape');await expect(menu).toHaveCount(0);await expect(trigger).toBeFocused();
  await trigger.click();await menu.getByRole('button',{name:'التقارير والتحليلات',exact:true}).click();await expect(menu).toHaveCount(0);

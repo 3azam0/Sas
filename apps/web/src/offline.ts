@@ -103,17 +103,21 @@ export async function resolveCentral(scope:string,id:string,action:'retry'|'canc
   await local.central.update(id,{status:action==='retry'?'pending':'cancelled',error:undefined});
  });
 }
-async function uploadCentral(row:LocalCentral){
- const s=await bootstrap(row.scope);if(s.acceptedOperationIds.includes(row.id))return;const c=row.command,b=s.centralBatches?.find(b=>b.batchId===c.batchId);
+type SyncTransport={
+ refreshSnapshot:()=>Promise<Snapshot>;
+ postChange:(url:string,options:RequestInit)=>Promise<Response>;
+};
+async function uploadCentral(row:LocalCentral,{refreshSnapshot,postChange}:SyncTransport){
+ const s=await refreshSnapshot();if(s.acceptedOperationIds.includes(row.id))return;const c=row.command,b=s.centralBatches?.find(b=>b.batchId===c.batchId);
  const reject=async(error:string)=>local.central.update(row.id,{status:'needsReview',error});
  if((b?.revision??0)!==c.expectedRevision){await reject('الإصدار السابق للدفعة لم يقبل أو تغير على جهاز آخر؛ راجع أحدث دفعة وألغِ العملية المرفوضة قبل تسجيل تصحيح جديد.');return;}
  if(!s.capabilities?.centralKitchen){await reject('خدمة المطبخ المركزي غير محدثة؛ حدّث البيانات.');return;}
  if(c.type==='central.issue'&&b){const blocked=await productionBlocker(row.scope,{inputLocationId:b.locationId,lines:c.lines},row.createdAt,row.id);if(blocked){await reject(blocked);return;}}
- const response=await fetch('/api/v1/central-kitchen',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':s.generation??''},body:JSON.stringify(c)});
+ const response=await postChange('/api/v1/central-kitchen',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':s.generation??''},body:JSON.stringify(c)});
  if(response.status===401||response.status===403||response.status===429||response.status>=500)throw new Error('تعذرت مزامنة المطبخ المركزي؛ العمليات محفوظة، جدد الجلسة أو أعد المحاولة.');
  const result=await response.json() as CommandResult;
  await local.central.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع عملية الدفعة.'});
- if(response.ok)await bootstrap(row.scope);
+ if(response.ok)await refreshSnapshot();
 }
 function requireGrant(snapshot:Snapshot|undefined){if(snapshot?.access.role==='viewer')throw new Error('هذا الحساب للعرض فقط؛ لا يمكن حفظ عمليات جديدة.');if(!snapshot||!Number.isFinite(Date.parse(snapshot.access.expiresAt))||Date.parse(snapshot.access.expiresAt)<=Date.now())throw new Error('انتهت صلاحية العمل دون اتصال. جدد الجلسة عبر الإنترنت؛ عملياتك محفوظة.');return snapshot;}
 function bindGeneration(snapshot:Snapshot,command:{generation?:string}){if(hasLotMetadata(command)&&!snapshot.capabilities?.stockLots)throw new Error('حدّث بيانات الخادم قبل تسجيل التشغيلات.');if(command.generation&&command.generation!==snapshot.generation)throw new Error('العملية تخص بيانات قبل إعادة التطوير. حدّث الشاشة.');if(snapshot.generation)command.generation=snapshot.generation;}
@@ -203,58 +207,70 @@ export async function resolveOpening(scope:DemoProfile,id:string,action:'retry'|
 }
 export async function sync(scope:DemoProfile){
  const run=async()=>{
-  await bootstrap(scope); // Check reset generation before uploading any saved operation.
+  // Check the server generation before uploading any saved operation.
+  let latestSnapshot=await bootstrap(scope);
+  let refreshNeeded=false;
+  const refreshSnapshot=async()=>{
+   latestSnapshot=await bootstrap(scope);
+   refreshNeeded=false;
+   return latestSnapshot;
+  };
+  const postChange:SyncTransport['postChange']=(url,options)=>{
+   refreshNeeded=true;
+   return fetch(url,options);
+  };
+  const transport:SyncTransport={refreshSnapshot,postChange};
   const setups=await local.setups.where('scope').equals(scope).sortBy('createdAt');
   const priority={'unit.save':0,'location.save':1,'supplier.save':1,'kitchen.save':2,'pos.save':3,'item.save':2};
   for(const row of setups.filter(r=>r.status==='pending'||r.status==='acceptedAwaiting').sort((a,b)=>priority[a.command.type]-priority[b.command.type]||a.createdAt.localeCompare(b.createdAt))){
-   const response=await fetch('/api/v1/setup',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
+   const response=await postChange('/api/v1/setup',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
    if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الإعدادات. التعديلات محفوظة؛ جدد الجلسة أو أعد المحاولة.');
    const result=await response.json() as CommandResult;
    await local.setups.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع الإعدادات'});
   }
   for(const row of (await local.butchery.where('scope').equals(scope).sortBy('createdAt')).filter(r=>r.command.type!=='butchery.process'&&(r.status==='pending'||r.status==='acceptedAwaiting'))){
    const latest=(await local.snapshots.get(scope))!;
-   const response=await fetch('/api/v1/butchery',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.command)});
+   const response=await postChange('/api/v1/butchery',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.command)});
    if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة أصناف الجزارة. التعديلات محفوظة.');
    const result=await response.json() as CommandResult;await local.butchery.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع صنف الجزارة'});
-   if(response.ok)await bootstrap(scope);
+   if(response.ok)await refreshSnapshot();
   }
-  let confirmed=setups.some(r=>r.status==='pending'||r.status==='acceptedAwaiting')?await bootstrap(scope):null;
+  let confirmed=setups.some(r=>r.status==='pending'||r.status==='acceptedAwaiting')?await refreshSnapshot():null;
   const recipeQueue=(await local.recipes.where('scope').equals(scope).toArray()).filter(r=>r.status==='pending'||r.status==='acceptedAwaiting').sort((a,b)=>a.createdAt.localeCompare(b.createdAt)||a.command.expectedRevision-b.command.expectedRevision);
   while(recipeQueue.length){
    const latest=(await local.snapshots.get(scope))!;
    const index=recipeQueue.findIndex(r=>r.command.expectedRevision<=(latest.recipes?.find(d=>d.recipeId===r.command.recipeId)?.revision??0)&&(r.command.type!=='recipe.save'||r.command.definition.lines.every(l=>l.kind!=='recipe'||latest.recipeVersions?.some(v=>v.versionId===l.versionId))));
    if(index<0){for(const row of recipeQueue)await local.recipes.update(row.id,{status:'needsReview',error:'المسودة السابقة أو إصدار الوصفة الفرعية لم يقبل. راجع الوصفات.'});break;}
    const row=recipeQueue.splice(index,1)[0];
-   const response=await fetch('/api/v1/recipes',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.command)});
+   const response=await postChange('/api/v1/recipes',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.command)});
    if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الوصفات. التعديلات محفوظة.');
    const result=await response.json() as CommandResult;await local.recipes.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع الوصفة'});
-   if(response.ok)confirmed=await bootstrap(scope);
+   if(response.ok)confirmed=await refreshSnapshot();
   }
   const menuQueue=(await local.menus.where('scope').equals(scope).toArray()).filter(r=>r.status==='pending'||r.status==='acceptedAwaiting').sort((a,b)=>a.createdAt.localeCompare(b.createdAt)||a.command.expectedRevision-b.command.expectedRevision);
   for(const row of menuQueue){const latest=(await local.snapshots.get(scope))!,c=row.command;if(!latest.recipeVersions?.some(v=>v.versionId===c.record.versionId)||(latest.menuItems?.find(m=>m.id===c.record.id)?.revision??0)!==c.expectedRevision){await local.menus.update(row.id,{status:'needsReview',error:'الإصدار السابق أو نشر الوصفة لم يقبل؛ راجع الربط.'});continue;}
-   const response=await fetch('/api/v1/menu',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(c)});if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة أصناف البيع. الإجراءات محفوظة.');const result=await response.json() as CommandResult;await local.menus.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع ربط صنف البيع'});if(response.ok)confirmed=await bootstrap(scope);
+   const response=await postChange('/api/v1/menu',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(c)});if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة أصناف البيع. الإجراءات محفوظة.');const result=await response.json() as CommandResult;await local.menus.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع ربط صنف البيع'});if(response.ok)confirmed=await refreshSnapshot();
   }
-  async function uploadSale(row:LocalSales){const latest=await bootstrap(scope);if(latest.acceptedOperationIds.includes(row.id))return;try{const preview=previewSales(latest,row.document);if(preview.conflictCount)throw new Error('تفصيل بيع مقبول ببيانات مختلفة.');const fresh=preview.lines.filter(l=>l.state==='new').map(l=>l.line);resolveSalesRouting(latest,row.document,fresh.length>0);if(!row.document.checkout)for(const l of fresh)validateSale(latest,row.document.source,l,true,row.document.kitchenId);const required=salesStockRequirements(latest,fresh);const blocker=await productionBlocker(scope,{inputLocationId:row.document.locationId,lines:required},row.createdAt,row.id);if(blocker)throw new Error(blocker);}catch(e){await local.sales.update(row.id,{status:'needsReview',error:e instanceof Error?e.message:'ربط البيع لم يقبل'});return;}
-   const response=await fetch('/api/v1/sales',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.document)});if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة المبيعات. الملف محفوظ.');const result=await response.json() as CommandResult;await local.sales.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع استيراد المبيعات'});if(response.ok)confirmed=await bootstrap(scope);
+  async function uploadSale(row:LocalSales){const latest=await refreshSnapshot();if(latest.acceptedOperationIds.includes(row.id))return;try{const preview=previewSales(latest,row.document);if(preview.conflictCount)throw new Error('تفصيل بيع مقبول ببيانات مختلفة.');const fresh=preview.lines.filter(l=>l.state==='new').map(l=>l.line);resolveSalesRouting(latest,row.document,fresh.length>0);if(!row.document.checkout)for(const l of fresh)validateSale(latest,row.document.source,l,true,row.document.kitchenId);const required=salesStockRequirements(latest,fresh);const blocker=await productionBlocker(scope,{inputLocationId:row.document.locationId,lines:required},row.createdAt,row.id);if(blocker)throw new Error(blocker);}catch(e){await local.sales.update(row.id,{status:'needsReview',error:e instanceof Error?e.message:'ربط البيع لم يقبل'});return;}
+   const response=await postChange('/api/v1/sales',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.document)});if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة المبيعات. الملف محفوظ.');const result=await response.json() as CommandResult;await local.sales.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع استيراد المبيعات'});if(response.ok)confirmed=await refreshSnapshot();
   }
   const openings=await local.openings.where('scope').equals(scope).sortBy('createdAt');
   for(const row of openings.filter(r=>r.status==='pending'||r.status==='acceptedAwaiting')){
-   const response=await fetch('/api/v1/openings',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.document)});
+   const response=await postChange('/api/v1/openings',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.document)});
    if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الرصيد الافتتاحي. المستندات محفوظة؛ جدد الجلسة أو أعد المحاولة.');
    const result=await response.json() as CommandResult;
    await local.openings.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع الرصيد الافتتاحي'});
   }
-  if(openings.some(r=>r.status==='pending'||r.status==='acceptedAwaiting'))confirmed=await bootstrap(scope);
+  if(openings.some(r=>r.status==='pending'||r.status==='acceptedAwaiting'))confirmed=await refreshSnapshot();
   const purchaseRows=await local.purchases.where('scope').equals(scope).toArray();
   for(const row of purchaseRows.filter(r=>r.status==='pending'||r.status==='acceptedAwaiting').sort((a,b)=>a.command.expectedRevision-b.command.expectedRevision||a.createdAt.localeCompare(b.createdAt))){
    const serverOrder=(await local.snapshots.get(scope))?.purchaseOrders?.find(o=>o.orderId===row.command.orderId);
    if(row.command.expectedRevision>(serverOrder?.revision??0)){await local.purchases.update(row.id,{status:'needsReview',error:'الإصدار السابق لم يقبل. راجع أمر الشراء.'});continue;}
-   const response=await fetch('/api/v1/purchases',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
+   const response=await postChange('/api/v1/purchases',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
    if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة المشتريات. المستندات محفوظة.');
    const result=await response.json() as CommandResult;
    await local.purchases.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع المشتريات'});
-   if(response.ok)confirmed=await bootstrap(scope);
+   if(response.ok)confirmed=await refreshSnapshot();
   }
   async function uploadStockUntil(cutoff:string){
   const transferBlockers=(await local.transfers.where('scope').equals(scope).toArray()).filter(r=>r.status==='pending'||r.status==='acceptedAwaiting'||r.status==='needsReview');
@@ -270,35 +286,35 @@ export async function sync(scope:DemoProfile){
   const centralRows=(await local.central.where('scope').equals(scope).toArray()).map(r=>({...r,central:true as const}));
   const queue=[...rows,...documents,...batches,...saleRows,...kitchenRows,...butcheryBatches,...centralRows].filter(r=>(r.status==='pending'||r.status==='acceptedAwaiting')&&r.createdAt<=cutoff).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
   for(const row of queue){
-   if('central'in row){await uploadCentral(row);continue;}
+   if('central'in row){await uploadCentral(row,transport);continue;}
    if('butchery'in row){
     const c=row.command;if(c.type!=='butchery.process')continue;
-    const latest=await bootstrap(scope);if(latest.acceptedOperationIds.includes(row.id))continue;
+    const latest=await refreshSnapshot();if(latest.acceptedOperationIds.includes(row.id))continue;
     const blocker=await productionBlocker(scope,{inputLocationId:c.locationId,lines:[{itemId:c.itemId,quantity:c.quantity}]},row.createdAt,row.id);
     if(blocker){await local.butchery.update(row.id,{status:'needsReview',error:blocker});continue;}
-    const response=await fetch('/api/v1/butchery',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(c)});
+    const response=await postChange('/api/v1/butchery',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(c)});
     if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الجزارة. الدفعة محفوظة.');
-    const result=await response.json() as CommandResult;await local.butchery.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع دفعة الجزارة'});if(response.ok)confirmed=await bootstrap(scope);continue;
+    const result=await response.json() as CommandResult;await local.butchery.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع دفعة الجزارة'});if(response.ok)confirmed=await refreshSnapshot();continue;
    }
    if('document'in row&&row.document.type==='sales.import'){await uploadSale({...row,document:row.document});continue;}
    if('document'in row&&row.document.type==='production.post'){
-    const d=row.document,latest=await bootstrap(scope);
+    const d=row.document,latest=await refreshSnapshot();
     const earlier=await productionBlocker(scope,d,row.createdAt,row.id);
     if(!latest.recipeVersions?.some(v=>v.versionId===d.versionId)||earlier){await local.productions.update(row.id,{status:'needsReview',error:earlier??'إصدار الوصفة لم يقبل. راجع نشره.'});continue;}
-    const response=await fetch('/api/v1/production',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(d)});
+    const response=await postChange('/api/v1/production',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(d)});
     if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الإنتاج. الدفعة محفوظة.');
-    const result=await response.json() as CommandResult;await local.productions.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع دفعة الإنتاج'});if(response.ok)confirmed=await bootstrap(scope);continue;
+    const result=await response.json() as CommandResult;await local.productions.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع دفعة الإنتاج'});if(response.ok)confirmed=await refreshSnapshot();continue;
    }
    if('document'in row){
-    const issue=row.document;if(issue.type==='kitchen.issue'||issue.type==='kitchen.transfer'){await uploadKitchenIssue(row as LocalKitchenIssue);continue;}
+    const issue=row.document;if(issue.type==='kitchen.issue'||issue.type==='kitchen.transfer'){await uploadKitchenIssue(row as LocalKitchenIssue,transport);continue;}
     const receipt=row.document;if(receipt.type!=='receipt.document')continue;
     if(blockers.some(o=>o.document.locationId===receipt.locationId&&o.document.lines.some(l=>receipt.lines.some(x=>x.itemId===l.itemId)))){await local.receipts.update(row.id,{status:'needsReview',error:'الرصيد الافتتاحي لم يقبل بعد. راجع مستنده.'});continue;}
     const latest=(await local.snapshots.get(scope))!;
     try{validateReceiptReferences(latest,receipt);}catch{await local.receipts.update(row.id,{status:'needsReview',error:'إعداد المادة أو وحدة الاستلام أو الموقع أو المورد لم يقبل بعد. راجع إعداد المخزون ثم أعد محاولة الاستلام.'});continue;}
-    const response=await fetch('/api/v1/receipts',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.document)});
+    const response=await postChange('/api/v1/receipts',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.document)});
     if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الاستلام. المستندات محفوظة.');
     const result=await response.json() as CommandResult;await local.receipts.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع مستند الاستلام'});
-    if(response.ok)confirmed=await bootstrap(scope);continue;
+    if(response.ok)confirmed=await refreshSnapshot();continue;
    }
    if(row.command.type==='waste.post'&&await unresolvedKitchenFor(scope,row.command.locationId,[row.command.itemId],row.createdAt,row.id)){await local.commands.update(row.id,{status:'needsReview',error:'صرف مطبخ سابق لم يقبل؛ راجع مستنده.'});continue;}
    if(row.command.type==='waste.post'&&await unresolvedSalesFor(scope,row.command.locationId,[row.command.itemId],row.createdAt,row.id)){await local.commands.update(row.id,{status:'needsReview',error:'خصم مبيعات سابق لم يقبل؛ راجع ملف البيع أولاً.'});continue;}
@@ -311,7 +327,7 @@ export async function sync(scope:DemoProfile){
    if(confirmed&&(!confirmed.items.some(i=>i.id===row.command.itemId)||!confirmed.locations.some(l=>l.id===row.command.locationId))){
     await local.commands.update(row.id,{status:'needsReview',error:'المادة أو الموقع لم تتم مزامنته. راجع الإعدادات ثم أعد المحاولة.'});continue;
    }
-   const response=await fetch('/api/v1/commands',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
+   const response=await postChange('/api/v1/commands',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
    if(response.status===401)throw new Error('انتهت الجلسة. جدد الجلسة؛ العمليات محفوظة.');
    if(response.status===403)throw new Error('الجلسة أو الصلاحيات تغيرت. العمليات محفوظة؛ أعد الدخول للمؤسسة الصحيحة.');
    if(response.status>=500||response.status===429)throw new Error('المزامنة غير متاحة الآن. العمليات محفوظة.');
@@ -335,16 +351,16 @@ export async function sync(scope:DemoProfile){
    if(dispatch.type==='transfer.dispatch'&&(await local.receipts.where('scope').equals(scope).toArray()).some(r=>r.status==='needsReview'&&r.createdAt<=row.createdAt&&r.document.locationId===dispatch.sourceId&&r.document.lines.some(l=>dispatch.lines.some(x=>x.itemId===l.itemId)))){await local.transfers.update(row.id,{status:'needsReview',error:'مستند الاستلام السابق لم يقبل. راجع مستنده.'});continue;}
    const current=(await local.snapshots.get(scope))?.transfers?.find(t=>t.transferId===row.command.transferId);
    if(row.command.expectedRevision>(current?.revision??0)){await local.transfers.update(row.id,{status:'needsReview',error:'الإرسال أو الإصدار السابق لم يقبل. راجع التحويل.'});continue;}
-   const response=await fetch('/api/v1/transfers',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
+   const response=await postChange('/api/v1/transfers',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
    if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة التحويلات. المستندات محفوظة.');
    const result=await response.json() as CommandResult;
    await local.transfers.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع التحويل'});
-   if(response.ok)confirmed=await bootstrap(scope);
+   if(response.ok)confirmed=await refreshSnapshot();
   }
   await uploadStockUntil('9999');
   const countRows=await local.counts.where('scope').equals(scope).toArray();
   if(countRows.some(r=>r.status==='pending'||r.status==='acceptedAwaiting')){
-   await bootstrap(scope); // All preceding stock operations settle before count finalization.
+   await refreshSnapshot(); // All preceding stock operations settle before count finalization.
    const countQueue=countRows.filter(r=>r.status==='pending'||r.status==='acceptedAwaiting').sort((a,b)=>a.command.expectedRevision-b.command.expectedRevision||a.createdAt.localeCompare(b.createdAt));
    for(const row of countQueue){
     const latest=(await local.snapshots.get(scope))!,doc=projectCounts(latest,countRows).find(d=>d.countId===row.command.countId);
@@ -352,23 +368,23 @@ export async function sync(scope:DemoProfile){
     const current=latest.counts?.find(d=>d.countId===row.command.countId);
     if(row.command.expectedRevision>(current?.revision??0)){await local.counts.update(row.id,{status:'needsReview',error:'مسودة الجرد أو الإصدار السابق لم يقبل.'});continue;}
     if(row.command.type==='count.finalize'&&!latest.acceptedOperationIds.includes(row.id)&&doc&&await hasUnresolvedStock(scope,doc.document.locationId)){await local.counts.update(row.id,{status:'needsReview',error:'توجد حركات مخزون معلقة أو مرفوضة للموقع. حلها ثم أعد العد.'});continue;}
-    const response=await fetch('/api/v1/counts',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
+    const response=await postChange('/api/v1/counts',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':(await local.snapshots.get(scope))?.generation??''},body:JSON.stringify(row.command)});
     if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة الجرد. المستندات محفوظة.');
     const result=await response.json() as CommandResult;await local.counts.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع الجرد'});
-    if(response.ok)await bootstrap(scope);
+    if(response.ok)await refreshSnapshot();
    }
   }
   for(const row of (await local.kitchenOrders.where('scope').equals(scope).toArray()).filter(r=>r.status==='pending'||r.status==='acceptedAwaiting').sort((a,b)=>a.createdAt.localeCompare(b.createdAt))){
-   const latest=await bootstrap(scope);if(latest.acceptedOperationIds.includes(row.id))continue;
-   const response=await fetch('/api/v1/kitchen-orders',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.command)});if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تحديث المطبخ محفوظ؛ تعذرت المزامنة.');const result=await response.json() as CommandResult;await local.kitchenOrders.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع حالة الطلب'});if(response.ok)confirmed=await bootstrap(scope);
+   const latest=await refreshSnapshot();if(latest.acceptedOperationIds.includes(row.id))continue;
+   const response=await postChange('/api/v1/kitchen-orders',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.command)});if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تحديث المطبخ محفوظ؛ تعذرت المزامنة.');const result=await response.json() as CommandResult;await local.kitchenOrders.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع حالة الطلب'});if(response.ok)confirmed=await refreshSnapshot();
   }
   for(const row of (await local.finance.where('scope').equals(scope).toArray()).filter(r=>r.status==='pending'||r.status==='acceptedAwaiting').sort((a,b)=>a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id))){
-   const latest=await bootstrap(scope);if(latest.acceptedOperationIds.includes(row.id))continue;
-   const response=await fetch('/api/v1/finance',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.command)});
+   const latest=await refreshSnapshot();if(latest.acceptedOperationIds.includes(row.id))continue;
+   const response=await postChange('/api/v1/finance',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':latest.generation??''},body:JSON.stringify(row.command)});
    if(response.status===401||response.status===403||response.status===429||response.status>=500)throw new Error('تعذرت مزامنة العمليات المالية. عملياتك محفوظة.');
    const result=await response.json() as CommandResult;await local.finance.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع العملية المالية'});
   }
-  return bootstrap(scope);
+  return refreshNeeded?refreshSnapshot():latestSnapshot;
  };
  if(navigator.locks)return navigator.locks.request(`saas-sync-${scope}`,run);
  return run();
@@ -639,7 +655,7 @@ export function projectTransfers(snapshot:Snapshot,rows:LocalTransfer[]):Transfe
  for(const row of rows.filter(r=>r.scope===snapshot.organizationId&&(r.status==='pending'||r.status==='acceptedAwaiting')&&!snapshot.acceptedOperationIds.includes(r.id)).sort((a,b)=>a.command.expectedRevision-b.command.expectedRevision||a.createdAt.localeCompare(b.createdAt))){
   const c=row.command,t=docs.get(c.transferId);if((t?.revision??0)!==c.expectedRevision)continue;
   if(c.type==='transfer.dispatch')docs.set(c.transferId,{transferId:c.transferId,document:c,revision:1,postedAt:c.capturedAt,amount:'0',state:'inTransit',lines:c.lines.map(l=>({dispatchLineId:l.movementId,itemId:l.itemId,unitId:l.unitId,quantity:l.quantity,received:'0',lost:'0',remaining:l.quantity,amount:'0',remainingValue:'0'}))});
-  else if(t){t.revision++;for(const l of c.lines){const target=t.lines.find(x=>x.dispatchLineId===l.dispatchLineId);if(target){target.remaining=decimal(target.remaining).sub(l.quantity).toString();if(c.type==='transfer.receive')target.received=decimal(target.received).add(l.quantity).toString();else target.lost=decimal(target.lost).add(l.quantity).toString();}}t.state=t.lines.some(l=>decimal(l.remaining).gt(0))?'partial':t.lines.some(l=>decimal(l.lost).gt(0))?'resolvedWithLoss':'completed';}
+  else if(t&&t.state!=='voided'){t.revision++;for(const l of c.lines){const target=t.lines.find(x=>x.dispatchLineId===l.dispatchLineId);if(target){target.remaining=decimal(target.remaining).sub(l.quantity).toString();if(c.type==='transfer.receive')target.received=decimal(target.received).add(l.quantity).toString();else target.lost=decimal(target.lost).add(l.quantity).toString();}}t.state=t.lines.some(l=>decimal(l.remaining).gt(0))?'partial':t.lines.some(l=>decimal(l.lost).gt(0))?'resolvedWithLoss':'completed';}
  }
  return [...docs.values()];
 }
@@ -872,13 +888,13 @@ export async function resolveKitchenIssue(scope:DemoProfile,id:string,action:'re
 }
 export function projectedKitchenCommands(s:Snapshot,rows:LocalKitchenIssue[]):Command[]{return rows.filter(r=>r.scope===s.organizationId&&['pending','acceptedAwaiting'].includes(r.status)&&!s.acceptedOperationIds.includes(r.id)).flatMap(r=>r.document.lines.flatMap(l=>{const out:Command={operationId:l.lineId,organizationId:r.scope,locationId:r.document.locationId,itemId:l.itemId,quantity:l.quantity,type:'waste.post',reason:r.document.reference,businessDate:r.document.businessDate,capturedAt:r.document.capturedAt,schemaVersion:1};return r.document.type==='kitchen.transfer'&&r.document.destinationLocationId?[out,{...out,operationId:r.id+':'+l.lineId,locationId:r.document.destinationLocationId,type:'receipt.post' as const,unitCost:s.balances.find(b=>b.locationId===r.document.locationId&&b.itemId===l.itemId)?.average??'0'}]:[out];}));}
 async function unresolvedKitchenFor(scope:DemoProfile,locationId:string,items:string[],cutoff:string,excludeId:string){const s=(await local.snapshots.get(scope))!;return (await local.kitchenIssues.where('scope').equals(scope).toArray()).some(r=>r.id!==excludeId&&r.createdAt<=cutoff&&(r.document.locationId===locationId||r.document.type==='kitchen.transfer'&&r.document.destinationLocationId===locationId)&&['pending','acceptedAwaiting','needsReview'].includes(r.status)&&!s.acceptedOperationIds.includes(r.id)&&r.document.lines.some(l=>items.includes(l.itemId)));}
-async function uploadKitchenIssue(row:LocalKitchenIssue){
- const s=await bootstrap(row.scope);if(s.acceptedOperationIds.includes(row.id))return;
+async function uploadKitchenIssue(row:LocalKitchenIssue,{refreshSnapshot,postChange}:SyncTransport){
+ const s=await refreshSnapshot();if(s.acceptedOperationIds.includes(row.id))return;
  const blocker=await productionBlocker(row.scope,{inputLocationId:row.document.locationId,lines:row.document.lines},row.createdAt,row.id);
  if(blocker){await local.kitchenIssues.update(row.id,{status:'needsReview',error:blocker});return;}
- const response=await fetch('/api/v1/kitchen-issues',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':s.generation??''},body:JSON.stringify(row.document)});
+ const response=await postChange('/api/v1/kitchen-issues',{method:'POST',headers:{'Content-Type':'application/json','X-Fodo-Generation':s.generation??''},body:JSON.stringify(row.document)});
  if(response.status===401||response.status===403||response.status>=500||response.status===429)throw new Error('تعذرت مزامنة صرف المطابخ. المستند محفوظ.');
- const result=await response.json() as CommandResult;await local.kitchenIssues.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع مستند الصرف'});if(response.ok)await bootstrap(row.scope);
+ const result=await response.json() as CommandResult;await local.kitchenIssues.update(row.id,response.ok&&result.outcome==='accepted'?{status:'acceptedAwaiting',error:undefined}:{status:'needsReview',error:result.message??'راجع مستند الصرف'});if(response.ok)await refreshSnapshot();
 }
 
 export async function saveFinance(input:FinanceCommand,replacesId?:string){const command=financeCommandSchema.parse(input);await local.transaction('rw',[local.snapshots,local.commands,local.setups,local.openings,local.purchases,local.transfers,local.counts,local.receipts,local.recipes,local.productions,local.menus,local.sales,local.kitchenIssues,local.finance,local.kitchenOrders,local.butchery,local.central],async()=>{const s=requireGrant(await local.snapshots.get(command.organizationId));bindGeneration(s,command);if((await identityOwners()).has(command.operationId)||s.acceptedOperationIds.includes(command.operationId))throw new Error('معرّف العملية مستخدم بالفعل.');if(!s.locations.some(l=>l.id===command.locationId))throw new Error('الموقع غير متاح.');const old=replacesId?await local.finance.get(replacesId):undefined;if(replacesId&&(!old||old.scope!==command.organizationId||old.status!=='needsReview'||s.acceptedOperationIds.includes(old.id)||old.command.type!==command.type||old.command.locationId!==command.locationId))throw new Error('يمكن تصحيح عملية مرفوضة فقط من النوع والموقع نفسيهما.');if(command.replacesOperationId&&!replacesId)throw new Error('اختر العملية المرفوضة الأصلية للتصحيح.');if(replacesId)command.replacesOperationId=replacesId;await local.finance.add({id:command.operationId,scope:command.organizationId,command,status:'pending',createdAt:command.capturedAt,sourceDeviceId:s.access.deviceId,replacesId});if(old)await local.finance.update(old.id,{status:'superseded',replacementId:command.operationId});});}

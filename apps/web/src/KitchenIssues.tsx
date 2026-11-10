@@ -1,6 +1,8 @@
 'use client';
+import {formatMoney} from './money-format';
 import UnitQuantityInput from './UnitQuantityInput';
-import {correctAcceptedDocument,CorrectionReason,CorrectionLink,canCorrectDocument} from './document-correction-client';
+import {correctAcceptedDocument,CorrectionReason,CorrectionLink,canCorrectDocument,voidKitchenDocument} from './document-correction-client';
+import VoidStockDocument from './VoidStockDocument';
 import {kitchenExport} from './document-export';
 import {HelpButton} from './ClientGuide';
 import {SetupEditor} from './InventorySetup';
@@ -33,10 +35,31 @@ function estimate(s:Snapshot,lines:Line[],location:string,documentPrices=false){
 export default function KitchenIssues({snapshot,location,rows,setups,commands,openings,expired,synchronize,onSaved}:{snapshot:Snapshot;location:string;rows:LocalKitchenIssue[];setups:LocalSetup[];commands:Command[];openings:OpeningDocument[];expired:boolean;synchronize:()=>Promise<void>;onSaved?:(id:string)=>void}){
  const openSupplyReport=()=>{const ui=useUI.getState();ui.ensureReportScope(snapshot.organizationId+':'+snapshot.generation);ui.setReportFilters({...useUI.getState().reportFilters,kind:'kitchenSupply',category:'',itemId:'',supplierId:'',kitchenId:'',posId:'',search:'',sort:'date_desc',page:1});ui.setView('reports');};
  const [editor,setEditor]=useState<{row?:LocalKitchenIssue;location:string;generation?:string}|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[printing,setPrinting]=useState<IssueRow|null>(null),[directory,setDirectory]=useState(false),[posDirectory,setPOSDirectory]=useState(false);
+ const [voiding,setVoiding]=useState<IssueRow|null>(null);
  const trigger=useRef<HTMLButtonElement|null>(null);
  const docs=new Map<string,IssueRow>(rows.map(r=>[r.id,r]));
  for(const p of snapshot.kitchenIssues??[])docs.set(p.document.operationId,{...docs.get(p.document.operationId),id:p.document.operationId,scope:snapshot.organizationId,document:p.document,status:'accepted',createdAt:p.postedAt,error:undefined,posted:p});
- const all=[...docs.values()],visible=reviewFirst(all.filter(r=>r.document.locationId===location||r.document.destinationLocationId===location)),kitchens=[...new Set(all.map(r=>r.document.kitchen))].sort((a,b)=>a.localeCompare(b,'ar'));
+ const all=[...docs.values()],kitchens=[...new Set(all.map(r=>r.document.kitchen))].sort((a,b)=>a.localeCompare(b,'ar'));
+ const previousById=new Map((snapshot.documentCorrections??[]).filter(edit=>edit.kind==='kitchen'&&edit.replacementId!==edit.operationId).map(edit=>[edit.replacementId,edit]));
+ const trail=(id:string)=>{
+  const seen=new Set([id]),edits=[];
+  let edit=previousById.get(id);
+  while(edit&&!seen.has(edit.sourceId)){
+   seen.add(edit.sourceId);
+   edits.push(edit);
+   edit=previousById.get(edit.sourceId);
+  }
+  return edits;
+ };
+ const currentByDocument=new Map<string,IssueRow>();
+ for(const row of all){
+  if(row.document.locationId!==location&&row.document.destinationLocationId!==location)continue;
+  const history=trail(row.id),root=history.at(-1)?.sourceId??row.id;
+  const current=currentByDocument.get(root);
+  if(!current||history.length>trail(current.id).length)currentByDocument.set(root,row);
+ }
+ const visible=reviewFirst([...currentByDocument.values()]);
+ const voidedIds=new Set(snapshot.documentCorrections?.filter(c=>c.kind==='kitchen'&&c.replacementId===c.operationId).map(c=>c.sourceId));
  const accepted=visible.filter(r=>r.status==='accepted'&&r.posted&&!snapshot.documentCorrections?.some(c=>c.sourceId===r.id)),amount=accepted.reduce((n,r)=>n.add(r.posted!.amount),decimal('0')).toString();
  const hasKitchen=snapshot.kitchens?.some(k=>k.active&&k.locationId!==location)??false;
  const active=snapshot.locations.find(l=>l.id===location)?.active!==false&&snapshot.locations.some(l=>l.id===location);
@@ -49,20 +72,43 @@ export default function KitchenIssues({snapshot,location,rows,setups,commands,op
   {notice&&<p role="status" className="notice">{notice}</p>}{posDirectory&&<POSDirectory snapshot={snapshot} rows={setups} expired={expired} synchronize={synchronize} close={()=>setPOSDirectory(false)}/>}
   {error&&<p role="alert" className="error">{error}</p>}
   <KitchenStock snapshot={snapshot} commands={commands} openings={openings}/>
-  <div className="kitchen-metrics"><section className="panel"><small>المستندات المقبولة في البيانات الحالية</small><strong>{number(accepted.length)}</strong></section><section className="panel"><small>تكلفة المخزون المصروف المقبول</small><strong>{number(amount)} <small>ج.م</small></strong></section></div>
+  <div className="kitchen-metrics"><section className="panel"><small>المستندات المقبولة في البيانات الحالية</small><strong>{number(accepted.length)}</strong></section><section className="panel"><small>تكلفة المخزون المصروف المقبول</small><strong>{formatMoney(amount)} <small>ج.م</small></strong></section></div>
   <CollapsibleSection className="panel"><div className="panel-heading"><div><h2>سجل صرف المطابخ</h2><p>ابحث باسم المطبخ أو المرجع أو المادة؛ المستند المقبول يحتفظ بتكلفته عند الصرف.</p></div><button type="button" className="secondary" onClick={openSupplyReport}>تقرير صرف المطابخ والرسوم ←</button></div>
-   <Collection rows={visible} title="صرف المطابخ" resetKey={location} searchText={r=>[r.document.kitchen,r.document.reference,r.document.notes,r.id,r.document.lines.map(l=>snapshot.items.find(i=>i.id===l.itemId)?.name).join(' ')].join(' ')} sortText={r=>r.document.kitchen} dateValue={r=>r.document.businessDate} filters={[{key:'kitchen',label:'المطبخ',value:r=>r.document.kitchen,options:kitchens.map(name=>({value:name,label:name}))},{key:'status',label:'حالة المزامنة',value:r=>r.status,options:syncStatusOptions}]} sorts={amountSorts('cost','قيمة المستند',cost)} rowIds={r=>[r.id]} emptyText="لم تسجّل مستندات صرف مطابخ لهذا المخزن بعد.">
-    {page=>page.map(r=><details className="opening-document" key={r.id} id={'operation-'+r.id} tabIndex={-1}><summary><strong>{r.document.type==='kitchen.transfer'?'تحويل إلى ':'استهلاك سابق — '}{r.document.kitchen}{r.document.reference&&' · '+r.document.reference}</strong> · {r.document.businessDate} · {number(r.document.lines.length)} مادة <OperationStatus status={r.status}/></summary>{r.status==='accepted'&&canCorrectDocument(snapshot,r.id)&&<button type="button" className="secondary" disabled={expired} onClick={()=>setEditor({row:r,location:r.document.locationId,generation:snapshot.generation})}>تعديل المواد والكميات</button>}<div className="kitchen-document-meta"><span>رقم المستند: <bdi className="kitchen-number">{documentNumber(r.id)}</bdi></span><span>{r.document.lines.some(l=>l.unitPrice!==undefined)?'قيمة المستند':r.posted?'تكلفة المخزون الفعلية':'قيمة تقديرية'}: <strong>{cost(r)===null?'غير متاحة':number(cost(r)!)} ج.م</strong></span>{r.posted&&<span>طريقة التكلفة: {r.posted.method==='fifo'?'FIFO':'المتوسط المرجح المتحرك'}</span>}</div>
+   <Collection rows={visible} title="صرف المطابخ" resetKey={location} searchText={r=>[r.document.kitchen,r.document.reference,r.document.notes,r.id,...trail(r.id).flatMap(edit=>[edit.sourceId,edit.reason]),r.document.lines.map(l=>snapshot.items.find(i=>i.id===l.itemId)?.name).join(' ')].join(' ')} sortText={r=>r.document.kitchen} dateValue={r=>r.document.businessDate} filters={[{key:'kitchen',label:'المطبخ',value:r=>r.document.kitchen,options:kitchens.map(name=>({value:name,label:name}))},{key:'status',label:'حالة المزامنة',value:r=>r.status,options:syncStatusOptions}]} sorts={amountSorts('cost','قيمة المستند',cost)} rowIds={r=>[r.id,...trail(r.id).map(edit=>edit.sourceId)]} emptyText="لم تسجّل مستندات صرف مطابخ لهذا المخزن بعد.">
+    {page=>page.map(r=><details className="opening-document" key={r.id} id={'operation-'+r.id} tabIndex={-1}><summary><strong>{r.document.type==='kitchen.transfer'?'تحويل إلى ':'استهلاك سابق — '}{r.document.kitchen}{r.document.reference&&' · '+r.document.reference}</strong> · {r.document.businessDate} · {number(r.document.lines.length)} مادة {voidedIds.has(r.id)?<span className="pill">ملغى</span>:<OperationStatus status={r.status}/>}</summary>{r.status==='accepted'&&canCorrectDocument(snapshot,r.id)&&<div className="heading-actions"><button type="button" className="secondary" disabled={expired} onClick={()=>setEditor({row:r,location:r.document.locationId,generation:snapshot.generation})}>تعديل المواد والكميات</button><button type="button" className="text-button" disabled={expired} onClick={()=>setVoiding(r)}>إلغاء المستند</button></div>}<div className="kitchen-document-meta"><span>رقم المستند: <bdi className="kitchen-number">{documentNumber(r.id)}</bdi></span><span>{r.document.lines.some(l=>l.unitPrice!==undefined)?'قيمة المستند':r.posted?'تكلفة المخزون الفعلية':'قيمة تقديرية'}: <strong>{cost(r)===null?'غير متاحة':formatMoney(cost(r)!)} ج.م</strong></span>{r.posted&&<span>طريقة التكلفة: {r.posted.method==='fifo'?'FIFO':'المتوسط المرجح المتحرك'}</span>}</div>
      {r.document.notes&&<p>{r.document.notes}</p>}
-     <Collection rows={r.document.lines} title={'مواد الصرف — '+(r.document.reference||documentNumber(r.id))} searchText={l=>r.posted?.lines.find(x=>x.lineId===l.lineId)?.name??snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}>{lines=><div className="table-scroll"><table><thead><tr><th>المادة</th><th>الكمية</th><th>الوحدة</th><th>سعر الصرف</th><th>قيمة الصرف</th><th>تكلفة المخزون الفعلية</th></tr></thead><tbody>{lines.map(l=>{const p=r.posted?.lines.find(x=>x.lineId===l.lineId),item=snapshot.items.find(i=>i.id===l.itemId);return <tr key={l.lineId}><td>{p?.name??item?.name??l.itemId}</td><td>{number(l.quantity)}</td><td>{p?.unit??item?.unit}</td><td>{l.unitPrice!==undefined?number(l.unitPrice)+' ج.م':'—'}</td><td>{l.unitPrice!==undefined?number(decimal(l.unitPrice).mul(l.quantity).toString())+' ج.م':'—'}</td><td>{p?number(p.amount)+' ج.م':'بعد القبول'}</td></tr>;})}</tbody></table></div>}</Collection>
+     <Collection rows={r.document.lines} title={'مواد الصرف — '+(r.document.reference||documentNumber(r.id))} searchText={l=>r.posted?.lines.find(x=>x.lineId===l.lineId)?.name??snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}>{lines=><div className="table-scroll"><table><thead><tr><th>المادة</th><th>الكمية</th><th>الوحدة</th><th>سعر الصرف</th><th>قيمة الصرف</th><th>تكلفة المخزون الفعلية</th></tr></thead><tbody>{lines.map(l=>{const p=r.posted?.lines.find(x=>x.lineId===l.lineId),item=snapshot.items.find(i=>i.id===l.itemId);return <tr key={l.lineId}><td>{p?.name??item?.name??l.itemId}</td><td>{number(l.quantity)}</td><td>{p?.unit??item?.unit}</td><td>{l.unitPrice!==undefined?formatMoney(l.unitPrice)+' ج.م':'—'}</td><td>{l.unitPrice!==undefined?formatMoney(decimal(l.unitPrice).mul(l.quantity).toString())+' ج.م':'—'}</td><td>{p?formatMoney(p.amount)+' ج.م':'بعد القبول'}</td></tr>;})}</tbody></table></div>}</Collection>
      {r.error&&<p role="alert" className="error">{r.error}</p>}{r.replacesId&&<p>تصحيح للمستند: <DocumentLink id={r.replacesId} view="kitchenIssues" location={r.document.locationId}/></p>}{r.replacementId&&<p>المستند البديل: <DocumentLink id={r.replacementId} view="kitchenIssues" location={r.document.locationId}/></p>}
-     <CorrectionLink snapshot={snapshot} id={r.id}/><div className="heading-actions"><button type="button" className="secondary" onClick={()=>setPrinting(r)}>عرض وطباعة المستند</button>{r.status==='needsReview'&&<><button type="button" className="secondary" disabled={expired} onClick={()=>void resolve(r,'retry')}>إعادة المحاولة</button><button type="button" className="secondary" disabled={expired} onClick={e=>{trigger.current=e.currentTarget;setEditor({row:r,location:r.document.locationId,generation:snapshot.generation});}}>تصحيح الصرف</button><button type="button" className="text-button" onClick={()=>void resolve(r,'cancel')}>إلغاء الصرف المرفوض</button></>}</div>
+     <KitchenCorrectionTimeline corrections={trail(r.id)} documents={docs} items={snapshot.items}/>{snapshot.documentCorrections?.some(c=>c.sourceId===r.id)&&<CorrectionLink snapshot={snapshot} id={r.id}/>} <div className="heading-actions"><button type="button" className="secondary" onClick={()=>setPrinting(r)}>عرض وطباعة المستند</button>{r.status==='needsReview'&&<><button type="button" className="secondary" disabled={expired} onClick={()=>void resolve(r,'retry')}>إعادة المحاولة</button><button type="button" className="secondary" disabled={expired} onClick={e=>{trigger.current=e.currentTarget;setEditor({row:r,location:r.document.locationId,generation:snapshot.generation});}}>تصحيح الصرف</button><button type="button" className="text-button" onClick={()=>void resolve(r,'cancel')}>إلغاء الصرف المرفوض</button></>}</div>
     </details>)}
    </Collection>
   </CollapsibleSection>
   {editor&&<KitchenIssueEditor key={editor.row?.id??'new'} snapshot={snapshot} location={editor.location} generation={editor.generation} initial={editor.row} commands={commands.filter(c=>!editor.row?.document.lines.some(l=>l.lineId===c.operationId))} openings={openings} close={()=>{setEditor(null);requestAnimationFrame(()=>trigger.current?.focus());}} saved={id=>{setEditor(null);if(onSaved)onSaved(id);else setNotice('محفوظ على الجهاز — بانتظار المزامنة.');requestAnimationFrame(()=>trigger.current?.focus());void synchronize();}}/>}
+  {voiding&&<VoidStockDocument title="إلغاء مستند صرف المطبخ" reference={documentNumber(voiding.id)} close={()=>setVoiding(null)} confirm={async reason=>{
+   await voidKitchenDocument(snapshot,voiding.id,reason);
+   setVoiding(null);setNotice('أُلغي مستند صرف المطبخ وسُجّل السبب.');await synchronize();
+  }}/>}
   {printing&&<KitchenIssuePrint snapshot={snapshot} row={printing} close={()=>setPrinting(null)}/>}
  </>;
+}
+
+function KitchenCorrectionTimeline({corrections,documents,items}:{corrections:NonNullable<Snapshot['documentCorrections']>;documents:Map<string,IssueRow>;items:Snapshot['items']}){
+ if(!corrections.length)return null;
+ const time=new Intl.DateTimeFormat('ar-EG',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Cairo'});
+ return <details className="transfer-edit-timeline">
+  <summary>سجل التعديلات ({number(corrections.length)})</summary>
+  <ol>{corrections.map(edit=>{
+   const previous=documents.get(edit.sourceId)?.document,updated=documents.get(edit.replacementId)?.document;
+   const before=new Map(previous?.lines.map(line=>[line.itemId,line])),after=new Map(updated?.lines.map(line=>[line.itemId,line]));
+   const changes=[...new Set([...before.keys(),...after.keys()])].filter(id=>!decimal(before.get(id)?.quantity??'0').eq(after.get(id)?.quantity??'0'));
+   return <li key={edit.operationId} id={'operation-'+edit.sourceId} tabIndex={-1}>
+    <p><time dateTime={edit.postedAt}>{time.format(new Date(edit.postedAt))}</time> · {edit.reason}</p>
+    <small>المستند السابق: <bdi>{documentNumber(edit.sourceId)}</bdi></small>
+    {previous&&updated&&previous.businessDate!==updated.businessDate&&<p>تاريخ المستند من <bdi>{previous.businessDate}</bdi> إلى <bdi>{updated.businessDate}</bdi></p>}
+    {previous&&updated&&!!changes.length&&<ul>{changes.map(id=><li key={id}>{items.find(item=>item.id===id)?.name??id} · من {number(before.get(id)?.quantity??'0')} إلى {number(after.get(id)?.quantity??'0')}</li>)}</ul>}
+   </li>;
+  })}</ol>
+ </details>;
 }
 
 export function KitchenIssueEditor({snapshot,location,generation,initial,seed,commands,openings,close,saved}:{snapshot:Snapshot;location:string;generation?:string;initial?:LocalKitchenIssue;seed?:PreparationSupplySeed;commands:Command[];openings:OpeningDocument[];close:()=>void;saved:(id:string)=>void}){
@@ -169,7 +215,7 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,seed,co
      const item=snapshot.items.find(i=>i.id===line.itemId),q=available(line.itemId),preview=issueStockPreview(q,line.quantity),value=item?estimate(snapshot,[line],location,true):null,unitCost=line.unitPrice??(value===null?null:decimal(value).div(line.quantity).toString());
      return <li key={line.lineId}><article className={'kitchen-receipt-line'+(preview.status==='shortage'?' kitchen-line-shortage':'')+(lastChanged===line.lineId?' kitchen-receipt-latest':'')} aria-label={'مادة بالقائمة '+(item?.name??line.itemId)}>
       <div className="kitchen-receipt-item"><strong>{item?.name??line.itemId}</strong><small><bdi>{item?.sku??'—'}</bdi> · {item?.category??'—'}</small><span>المتاح {number(q)} {item?.unit}{preview.status==='ready'&&<> · المتبقي {number(preview.remaining!)} {item?.unit}</>}</span></div>
-      <dl className="kitchen-receipt-details"><div><dt>الكمية</dt><dd className="kitchen-receipt-quantity">{number(line.quantity)} <small>{item?.unit}</small></dd></div><div><dt>سعر الصرف</dt><dd>{unitCost===null?'—':number(unitCost)+' ج.م'}</dd></div><div><dt>قيمة الصرف</dt><dd>{value===null?'—':number(value)+' ج.م'}</dd></div></dl>
+      <dl className="kitchen-receipt-details"><div><dt>الكمية</dt><dd className="kitchen-receipt-quantity">{number(line.quantity)} <small>{item?.unit}</small></dd></div><div><dt>سعر الصرف</dt><dd>{unitCost===null?'—':formatMoney(unitCost)+' ج.م'}</dd></div><div><dt>قيمة الصرف</dt><dd>{value===null?'—':formatMoney(value)+' ج.م'}</dd></div></dl>
       <div className="kitchen-receipt-actions"><button type="button" className="text-button" aria-label={'تعديل كمية '+(item?.name??line.itemId)} onClick={()=>editLine(line)}>{editingId===line.lineId?'جارٍ التعديل':'تعديل'}</button><button type="button" className="text-button kitchen-receipt-remove" aria-label={'حذف '+(item?.name??line.itemId)+' من مستند الصرف'} onClick={()=>removeLine(line)}>حذف</button></div>
       {preview.status==='shortage'&&<p className="kitchen-stock-warning" role="status">الكمية تتجاوز المتاح بـ {number(preview.shortage!)} {item?.unit}. عدّل الكمية قبل الحفظ.</p>}
      </article></li>;
@@ -177,7 +223,7 @@ export function KitchenIssueEditor({snapshot,location,generation,initial,seed,co
    </CollapsibleSection>
    </div>
    <div className="workflow-actions kitchen-issue-actions">
-    <div className="kitchen-issue-total"><div><span>إجمالي المستند · {number(lines.length)} مادة</span><strong>{total===null?'—':number(total)+' ج.م'}</strong></div><small>{total===null?(lines.length?'لا تتوفر تكلفة مؤكدة لبعض المواد؛ تُثبت القيمة بعد قبول المزامنة.':'يظهر بعد إضافة المواد إلى القائمة.'):'سعر خاص بمستند المطبخ؛ تكلفة المخزون لا تتغير.'}</small>{shortageCount>0&&<span className="kitchen-shortage-count" role="status">راجع الكمية في {number(shortageCount)} مادة</span>}<small className="kitchen-consumption-note">المواد تُنقل إلى مخزون المطبخ بقيمتها الحالية؛ الاستهلاك يحدث عند البيع أو الهالك.</small></div>
+    <div className="kitchen-issue-total"><div><span>إجمالي المستند · {number(lines.length)} مادة</span><strong>{total===null?'—':formatMoney(total)+' ج.م'}</strong></div><small>{total===null?(lines.length?'لا تتوفر تكلفة مؤكدة لبعض المواد؛ تُثبت القيمة بعد قبول المزامنة.':'يظهر بعد إضافة المواد إلى القائمة.'):'سعر خاص بمستند المطبخ؛ تكلفة المخزون لا تتغير.'}</small>{shortageCount>0&&<span className="kitchen-shortage-count" role="status">راجع الكمية في {number(shortageCount)} مادة</span>}<small className="kitchen-consumption-note">المواد تُنقل إلى مخزون المطبخ بقيمتها الحالية؛ الاستهلاك يحدث عند البيع أو الهالك.</small></div>
     <div className="kitchen-save-buttons"><button type="submit" className="primary">{busy?'جارٍ الحفظ…':'حفظ صرف المطبخ'}</button><button type="button" className="secondary" onClick={close}>إلغاء</button></div>
    </div>
   </WorkflowForm>
@@ -192,8 +238,8 @@ function KitchenIssuePrint({snapshot,row,close}:{snapshot:Snapshot;row:IssueRow;
 }
 export function KitchenIssuePrintSheet({snapshot,row}:{snapshot:Snapshot;row:IssueRow}){
  const d=row.document,p=row.posted;
- return <><PrintHeader snapshot={snapshot} title={d.type==='kitchen.transfer'?'مستند تحويل مخزون للمطبخ':'مستند استهلاك مواد للمطبخ'} number={documentNumber(row.id)}/><div className="document-print-meta"><p>المطبخ: <strong>{d.kitchen}</strong></p><p>التاريخ: {d.businessDate}</p><p>المخزن: {snapshot.locations.find(l=>l.id===d.locationId)?.name??d.locationId}</p><p>المرجع: {d.reference||'—'}</p></div>{!p&&<p className="document-print-warning">غير مقبول بعد — حالة المزامنة: <OperationStatus status={row.status}/> · الكميات والتكلفة غير نهائية.</p>}
- <PrintTable columns={['المادة','الكمية','الوحدة','سعر الصرف ج.م','قيمة الصرف ج.م','تكلفة المخزون ج.م']} rows={d.lines.map(l=>{const v=p?.lines.find(x=>x.lineId===l.lineId),item=snapshot.items.find(i=>i.id===l.itemId);return {id:l.lineId,cells:[<><strong>{v?.name??item?.name??l.itemId}</strong><small><bdi>{item?.sku}</bdi></small></>,number(l.quantity),v?.unit??item?.unit??'—',l.unitPrice!==undefined?number(l.unitPrice):v?number(decimal(v.amount).div(l.quantity).toString()):'—',l.unitPrice!==undefined?number(decimal(l.unitPrice).mul(l.quantity).toString()):v?number(v.amount):'—',v?number(v.amount):'—']};})}/>
- {d.lines.some(l=>l.unitPrice!==undefined)&&<p className="document-print-total">قيمة مستند الصرف: <strong>{number(estimate(snapshot,d.lines,d.locationId,true)??'0')} ج.م</strong><small> · أسعار للمستند فقط؛ لا تغيّر تكلفة المخزون.</small></p>}
- <p className="document-print-total">{d.type==='kitchen.transfer'?'قيمة المخزون المنقول':'قيمة الاستهلاك'}: <strong>{p?number(p.amount)+' ج.م':'تُثبت بعد قبول المزامنة'}</strong></p>{d.notes&&<p className="document-print-note">ملاحظات: {d.notes}</p>}<p className="document-print-note">{d.type==='kitchen.transfer'?'هذا تحويل مخزون؛ لا يحتسب استهلاكاً.':'المواد المصروفة في هذا المستند احتسبت استهلاكاً مباشراً.'}</p><div className="document-print-signatures"><p>توقيع مسؤول المخزن: __________________</p><p>توقيع المستلم: __________________</p></div><footer className="document-print-footer">FooDo · مستند داخلي لصرف المواد</footer></>;
+ return <><PrintHeader snapshot={snapshot} title={d.type==='kitchen.transfer'?'مستند تحويل مخزون للمطبخ':'مستند استهلاك مواد للمطبخ'} number={documentNumber(row.id)}/><div className="document-print-meta"><p>المطبخ: <strong>{d.kitchen}</strong></p><p>التاريخ: {d.businessDate}</p><p>المخزن: {snapshot.locations.find(l=>l.id===d.locationId)?.name??d.locationId}</p><p>المرجع: {d.reference||'—'}</p></div>{snapshot.documentCorrections?.some(edit=>edit.sourceId===row.id&&edit.replacementId===edit.operationId)&&<p className="document-print-warning">مستند ملغى</p>}{!p&&<p className="document-print-warning">غير مقبول بعد — حالة المزامنة: <OperationStatus status={row.status}/> · الكميات والتكلفة غير نهائية.</p>}
+ <PrintTable columns={['المادة','الكمية','الوحدة','سعر الصرف ج.م','قيمة الصرف ج.م','تكلفة المخزون ج.م']} rows={d.lines.map(l=>{const v=p?.lines.find(x=>x.lineId===l.lineId),item=snapshot.items.find(i=>i.id===l.itemId);return {id:l.lineId,cells:[<><strong>{v?.name??item?.name??l.itemId}</strong><small><bdi>{item?.sku}</bdi></small></>,number(l.quantity),v?.unit??item?.unit??'—',l.unitPrice!==undefined?formatMoney(l.unitPrice):v?formatMoney(decimal(v.amount).div(l.quantity).toString()):'—',l.unitPrice!==undefined?formatMoney(decimal(l.unitPrice).mul(l.quantity).toString()):v?formatMoney(v.amount):'—',v?formatMoney(v.amount):'—']};})}/>
+ {d.lines.some(l=>l.unitPrice!==undefined)&&<p className="document-print-total">قيمة مستند الصرف: <strong>{formatMoney(estimate(snapshot,d.lines,d.locationId,true)??'0')} ج.م</strong><small> · أسعار للمستند فقط؛ لا تغيّر تكلفة المخزون.</small></p>}
+ <p className="document-print-total">{d.type==='kitchen.transfer'?'قيمة المخزون المنقول':'قيمة الاستهلاك'}: <strong>{p?formatMoney(p.amount)+' ج.م':'تُثبت بعد قبول المزامنة'}</strong></p>{d.notes&&<p className="document-print-note">ملاحظات: {d.notes}</p>}<p className="document-print-note">{d.type==='kitchen.transfer'?'هذا تحويل مخزون؛ لا يحتسب استهلاكاً.':'المواد المصروفة في هذا المستند احتسبت استهلاكاً مباشراً.'}</p><div className="document-print-signatures"><p>توقيع مسؤول المخزن: __________________</p><p>توقيع المستلم: __________________</p></div><footer className="document-print-footer">FooDo · مستند داخلي لصرف المواد</footer></>;
 }

@@ -2,6 +2,7 @@ import {assertInventoryWrite,assertInventoryManager} from './inventory-permissio
 import type {Database} from './database';
 import {createHash} from 'node:crypto';
 import {BusinessError,menuItemSchema,menuCommandSchema,salesImportSchema,type Access,type CommandResult,type MenuItem,type ImportedSales,type SalesLine,type SalesStockDeduction,type SalesStockShortage,type Kitchen,type PointOfSale,type Location} from '@saas/contracts';
+import {menuDraftImportSchema,menuDraftRowSchema,type MenuDraft,type MenuDraftRow} from '@saas/contracts';
 import {decimal} from '@saas/domain';
 import {validateMenu,validateSale,salePayload,salesStockRequirements,salesSourceKey,resolveSalesRouting} from '../domain/sales';
 import {recipeSnapshot} from './recipes';
@@ -20,7 +21,24 @@ CREATE INDEX IF NOT EXISTS sales_detail_menu ON sales_details(organization_id,me
 CREATE INDEX IF NOT EXISTS sales_detail_version ON sales_details(organization_id,version_id);
 CREATE INDEX IF NOT EXISTS sales_detail_location ON sales_details(organization_id,location_id,business_date);
 `;
-export async function salesSnapshot(tx:Tx,org:string){return {menuItems:(await tx.query<{payload:MenuItem;revision:number}>('SELECT payload,revision FROM menu_items WHERE organization_id=$1 ORDER BY source,code',[org])).rows.map(r=>({...menuItemSchema.parse(r.payload),revision:r.revision})),salesImports:(await tx.query<{result:ImportedSales}>('SELECT result FROM sales_imports WHERE organization_id=$1 ORDER BY posted_at DESC',[org])).rows.map(r=>r.result)};}
+export async function salesSnapshot(tx:Tx,org:string){
+ const drafts=await tx.query<{payload:MenuDraftRow;source:string;kitchenId:string}>(`
+  SELECT d.payload,d.source,d.kitchen_id AS "kitchenId"
+  FROM menu_catalog_drafts d
+  WHERE d.organization_id=$1 AND NOT EXISTS (
+    SELECT 1 FROM menu_items m
+    WHERE m.organization_id=d.organization_id AND m.source=d.source AND m.code=d.code
+  )
+  ORDER BY d.source,d.code`,[org]);
+ const menuDrafts:MenuDraft[]=drafts.rows.map(row=>({
+  ...menuDraftRowSchema.parse(row.payload),source:row.source,kitchenId:row.kitchenId,
+ }));
+ return {
+  menuItems:(await tx.query<{payload:MenuItem;revision:number}>('SELECT payload,revision FROM menu_items WHERE organization_id=$1 ORDER BY source,code',[org])).rows.map(r=>({...menuItemSchema.parse(r.payload),revision:r.revision})),
+  menuDrafts,
+  salesImports:(await tx.query<{result:ImportedSales}>('SELECT result FROM sales_imports WHERE organization_id=$1 ORDER BY posted_at DESC',[org])).rows.map(r=>r.result),
+ };
+}
 function authorize(access:Access,org:string){if(org!==access.organizationId||!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('FORBIDDEN','الجلسة لا تسمح بمبيعات هذه المؤسسة.',403);}
 const hash=(input:unknown)=>createHash('sha256').update(JSON.stringify(input)).digest('hex');
 function stockMovementId(importId:string,itemId:string,date:string){const h=hash(['sales-stock',importId,itemId,date]);return `${h.slice(0,8)}-${h.slice(8,12)}-5${h.slice(13,16)}-a${h.slice(17,20)}-${h.slice(20,32)}`;}
@@ -28,20 +46,75 @@ async function previous(tx:Tx,org:string,id:string,digest:string){const prior=(a
 async function record(tx:Tx,access:Access,id:string,digest:string,action:string){const r:CommandResult={operationId:id,outcome:'accepted'};await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[access.organizationId,id,digest,JSON.stringify(r)]);await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[access.organizationId,access.userId,id,action]);return r;}
 export async function postMenuItem(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  assertInventoryWrite(access);
+ if(typeof input==='object'&&input!==null&&'type' in input&&input.type==='menu.drafts.import'){
+  return postMenuDrafts(db,access,input);
+ }
  const p=menuCommandSchema.safeParse(input);if(!p.success)throw new BusinessError('INVALID_MENU','راجع كود البيع والإصدار والكمية.',400);const c=p.data,org=c.organizationId,digest=hash(c);authorize(access,org);
  try{return await db.transaction(async tx=>{
   await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);await assertGeneration(tx,org,c.generation);const prior=await previous(tx,org,c.operationId,digest);if(prior)return prior;
   const current=(await tx.query<{revision:number;payload:MenuItem&{posHistory?:MenuItem[]}}>('SELECT revision,payload FROM menu_items WHERE organization_id=$1 AND id=$2',[org,c.record.id])).rows[0];if((current?.revision??0)!==c.expectedRevision)throw new BusinessError('REVISION_CONFLICT','تغير صنف البيع؛ ألغِ الإجراء المرفوض وافتح أحدث تعريف.');
-  if(current&&(current.payload.source!==c.record.source||current.payload.code!==c.record.code))throw new BusinessError('IMMUTABLE_CODE','مصدر وكود البيع ثابتان؛ أضف صنفاً جديداً للكود الآخر.');validateMenu({...await recipeSnapshot(tx,org),kitchens:(await tx.query<Kitchen>('SELECT id,active,location_id AS "locationId" FROM kitchens WHERE organization_id=$1',[org])).rows},c.record);
+  if(current&&(current.payload.source!==c.record.source||current.payload.code!==c.record.code))throw new BusinessError('IMMUTABLE_CODE','مصدر وكود البيع ثابتان؛ أضف صنفاً جديداً للكود الآخر.');
+  if(!current){
+   const draft=(await tx.query<{kitchen_id:string}>('SELECT kitchen_id FROM menu_catalog_drafts WHERE organization_id=$1 AND source=$2 AND code=$3',[org,c.record.source,c.record.code])).rows[0];
+   if(draft&&!c.record.kitchenIds?.includes(draft.kitchen_id))throw new BusinessError('INVALID_DRAFT_KITCHEN','اربط الصنف بمطبخ المسودة عند حفظ الوصفة.');
+  }
+  validateMenu({...await recipeSnapshot(tx,org),kitchens:(await tx.query<Kitchen>('SELECT id,active,location_id AS "locationId" FROM kitchens WHERE organization_id=$1',[org])).rows},c.record);
   await tx.query('INSERT INTO menu_items(organization_id,id,source,code,revision,version_id,payload) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(organization_id,id) DO UPDATE SET revision=$5,version_id=$6,payload=$7',[org,c.record.id,c.record.source,c.record.code,c.expectedRevision+1,c.record.versionId,JSON.stringify({...c.record,posHistory:current?[...(current.payload.posHistory??[]),{...menuItemSchema.parse(current.payload),revision:current.revision}]:[]})]);
   return record(tx,access,c.operationId,digest,c.type);
  });}catch(e){if((e as {code?:string}).code==='23505')throw new BusinessError('DUPLICATE_MENU','كود البيع مستخدم لهذا المصدر.');throw e;}
+}
+async function postMenuDrafts(db:Database,access:Access,input:unknown){
+ const parsed=menuDraftImportSchema.safeParse(input);
+ if(!parsed.success)throw new BusinessError('INVALID_MENU_DRAFTS','راجع أكواد وأسماء وأحجام وأسعار الأصناف في الملف.',400);
+ const c=parsed.data,org=c.organizationId,digest=hash(c);
+ authorize(access,org);
+ return db.transaction(async tx=>{
+  await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);
+  await assertGeneration(tx,org,c.generation);
+  const prior=await previous(tx,org,c.operationId,digest);
+  if(prior)return prior;
+  const pos=(await tx.query<{source:string;kitchen_id:string}>(`
+   SELECT p.source,p.kitchen_id FROM points_of_sale p
+   JOIN kitchens k ON k.organization_id=p.organization_id AND k.id=p.kitchen_id
+   JOIN locations l ON l.organization_id=k.organization_id AND l.id=k.location_id
+   WHERE p.organization_id=$1 AND p.id=$2 AND p.revision=$3 AND p.active AND k.active AND l.active`,[org,c.posId,c.posRevision])).rows[0];
+  if(!pos)throw new BusinessError('INVALID_POS','تغيرت نقطة البيع أو المطبخ. حدّث البيانات واختر القائمة مجدداً.');
+
+  const codes=c.rows.map(row=>row.code);
+  const drafts=await tx.query<{code:string;kitchen_id:string;payload:MenuDraftRow}>(
+   'SELECT code,kitchen_id,payload FROM menu_catalog_drafts WHERE organization_id=$1 AND source=$2 AND code=ANY($3::text[])',
+   [org,pos.source,codes]);
+  const saved=new Map(drafts.rows.map(row=>[row.code,row]));
+  const items=await tx.query<{code:string}>(
+   'SELECT code FROM menu_items WHERE organization_id=$1 AND source=$2 AND code=ANY($3::text[])',[org,pos.source,codes]);
+  const configured=new Set(items.rows.map(row=>row.code));
+  const fresh:MenuDraftRow[]=[];
+  for(const row of c.rows){
+   const existing=saved.get(row.code);
+   if(existing){
+    const same=existing.kitchen_id===pos.kitchen_id&&JSON.stringify(menuDraftRowSchema.parse(existing.payload))===JSON.stringify(row);
+    if(!same)throw new BusinessError('DUPLICATE_MENU_DRAFT',`الكود ${row.code} مستخدم لمسودة مختلفة.`);
+   }else{
+    if(configured.has(row.code))throw new BusinessError('DUPLICATE_MENU',`الكود ${row.code} مستخدم لصنف بيع قائم.`);
+    fresh.push(row);
+   }
+  }
+  if(fresh.length)await tx.query(`
+   INSERT INTO menu_catalog_drafts(organization_id,kitchen_id,source,code,payload)
+   SELECT $1,$2,$3,row->>'code',row FROM jsonb_array_elements($4::jsonb) AS input(row)`,
+   [org,pos.kitchen_id,pos.source,JSON.stringify(fresh)]);
+  const result={operationId:c.operationId,outcome:'accepted' as const,imported:fresh.length,skipped:c.rows.length-fresh.length};
+  await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[org,c.operationId,digest,JSON.stringify(result)]);
+  await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[org,access.userId,c.operationId,c.type]);
+  return result;
+ });
 }
 export async function postSalesImport(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  assertInventoryWrite(access);
  const p=salesImportSchema.safeParse(input);if(!p.success)throw new BusinessError('INVALID_SALES','راجع تفاصيل المبيعات المكتملة والمعرّفات والمبالغ.',400);const c=p.data,org=c.organizationId,digest=hash(c);authorize(access,org);
  return db.transaction(async tx=>{
   await tx.query('SELECT id FROM organizations WHERE id=$1 FOR UPDATE',[org]);await assertGeneration(tx,org,c.generation);const prior=await previous(tx,org,c.operationId,digest);if(prior)return prior;
+  if((await tx.query('SELECT 1 FROM pos_orders WHERE organization_id=$1 AND id=$2',[org,c.operationId])).rows.length)throw new BusinessError('POS_ORDER_CORRECTION','هذه فاتورة كاشير؛ عدّل الطلب الأصلي بدلاً من استيراده مجددًا.');
   if(!(await tx.query('SELECT 1 FROM locations WHERE organization_id=$1 AND id=$2 AND active',[org,c.locationId])).rows.length)throw new BusinessError('INVALID_REFERENCE','اختر موقعاً نشطاً لهذه المؤسسة.');
   if((await tx.query('SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=ANY($2::uuid[])',[org,c.lines.map(l=>l.lineId)])).rows.length)throw new BusinessError('PAYLOAD_CONFLICT','معرّف سطر المبيعات مستخدم بالفعل.');
   const versions=await recipeSnapshot(tx,org),storedMenus=(await tx.query<{payload:MenuItem&{posHistory?:MenuItem[]};revision:number}>('SELECT payload,revision FROM menu_items WHERE organization_id=$1',[org])).rows,menus={menuItems:storedMenus.map(r=>({...menuItemSchema.parse(r.payload),revision:r.revision}))},saleMenus=c.checkout?{menuItems:c.lines.map(l=>{const stored=storedMenus.find(r=>r.payload.id===l.menuItemId),current=menus.menuItems.find(m=>m.id===l.menuItemId);return current?.revision===l.mappingRevision?current:stored?.payload.posHistory?.find(m=>m.revision===l.mappingRevision);}).filter((m):m is MenuItem=>!!m)}:menus,acceptedLineIds:string[]=[],duplicateLineIds:string[]=[],fresh:SalesLine[]=[];let total=decimal('0');

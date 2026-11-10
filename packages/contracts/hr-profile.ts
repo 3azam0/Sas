@@ -10,8 +10,17 @@ export const advanceSchema=z.object({advanceId:z.uuid(),employeeId:z.uuid(),amou
 export type Advance=z.infer<typeof advanceSchema>;
 export const repaymentSchema=z.object({repaymentId:z.uuid(),advanceId:z.uuid(),amount:positiveMoney,paidOn:date,notes:text(1000)}).strict();
 export type AdvanceRepayment=z.infer<typeof repaymentSchema>;
+export const deductionSchema=z.object({
+ deductionId:z.uuid(),
+ employeeId:z.uuid(),
+ amount:positiveMoney,
+ deductedOn:date,
+ reason:text(500).min(2),
+}).strict();
+export type EmployeeDeduction=z.infer<typeof deductionSchema>;
 export function profileRequests(scope:{organizationId:z.ZodString;generation:z.ZodUUID;operationId:z.ZodUUID}){return [
  z.object({...scope,type:z.literal('salary.save'),salary:salarySchema,expectedRevision:z.number().int().min(0)}).strict(),
  z.object({...scope,type:z.literal('advance.issue'),advance:advanceSchema}).strict(),
- z.object({...scope,type:z.literal('advance.repay'),repayment:repaymentSchema}).strict()
+ z.object({...scope,type:z.literal('advance.repay'),repayment:repaymentSchema}).strict(),
+ z.object({...scope,type:z.literal('deduction.record'),deduction:deductionSchema}).strict()
 ] as const;}

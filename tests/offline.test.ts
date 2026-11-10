@@ -7,6 +7,26 @@ const snapshot:Snapshot={organizationId:'grills',organizationName:'Fixture',curr
 const command:Command={operationId:crypto.randomUUID(),organizationId:'grills',locationId:'central',itemId:'beef',type:'waste.post',quantity:'2',reason:'Test waste',businessDate:'2026-10-09',capturedAt:new Date().toISOString(),schemaVersion:1};
 afterEach(async()=>{vi.unstubAllGlobals();await local.commands.clear();await local.snapshots.clear();});
 describe('durable offline outbox and convergence',()=>{
+ it('downloads one snapshot on idle sync and refreshes after posting a saved change',async()=>{
+  const confirmed={...snapshot,acceptedOperationIds:[command.operationId],balances:[{...snapshot.balances[0],quantity:'8',value:'800'}]};
+  let posted=false;
+  vi.stubGlobal('navigator',{});
+  const fetcher=vi.fn(async(url:string,options?:RequestInit)=>{
+   if(url==='/api/v1/bootstrap')return Response.json(posted?confirmed:snapshot);
+   expect(url).toBe('/api/v1/commands');
+   expect(options?.method).toBe('POST');
+   posted=true;
+   return Response.json({operationId:command.operationId,outcome:'accepted'});
+  });
+  vi.stubGlobal('fetch',fetcher);
+  await expect(sync('grills')).resolves.toEqual(snapshot);
+  expect(fetcher.mock.calls.map(([url])=>url)).toEqual(['/api/v1/bootstrap']);
+  await saveCommand(command);
+  fetcher.mockClear();
+  await expect(sync('grills')).resolves.toEqual(confirmed);
+  expect(fetcher.mock.calls.map(([url])=>url)).toEqual(['/api/v1/bootstrap','/api/v1/commands','/api/v1/bootstrap']);
+  expect((await local.commands.get(command.operationId))?.status).toBe('accepted');
+ });
  it('passes cancellation to renewal bootstrap without replacing snapshots or removing queued work',async()=>{
   await acceptSnapshot(snapshot);await saveCommand(command);
   const controller=new AbortController();controller.abort();

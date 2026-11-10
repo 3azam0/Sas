@@ -1,4 +1,6 @@
 import type {Shift,RosterDay,DailyAttendance} from '../contracts/hr-shifts';
+export const DAILY_CHECKOUT_END='05:00:00';
+export const DAILY_CHECKIN_END='16:05:00';
 export const wallMinute=(s:string)=>Date.parse(s+(s.length===10?'T00:00:00':'')+'Z')/60000;
 export const dayAt=(n:number)=>new Date(n*60000).toISOString().slice(0,10);
 export function cairoWall(now:Date){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(now);const v=(k:string)=>parts.find(p=>p.type===k)!.value;return `${v('year')}-${v('month')}-${v('day')}T${v('hour')}:${v('minute')}:${v('second')}`;}

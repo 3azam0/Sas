@@ -3,8 +3,9 @@ import {BusinessError,type Access} from '@saas/contracts';
 import {hrRequestSchema,attendanceUploadSchema,type HrData,type DailyAttendanceData} from '../contracts/hr';
 import type {Database} from './database';
 import {attendanceAction} from './hr-shifts';
+import {classifyAttendancePunch,daytimeAttendance} from './hr-daily';
 import {saveEmployeeDetails} from './hr-profile';
-import type {Salary,Advance,AdvanceRepayment} from '../contracts/hr-profile';
+import type {Salary,Advance,AdvanceRepayment,EmployeeDeduction} from '../contracts/hr-profile';
 
 export const hrTokenHash=(token:string)=>createHash('sha256').update(token).digest('hex');
 function fail(code:string,message:string,status=409):never{throw new BusinessError(code,message,status);}
@@ -20,13 +21,15 @@ export async function postHr(db:Database,access:Access,input:unknown){
   if(c.type==='attendance.summary')return attendanceAction(tx,access,c);
   if(c.type==='hr.list'||c.type==='attendance.daily'){
    if(c.from>c.to)fail('INVALID_COMMAND','بداية الفترة بعد نهايتها.',400);
-   const params:unknown[]=[c.organizationId,c.from,c.to],filters=['p.organization_id=$1','p.local_time >= $2::date','p.local_time < $3::date + interval \'1 day\''];
+   // Keep the calendar-day response for cached clients until they request the new policy.
+   if(c.type==='attendance.daily'&&c.policy==='daytime-12h-v1')return daytimeAttendance(tx,c);
+   const params:unknown[]=[c.organizationId,c.from,c.to],filters=['p.organization_id=$1','p.local_time >= $2::date',"p.local_time < $3::date + interval '1 day'"];
    if(c.deviceId){params.push(c.deviceId);filters.push(`p.device_id=$${params.length}::uuid`);}if(c.badge){params.push(c.badge);filters.push(`p.badge=$${params.length}`);}
    if(c.type==='attendance.daily'){
     const where=filters.join(' AND '),args=[...params,c.page*100];
-    const result=(await tx.query<DailyAttendanceData>(`WITH grouped AS (SELECT p.device_id,p.badge,p.local_time::date AS day,min(p.local_time) AS first,max(p.local_time) AS last,count(*)::int AS punches FROM hr_punches p WHERE ${where} GROUP BY p.device_id,p.badge,p.local_time::date)
-     SELECT (SELECT count(*)::int FROM grouped) AS total,(SELECT count(*)::int FROM grouped WHERE last>first) AS complete,(SELECT count(*)::int FROM grouped WHERE last=first) AS "missingOut",
-     COALESCE((SELECT jsonb_agg(r) FROM (SELECT g.device_id::text AS "deviceId",d.name AS "deviceName",g.badge,e.employee_id::text AS "employeeId",e.name,g.day::text AS date,to_char(g.first,'YYYY-MM-DD"T"HH24:MI:SS') AS first,CASE WHEN g.last>g.first THEN to_char(g.last,'YYYY-MM-DD"T"HH24:MI:SS') END AS last,g.punches FROM grouped g JOIN hr_devices d ON d.organization_id=$1 AND d.device_id=g.device_id LEFT JOIN hr_employees e ON e.organization_id=$1 AND e.device_id=g.device_id AND e.badge=g.badge ORDER BY g.day DESC,CASE WHEN g.badge ~ '^[0-9]+$' THEN g.badge::numeric END NULLS LAST,g.badge,g.device_id LIMIT 100 OFFSET $${args.length}) r),'[]'::jsonb) AS days`,args)).rows[0];
+    const result=(await tx.query<DailyAttendanceData>(`WITH grouped AS (SELECT p.device_id,p.badge,p.local_time::date AS day,min(p.local_time) AS first,max(p.local_time) AS last_punch,count(*)::int AS punches FROM hr_punches p WHERE ${where} GROUP BY p.device_id,p.badge,p.local_time::date), days AS (SELECT *,CASE WHEN last_punch>first THEN last_punch END AS last FROM grouped)
+     SELECT (SELECT count(*)::int FROM days) AS total,(SELECT count(*)::int FROM days WHERE first IS NOT NULL AND last IS NOT NULL) AS complete,(SELECT count(*)::int FROM days WHERE last IS NULL) AS "missingOut",(SELECT count(*)::int FROM days WHERE first IS NULL) AS "missingIn",
+     COALESCE((SELECT jsonb_agg(r) FROM (SELECT g.device_id::text AS "deviceId",d.name AS "deviceName",g.badge,e.employee_id::text AS "employeeId",e.name,g.day::text AS date,to_char(g.first,'YYYY-MM-DD"T"HH24:MI:SS') AS first,to_char(g.last,'YYYY-MM-DD"T"HH24:MI:SS') AS last,g.punches FROM days g JOIN hr_devices d ON d.organization_id=$1 AND d.device_id=g.device_id LEFT JOIN hr_employees e ON e.organization_id=$1 AND e.device_id=g.device_id AND e.badge=g.badge ORDER BY g.day DESC,CASE WHEN g.badge ~ '^[0-9]+$' THEN g.badge::numeric END NULLS LAST,g.badge,g.device_id LIMIT 100 OFFSET $${args.length}) r),'[]'::jsonb) AS days`,args)).rows[0];
     return result;
    }
    const where=filters.join(' AND '),total=Number((await tx.query<{n:string}>(`SELECT count(*)::text AS n FROM hr_punches p WHERE ${where}`,params)).rows[0].n);
@@ -34,7 +37,8 @@ export async function postHr(db:Database,access:Access,input:unknown){
    const salaries=(await tx.query<{state:Salary;revision:number}>('SELECT state,revision FROM hr_salaries WHERE organization_id=$1',[c.organizationId])).rows.map(r=>({...r.state,revision:r.revision}));
    const advances=(await tx.query<{state:Advance}>("SELECT state FROM hr_advances WHERE organization_id=$1 ORDER BY state->>'issuedOn' DESC,advance_id",[c.organizationId])).rows.map(r=>r.state);
    const advanceRepayments=(await tx.query<{state:AdvanceRepayment}>("SELECT state FROM hr_advance_repayments WHERE organization_id=$1 ORDER BY state->>'paidOn',repayment_id",[c.organizationId])).rows.map(r=>r.state);
-   return {employees:(await tx.query(employeesSql,[c.organizationId])).rows,devices:(await tx.query(devicesSql,[c.organizationId])).rows,jobs:(await tx.query('SELECT job_id::text AS "jobId",name FROM hr_job_titles WHERE organization_id=$1 ORDER BY name,job_id',[c.organizationId])).rows,salaries,advances,advanceRepayments,punches,total} as HrData;
+   const deductions=(await tx.query<EmployeeDeduction>('SELECT deduction_id::text AS "deductionId",employee_id::text AS "employeeId",amount::text,deducted_on::text AS "deductedOn",reason FROM hr_employee_deductions WHERE organization_id=$1 ORDER BY deducted_on DESC,deduction_id',[c.organizationId])).rows;
+   return {employees:(await tx.query(employeesSql,[c.organizationId])).rows,devices:(await tx.query(devicesSql,[c.organizationId])).rows,jobs:(await tx.query('SELECT job_id::text AS "jobId",name FROM hr_job_titles WHERE organization_id=$1 ORDER BY name,job_id',[c.organizationId])).rows,salaries,advances,advanceRepayments,deductions,punches,total} as HrData;
   }
   const hash=hrTokenHash(JSON.stringify(c));const previous=(await tx.query<{payload_hash:string;result:unknown}>('SELECT payload_hash,result FROM command_receipts WHERE organization_id=$1 AND operation_id=$2',[c.organizationId,c.operationId])).rows[0];
   if(previous){if(previous.payload_hash!==hash)fail('PAYLOAD_CONFLICT','معرف الطلب مستخدم لبيانات مختلفة.');return previous.result;}
@@ -44,7 +48,9 @@ export async function postHr(db:Database,access:Access,input:unknown){
    await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[c.organizationId,access.userId,c.operationId,c.type]);return result;
   }
   let token:string|undefined;
-  if(c.type==='salary.save'||c.type==='advance.issue'||c.type==='advance.repay'){
+  if(c.type==='attendance.classify'){
+   await classifyAttendancePunch(tx,c);
+  }else if(c.type==='salary.save'||c.type==='advance.issue'||c.type==='advance.repay'||c.type==='deduction.record'){
    await saveEmployeeDetails(tx,c);
   }else if(c.type==='job.create'){
    const j=c.job;

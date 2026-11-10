@@ -22,7 +22,7 @@ const brandingFiles=(await readdir('apps/web/public/branding')).filter(file=>/^[
 const paths=['/',jsPath,cssPath,'/icon.svg','/manifest.webmanifest',...brandingFiles.map(file=>'/branding/'+file)];
 const sw=hostedServiceWorker(buildId,paths);
 const data={};function asset(path,contents,type,cache='public, max-age=31536000, immutable'){data[path]={data:gzipSync(contents).toString('base64'),type,cache};}
-for(const file of ['foodo-print-windows-1.0.0.zip','foodo-print-windows.json','foodo-attendance-windows-1.0.0.zip','foodo-attendance-windows.json']){
+for(const file of ['foodo-print-windows-1.0.0.zip','foodo-print-windows.json','foodo-attendance-windows-1.0.0.zip','foodo-attendance-windows-1.1.0.zip','foodo-attendance-windows.json']){
  const bytes=await readFile('apps/web/public/downloads/'+file);asset('/downloads/'+file,bytes,file.endsWith('.zip')?'application/zip':'application/json; charset=utf-8','no-store');
 }
 asset('/',html,'text/html; charset=utf-8','no-store');asset(jsPath,js,'application/javascript; charset=utf-8');asset(cssPath,css,'text/css; charset=utf-8');asset('/sw.js',sw,'application/javascript; charset=utf-8','no-cache');

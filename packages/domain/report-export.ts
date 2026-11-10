@@ -1,7 +1,7 @@
 import type {ReportResponse} from '@saas/contracts';
 /** The same accepted full-range metrics as the screen, keeping unknown estimates null. */
 export function reportExportSummary(data:ReportResponse):unknown[][]{const c=data.current,kind=data.query.kind;let values:unknown[][]=[];
- if(kind==='inventory')values=[['قيمة المخزون الحالية ج.م',data.stock.value],['عدد مواد المخزون',data.stock.items],['أرصدة تحت الحد الأدنى',data.stock.low]];
+ if(kind==='inventory')values=[...(data.stock.asOf?[['الأرصدة حتى',data.stock.asOf]]:[]),[data.stock.asOf?'قيمة المخزون حتى تاريخ التقرير ج.م':'قيمة المخزون الحالية ج.م',data.stock.value],['عدد مواد المخزون',data.stock.items],['أرصدة تحت الحد الأدنى',data.stock.low]];
  else if(kind==='purchasing')values=[['قيمة الاستلام ج.م',c.received],['مرتجعات الموردين ج.م',c.returned],['عكس الاستلام ج.م',c.reversed],['صافي التوريد ج.م',c.netReceived]];
  else if(kind==='kitchenSupply')values=[['قيمة المستندات المسعرة فقط ج.م',c.kitchenDocumentAmount??null],['سطور غير مسعرة',c.kitchenDocumentUnpriced??null],['قيمة المخزون المحول ج.م',c.kitchenTransferOut??'0'],['عدد المستندات',c.kitchenSupplyDocuments??0]];
  else if(kind==='kitchens')values=[['قيمة الاستهلاك ج.م',c.kitchen],['المخزون المورد ج.م',c.kitchenTransferIn??'0'],['المخزون المحول ج.م',c.kitchenTransferOut??'0']];

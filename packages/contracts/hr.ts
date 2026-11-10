@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {shiftRequests} from './hr-shifts';
-import {profileRequests,type Salary,type Advance,type AdvanceRepayment} from './hr-profile';
+import {profileRequests,type Salary,type Advance,type AdvanceRepayment,type EmployeeDeduction} from './hr-profile';
 
 export const badgeSchema=z.string().regex(/^[A-Za-z0-9_-]{1,24}$/);
 const date=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v=>Number.isFinite(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v);
@@ -12,15 +12,20 @@ export type AttendanceDevice={deviceId:string;name:string;active:boolean;lastSee
 export const jobTitleSchema=z.object({jobId:z.uuid(),name:field(100).min(1)}).strict();
 export type JobTitle=z.infer<typeof jobTitleSchema>;
 export type AttendancePunch={eventKey:string;deviceId:string;badge:string;localTime:string;verifyMode:number;inOutMode:number;workCode:number;receivedAt:string;employeeId:string|null;name:string|null};
-export type DailyAttendanceRow={deviceId:string;deviceName:string;badge:string;employeeId:string|null;name:string|null;date:string;first:string;last:string|null;punches:number};
-export type DailyAttendanceData={days:DailyAttendanceRow[];total:number;complete:number;missingOut:number};
+export type AttendanceReviewPunch={eventKey?:string;localTime:string;reason:'no_entry'|'before_entry'|'short_shift'|'outside_checkout_window'};
+export type DailyAttendanceRow={deviceId:string;deviceName:string;badge:string;employeeId:string|null;name:string|null;date:string;first:string|null;last:string|null;punches:number;unmatchedPunches?:number;provisionalExit?:string|null;reviewPunches?:AttendanceReviewPunch[];corrected?:boolean;correctionRevision?:number};
+export type DailyAttendanceData={days:DailyAttendanceRow[];total:number;complete:number;missingOut:number;missingIn?:number};
 const scope={organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),generation:z.uuid()};
 const write={...scope,operationId:z.uuid()};
+export const attendanceClassifySchema=z.object({...write,type:z.literal('attendance.classify'),deviceId:z.uuid(),badge:badgeSchema,
+ date,eventKey:z.string().regex(/^[a-f0-9]{64}$/),direction:z.enum(['entry','exit']),expectedRevision:z.number().int().nonnegative()}).strict();
+export type AttendanceClassifyCommand=z.infer<typeof attendanceClassifySchema>;
 export const hrRequestSchema=z.discriminatedUnion('type',[
  ...shiftRequests,
  ...profileRequests(write),
+ attendanceClassifySchema,
  z.object({...scope,type:z.literal('hr.list'),from:date,to:date,page:z.number().int().min(0).max(100000),deviceId:z.uuid().optional(),badge:badgeSchema.optional()}).strict(),
- z.object({...scope,type:z.literal('attendance.daily'),from:date,to:date,page:z.number().int().min(0).max(100000),deviceId:z.uuid().optional(),badge:badgeSchema.optional()}).strict(),
+ z.object({...scope,type:z.literal('attendance.daily'),from:date,to:date,page:z.number().int().min(0).max(100000),deviceId:z.uuid().optional(),badge:badgeSchema.optional(),policy:z.literal('daytime-12h-v1').optional()}).strict(),
  z.object({...write,type:z.literal('employee.save'),employee:employeeSchema,expectedRevision:z.number().int().min(0)}).strict(),
  z.object({...write,type:z.literal('job.create'),job:jobTitleSchema}).strict(),
  z.object({...write,type:z.literal('device.create'),deviceId:z.uuid(),name:field(100).min(1)}).strict(),
@@ -29,4 +34,4 @@ export const hrRequestSchema=z.discriminatedUnion('type',[
 ]);
 export const attendanceUploadSchema=z.object({schemaVersion:z.literal(1),batchId:z.uuid(),deviceId:z.uuid(),users:z.array(z.object({badge:badgeSchema,name:field(160)}).strict()).max(200),punches:z.array(z.object({badge:badgeSchema,localTime:wallTime,verifyMode:z.number().int().min(0).max(65535),inOutMode:z.number().int().min(0).max(65535),workCode:z.number().int().min(0).max(2147483647)}).strict()).max(200)}).strict();
 export type AttendanceUpload=z.infer<typeof attendanceUploadSchema>;
-export type HrData={employees:Employee[];devices:AttendanceDevice[];punches:AttendancePunch[];total:number;jobs:JobTitle[];salaries:Salary[];advances:Advance[];advanceRepayments:AdvanceRepayment[]};
+export type HrData={employees:Employee[];devices:AttendanceDevice[];punches:AttendancePunch[];total:number;jobs:JobTitle[];salaries:Salary[];advances:Advance[];advanceRepayments:AdvanceRepayment[];deductions:EmployeeDeduction[]};

@@ -8,7 +8,7 @@ Details, CSV and print preview show **سعر وحدة المستند**, **قيم
 
 The grouped report selector replaces the long tab strip. Details are shown first; charts are optional. Full-screen/restore keeps filters, downloaded data and pagination intact and supports Escape/focus return.
 
-Open **المطابخ → سجل صرف المطابخ → تقرير صرف المطابخ والرسوم**, or **التقارير والتحليلات → سجل صرف المطابخ**. This is the full accepted history, independent of the latest 100 operational documents. Pending/rejected local documents remain in the operational history and do not enter report totals.
+Open **التقارير والتحليلات → اختيار التقرير → المطابخ → صرف المطابخ** on desktop or mobile. The Reports page also has a **صرف المطابخ** button next to the selector. This is the full accepted history, independent of the latest 100 operational documents. Pending/rejected local documents remain in the operational history and do not enter report totals.
 
 Choose the business-date period (up to 366 inclusive days), current location/all locations, receiving kitchen, category, material or search. Search accepts material names/codes, references and full KI document numbers. Selecting a source location includes its outgoing supplies; selecting a destination kitchen includes supplies received there. When a kitchen supplies another kitchen, ranking/filtering uses the receiving kitchen. Selecting all locations still counts a document once.
 

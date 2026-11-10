@@ -2,8 +2,11 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import type {Employee,HrData} from '../../../packages/contracts/hr';
 import EmployeePay from './EmployeePay';
-export default function EmployeeProfile({employee:e,data,busy,error,change,save,close,addJob,saveDetails}:{employee:Employee;data:HrData;busy:boolean;error:string;change:(e:Employee)=>void;save:(event:FormEvent)=>Promise<void>;close:()=>void;addJob:(jobId:string,name:string)=>Promise<boolean>;saveDetails:(body:Record<string,unknown>)=>Promise<boolean>}){
- const [section,setSection]=useState<'personal'|'salary'|'advances'>('personal'),[leaving,setLeaving]=useState(false),initial=useRef(JSON.stringify(e)),dirty=initial.current!==JSON.stringify(e);
+import EmployeeDeductions from './EmployeeDeductions';
+import EmployeeSalaryPreview from './EmployeeSalaryPreview';
+const sections=[['personal','البيانات الشخصية'],['salary','الراتب'],['advances','السلف'],['deductions','الخصومات']] as const;
+export default function EmployeeProfile({employee:e,data,busy,error,notice,change,save,close,addJob,saveDetails,openDeduction,request}:{employee:Employee;data:HrData;busy:boolean;error:string;notice:string;change:(e:Employee)=>void;save:(event:FormEvent)=>Promise<void>;close:()=>void;addJob:(jobId:string,name:string)=>Promise<boolean>;saveDetails:(body:Record<string,unknown>)=>Promise<boolean>;openDeduction:(trigger:HTMLButtonElement)=>void;request:(body:Record<string,unknown>)=>Promise<unknown>}){
+ const [section,setSection]=useState<typeof sections[number][0]>('personal'),[leaving,setLeaving]=useState(false),initial=useRef(JSON.stringify(e)),dirty=initial.current!==JSON.stringify(e);
  const [addingJob,setAddingJob]=useState(false),[newJob,setNewJob]=useState(''),jobId=useRef(crypto.randomUUID());
  const heading=useRef<HTMLHeadingElement>(null),discard=useRef<HTMLDivElement>(null);
  useEffect(()=>{heading.current?.scrollIntoView({block:'start'});heading.current?.focus({preventScroll:true});},[]);
@@ -13,9 +16,13 @@ export default function EmployeeProfile({employee:e,data,busy,error,change,save,
  return <section className="panel hr-workspace hr-profile" aria-label="ملف الموظف">
   <div className="panel-heading hr-profile-heading"><div><span className="eyebrow">ملف الموظف · <bdi>{e.badge}</bdi></span><h2 ref={heading} tabIndex={-1}>{e.revision?e.name:'إضافة موظف'}</h2><p>{[e.jobTitle,e.department].filter(Boolean).join(' · ')||'بيانات الموظف والعمل'}</p><div className="hr-profile-tags"><span className={'pill '+(e.active?'good':'neutral')}>{e.active?'نشط':'غير نشط'}</span><span>كود الموظف والبصمة: <bdi>{e.badge}</bdi></span>{dirty&&<span className="pill warning">تعديلات غير محفوظة</span>}</div></div><button type="button" disabled={busy} onClick={back}>العودة إلى ملفات الموظفين</button></div>
   {error&&<p role="alert" className="alert error">{error}</p>}
+  {notice&&<p role="status" className="notice">{notice}</p>}
   {leaving&&<div ref={discard} tabIndex={-1} className="hr-discard" role="alert"><strong>توجد تعديلات لم تُحفظ في بيانات الموظف.</strong><p>يمكنك متابعة التحرير أو العودة وتجاهل هذه التعديلات.</p><button type="button" onClick={()=>setLeaving(false)}>متابعة التحرير</button><button type="button" disabled={busy} onClick={close}>تجاهل التعديلات والعودة</button></div>}
-  <div className="hr-tabs" role="group" aria-label="أقسام ملف الموظف">{(['personal','salary','advances'] as const).map((key,i)=><button type="button" key={key} disabled={busy} aria-pressed={section===key} onClick={()=>setSection(key)}>{['البيانات الشخصية','الراتب','السلف'][i]}</button>)}</div>
-  {section!=='personal'&&(e.revision?<EmployeePay key={e.employeeId+section} employeeId={e.employeeId} data={data} busy={busy} save={saveDetails} section={section}/>:<div className="hr-empty"><h3>احفظ ملف الموظف أولًا</h3><p>بعد حفظ الملف يمكنك إضافة بيانات الراتب والسلف.</p><button type="button" onClick={()=>setSection('personal')}>استكمال بيانات الموظف</button></div>)}
+  <div className="hr-tabs" role="group" aria-label="أقسام ملف الموظف">{sections.map(([key,label])=><button type="button" key={key} disabled={busy} aria-pressed={section===key} onClick={()=>setSection(key)}>{label}</button>)}</div>
+  {section!=='personal'&&!e.revision&&<div className="hr-empty"><h3>احفظ ملف الموظف أولًا</h3><p>بعد حفظ الملف يمكنك تسجيل بيانات الراتب والسلف والخصومات.</p><button type="button" onClick={()=>setSection('personal')}>استكمال بيانات الموظف</button></div>}
+  {!!e.revision&&(section==='salary'||section==='advances')&&<EmployeePay key={e.employeeId+section} employeeId={e.employeeId} data={data} busy={busy} save={saveDetails} section={section}/>}
+  {!!e.revision&&section==='salary'&&<EmployeeSalaryPreview employee={data.employees.find(employee=>employee.employeeId===e.employeeId)??e} data={data} request={request}/>}
+  {!!e.revision&&section==='deductions'&&<EmployeeDeductions entries={data.deductions.filter(entry=>entry.employeeId===e.employeeId)} busy={busy} add={openDeduction}/>}
   {section==='personal'&&<div className="hr-editor hr-personal-editor"><form onSubmit={save}><fieldset disabled={busy}>
    <section className="hr-form-section"><h3>بيانات الموظف</h3><p>الاسم ووسيلة التواصل الأساسية.</p><div className="hr-fields"><label>الاسم الكامل<input required maxLength={160} autoComplete="name" value={e.name} onChange={v=>change({...e,name:v.target.value})}/></label><label>الهاتف<input type="tel" dir="ltr" maxLength={40} autoComplete="tel" value={e.phone} onChange={v=>change({...e,phone:v.target.value})}/></label></div></section>
    <section className="hr-form-section"><h3>العمل والتوظيف</h3><div className="hr-fields"><label>القسم<input maxLength={100} value={e.department} onChange={v=>change({...e,department:v.target.value})}/></label>

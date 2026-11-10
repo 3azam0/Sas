@@ -34,6 +34,7 @@ export async function postFinance(db:Database,access:Access,input:unknown):Promi
   if(!(await tx.query('SELECT 1 FROM locations WHERE organization_id=$1 AND id=$2',[org,c.locationId])).rows.length)throw new BusinessError('INVALID_REFERENCE','الموقع غير متاح لهذه المؤسسة.');
   let amount='amount'in c?c.amount:'0';
   if(c.type==='sales.correct'){
+   if((await tx.query('SELECT 1 FROM sales_details d JOIN pos_orders o ON o.organization_id=d.organization_id AND o.id=d.import_id WHERE d.organization_id=$1 AND d.line_id=$2',[org,c.saleLineId])).rows.length)throw new BusinessError('POS_ORDER_CORRECTION','عدّل الفاتورة من شاشة الكاشير لتسوية التحصيل والمخزون معًا.');
    const sale=(await tx.query<{payload:SalesLine;business_date:string;location_id:string}>('SELECT payload,business_date::text,location_id FROM sales_details WHERE organization_id=$1 AND line_id=$2',[org,c.saleLineId])).rows[0];
    if(!sale||sale.location_id!==c.locationId)throw new BusinessError('INVALID_REFERENCE','اختر تفصيل بيع مقبولاً في الموقع نفسه.');
    if(c.businessDate<sale.business_date)throw new BusinessError('INVALID_DATE','تاريخ التصحيح لا يسبق البيع الأصلي.');

@@ -1,10 +1,11 @@
 import {BusinessError} from '@saas/contracts';
 import {decimal} from '@saas/domain';
+import {egyptDate} from '../domain/reporting';
 import type {QueryDatabase} from './database';
 import {hrRequestSchema} from '../contracts/hr';
 import type {z} from 'zod';
 import type {Advance} from '../contracts/hr-profile';
-type Command=Extract<z.infer<typeof hrRequestSchema>,{type:'salary.save'|'advance.issue'|'advance.repay'}>;
+type Command=Extract<z.infer<typeof hrRequestSchema>,{type:'salary.save'|'advance.issue'|'advance.repay'|'deduction.record'}>;
 function fail(code:string,message:string):never{throw new BusinessError(code,message,409);}
 export async function saveEmployeeDetails(tx:QueryDatabase,c:Command){
  const org=c.organizationId;
@@ -17,8 +18,15 @@ export async function saveEmployeeDetails(tx:QueryDatabase,c:Command){
   if((await tx.query('SELECT 1 FROM hr_advance_repayments WHERE organization_id=$1 AND repayment_id=$2',[org,p.repaymentId])).rows.length)fail('DUPLICATE_REPAYMENT','السداد مسجل بالفعل.');
   await tx.query('INSERT INTO hr_advance_repayments(organization_id,repayment_id,advance_id,state) VALUES($1,$2,$3,$4)',[org,p.repaymentId,p.advanceId,JSON.stringify(p)]);return;
  }
- const employeeId=c.type==='salary.save'?c.salary.employeeId:c.advance.employeeId;
+ const employeeId=c.type==='salary.save'?c.salary.employeeId:c.type==='deduction.record'?c.deduction.employeeId:c.advance.employeeId;
  if(!(await tx.query('SELECT 1 FROM hr_employees WHERE organization_id=$1 AND employee_id=$2',[org,employeeId])).rows.length)fail('INVALID_EMPLOYEE','احفظ ملف الموظف أولاً.');
+ if(c.type==='deduction.record'){
+  const {deductionId,amount,deductedOn,reason}=c.deduction;
+  if(deductedOn>egyptDate())fail('INVALID_DATE','تاريخ الخصم لا يمكن أن يكون في المستقبل.');
+  const inserted=await tx.query('INSERT INTO hr_employee_deductions(organization_id,deduction_id,employee_id,amount,deducted_on,reason) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING deduction_id',[org,deductionId,employeeId,amount,deductedOn,reason]);
+  if(!inserted.rows.length)fail('DUPLICATE_DEDUCTION','الخصم مسجل بالفعل.');
+  return;
+ }
  if(c.type==='advance.issue'){
   if((await tx.query('SELECT 1 FROM hr_advances WHERE organization_id=$1 AND advance_id=$2',[org,c.advance.advanceId])).rows.length)fail('DUPLICATE_ADVANCE','السلفة مسجلة بالفعل.');
   await tx.query('INSERT INTO hr_advances(organization_id,advance_id,employee_id,state) VALUES($1,$2,$3,$4)',[org,c.advance.advanceId,employeeId,JSON.stringify(c.advance)]);return;

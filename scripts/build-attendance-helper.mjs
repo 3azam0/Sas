@@ -1,10 +1,13 @@
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {zipSync} from 'fflate';
-const names=['README.md','Setup-AttendanceSync.cmd','Setup-AttendanceSync.ps1','Start-AttendanceSync.cmd','Sync-K14Attendance.ps1'];
+const names=['README.md','Setup-AttendanceSync.cmd','Setup-AttendanceSync.ps1','Start-AttendanceSync.cmd','Sync-K14Attendance.ps1','AttendanceSync.Common.ps1','Run-ScheduledAttendance.ps1','FooDo-Attendance.ps1','Open-FooDo.cmd','Configure-DirectCable.ps1'];
 const files={};for(const name of names)files['FooDo-AttendanceSync/'+name]=new Uint8Array(await readFile('helpers/attendance-sync/'+name));
+files['FooDo-AttendanceSync/foodo-logo.png']=new Uint8Array(await readFile('apps/web/public/branding/foodo-logo-v1.png'));
+files['FooDo-AttendanceSync/FooDoAttendance.exe']=new Uint8Array(await readFile('.cache/attendance-desktop/FooDoAttendance.exe'));
 const bytes=zipSync(files,{level:9}),sha256=createHash('sha256').update(bytes).digest('hex');
 await mkdir('apps/web/public/downloads',{recursive:true});
 await writeFile('apps/web/public/downloads/foodo-attendance-windows-1.0.0.zip',bytes);
-await writeFile('apps/web/public/downloads/foodo-attendance-windows.json',JSON.stringify({version:'1.0.0',platform:'windows',protocol:1,sha256},null,2));
+await writeFile('apps/web/public/downloads/foodo-attendance-windows-1.1.0.zip',bytes);
+await writeFile('apps/web/public/downloads/foodo-attendance-windows.json',JSON.stringify({version:'1.1.0',platform:'windows',protocol:1,sha256},null,2));
 console.log('Windows attendance helper packaged:',names.length,'files');

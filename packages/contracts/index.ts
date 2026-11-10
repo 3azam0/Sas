@@ -41,7 +41,9 @@ export type Location = {id:string;name:string;kind:string;active?:boolean;revisi
 export type Balance = {locationId:string;itemId:string;quantity:string;value:string;average:string|null};
 export type Layer = {id:string;locationId:string;itemId:string;remaining:string;unitCost:string;remainingValue?:string;sequence:number;lot?:LotMetadata|null};
 export type Entry = {operationId:string;locationId:string;itemId:string;quantity:string;amount:string;type:string;reason:string;businessDate:string;postedAt:string;receiptDocumentId?:string|null;referenceAmount?:string|null;supplierId?:string|null;purchaseUnitId?:string|null;enteredQuantity?:string|null;purchaseReceiptId?:string|null;purchaseOrderLineId?:string|null;supplierReturnId?:string|null;transferId?:string|null;transferLineId?:string|null;productionId?:string|null;countId?:string|null;countLineId?:string|null;kitchenIssueId?:string|null;butcheryId?:string|null;centralBatchId?:string|null;centralActionId?:string|null};
-export type Snapshot = FinanceSnapshot & {stockHistoryItems?:{locationId:string;itemId:string}[];documentCorrections?:import('./document-corrections').DocumentCorrection[];centralBatches?:import('./central-kitchen').CentralBatch[];centralActions?:import('./central-kitchen').CentralAction[];inventoryOperations?:InventoryOperationsSnapshot;butcheryCatalog?:import('./butchery').ButcheryCatalog[];butcheryDocuments?:import('./butchery').PostedButchery[];kitchenTickets?:KitchenTicket[];capabilities?:{counterPOS:1;kitchenDisplay?:1;stockLots?:1;inventoryControls?:1;centralKitchen?:1};generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;organizationProfile?:OrganizationProfile;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];kitchens?:Kitchen[];pointsOfSale?:PointOfSale[];suppliers?:Supplier[];menuItems?:MenuItem[];salesImports?:ImportedSales[];productions?:PostedProduction[];recipes?:Recipe[];recipeVersions?:RecipeVersion[];receiptPrices?:ReceiptPrice[];receipts?:PostedReceiptDocument[];kitchenIssues?:PostedKitchenIssue[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
+import type {ProductionRecipeSource} from './production-recipe-sources';
+export type {ProductionRecipeSource} from './production-recipe-sources';
+export type Snapshot = FinanceSnapshot & {posOrders?:import('./pos-orders').POSOrdersSnapshot;productionRecipeSources?:ProductionRecipeSource[];stockHistoryItems?:{locationId:string;itemId:string}[];documentCorrections?:import('./document-corrections').DocumentCorrection[];centralBatches?:import('./central-kitchen').CentralBatch[];centralActions?:import('./central-kitchen').CentralAction[];inventoryOperations?:InventoryOperationsSnapshot;butcheryCatalog?:import('./butchery').ButcheryCatalog[];butcheryDocuments?:import('./butchery').PostedButchery[];kitchenTickets?:KitchenTicket[];capabilities?:{counterPOS:1;posOrders?:1;kitchenDisplay?:1;stockLots?:1;inventoryControls?:1;centralKitchen?:1};generation?:string;costing?:{method:CostingMethod;revision:number;hasStockHistory:boolean};organizationId:DemoProfile;organizationName:string;organizationProfile?:OrganizationProfile;access:Access;locations:Location[];items:Item[];balances:Balance[];layers:Layer[];entries:Entry[];acceptedOperationIds:string[];fetchedAt:string;currency:'EGP';units?:Unit[];kitchens?:Kitchen[];pointsOfSale?:PointOfSale[];suppliers?:Supplier[];menuItems?:MenuItem[];menuDrafts?:MenuDraft[];salesImports?:ImportedSales[];productions?:PostedProduction[];recipes?:Recipe[];recipeVersions?:RecipeVersion[];receiptPrices?:ReceiptPrice[];receipts?:PostedReceiptDocument[];kitchenIssues?:PostedKitchenIssue[];openings?:PostedOpening[];stockCheckpoints?:{locationId:string;sequence:string}[];counts?:StockCount[];countRevisions?:{countId:string;revision:number;command:CountCommand;postedAt:string}[];reconciliation?:StockReconciliation[];transfers?:Transfer[];transferActions?:TransferAction[];transferEdits?:TransferEdit[];supplierReturns?:PostedSupplierReturn[];returnSources?:ReturnSource[];purchaseOrders?:PurchaseOrder[];purchaseReceipts?:PurchaseReceipt[];purchaseRevisions?:{orderId:string;revision:number;record:{state:string;payload:PurchaseDefinition}}[]};
 export type CommandResult = {operationId:string;outcome:'accepted'|'needs_review';code?:string;message?:string;amount?:string};
 export class BusinessError extends Error { constructor(public code:string, message:string,public status=409){super(message);} }
 export const messages: Record<string,string> = {INSUFFICIENT_STOCK:'الرصيد المتاح لا يكفي. راجع العملية قبل إعادة إرسالها.',FORBIDDEN:'ليس لديك صلاحية لهذه المؤسسة أو الموقع.',PAYLOAD_CONFLICT:'معرّف العملية مستخدم لبيانات مختلفة.',INVALID_COMMAND:'تحقق من بيانات العملية.',AUTH_REQUIRED:'انتهت الجلسة. اتصل بالإنترنت وسجل الدخول مرة أخرى.'};
@@ -82,7 +84,8 @@ export const receiptDocumentSchema=z.object({
  if(doc.schemaVersion<2&&doc.lines.some(l=>l.headCount!==undefined))ctx.addIssue({code:'custom',message:'بيانات رؤوس الضاني تتطلب إصدار الاستلام الجديد'});
 });
 export type ReceiptDocument=z.infer<typeof receiptDocumentSchema>;
-export type PostedReceiptDocument={document:ReceiptDocument;amount:string;postedAt:string};
+export type ReceiptEdit={operationId:string;revision:number;reason:string;postedAt:string;previous:ReceiptDocument;updated:ReceiptDocument|null};
+export type PostedReceiptDocument={document:ReceiptDocument;amount:string;postedAt:string;edits?:ReceiptEdit[]};
 
 export const kitchenIssueSchema=z.object({
  generation:z.uuid().optional(),operationId:z.uuid(),organizationId:organizationIdSchema,locationId:recordId,type:z.enum(['kitchen.issue','kitchen.transfer']),destinationLocationId:recordId.optional(),
@@ -126,7 +129,27 @@ export const transferCommandSchema=z.discriminatedUnion('type',[
 });
 export type TransferCommand=z.infer<typeof transferCommandSchema>;
 export type TransferDispatch=Extract<TransferCommand,{type:'transfer.dispatch'}>;
-export type Transfer={transferId:string;revision:number;document:TransferDispatch;postedAt:string;amount:string;state:'inTransit'|'partial'|'completed'|'resolvedWithLoss';lines:{dispatchLineId:string;itemId:string;unitId:string;quantity:string;received:string;lost:string;remaining:string;amount:string;remainingValue:string}[]};
+const transferRevisionFields={
+ organizationId:organizationIdSchema,
+ generation:z.uuid(),
+ operationId:z.uuid(),
+ transferId:z.uuid(),
+ expectedRevision:z.number().int().positive(),
+ reason:z.string().trim().min(2).max(500),
+};
+export const transferEditSchema=z.object({
+ ...transferRevisionFields,
+ type:z.literal('transfer.edit'),
+ businessDate:z.iso.date(),
+ reference:z.string().trim().min(2).max(200),
+ lines:z.array(z.object({itemId:recordId,unitId:recordId,quantity:quantitySchema}).strict()).min(1).max(200),
+}).strict().refine(edit=>new Set(edit.lines.map(line=>line.itemId)).size===edit.lines.length,'مواد التحويل يجب ألا تتكرر.');
+export const transferVoidSchema=z.object({...transferRevisionFields,type:z.literal('transfer.void')}).strict();
+export const transferRevisionSchema=z.union([transferEditSchema,transferVoidSchema]);
+export type TransferEditCommand=z.infer<typeof transferEditSchema>;
+export type TransferRevisionCommand=z.infer<typeof transferRevisionSchema>;
+export type TransferEdit={transferId:string;operationId:string;revision:number;reason:string;postedAt:string;previous:TransferDispatch;updated:TransferDispatch};
+export type Transfer={transferId:string;revision:number;document:TransferDispatch;postedAt:string;amount:string;state:'inTransit'|'partial'|'completed'|'resolvedWithLoss'|'voided';lines:{dispatchLineId:string;itemId:string;unitId:string;quantity:string;received:string;lost:string;remaining:string;amount:string;remainingValue:string}[]};
 export type TransferAction={document:TransferCommand;amount:string;postedAt:string};
 
 const countEnvelope={generation:z.uuid().optional(),operationId:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),countId:z.uuid(),expectedRevision:z.number().int().min(0),capturedAt:z.iso.datetime(),schemaVersion:z.literal(1)};
@@ -195,9 +218,29 @@ export const menuItemSchema=z.object({id:z.uuid(),source:posCode,code:posCode,na
 export const menuCommandSchema=z.object({...setupEnvelope,type:z.literal('menu.save'),record:menuItemSchema});
 export type MenuCommand=z.infer<typeof menuCommandSchema>;
 export type MenuItem=z.infer<typeof menuItemSchema>&{revision:number};
+export const menuDraftRowSchema=menuItemSchema.pick({code:true,name:true}).extend({
+  portion:z.string().trim().min(1).max(60),
+  category:z.string().trim().min(1).max(80),
+  sellingPrice:z.string().trim().regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,2})?$/),
+  description:z.string().trim().max(1000).default(''),
+  reference:z.string().trim().max(120).default(''),
+  note:z.string().trim().max(500).default(''),
+}).strict();
+export const menuDraftImportSchema=z.object({
+  type:z.literal('menu.drafts.import'),
+  organizationId:organizationIdSchema,
+  generation:z.uuid(),
+  operationId:z.uuid(),
+  posId:recordId,
+  posRevision:z.number().int().min(1),
+  rows:z.array(menuDraftRowSchema).min(1).max(200)
+    .refine(rows=>new Set(rows.map(row=>row.code)).size===rows.length,'أكواد البيع في الملف يجب أن تكون مختلفة.'),
+}).strict();
+export type MenuDraftRow=z.infer<typeof menuDraftRowSchema>;
+export type MenuDraft=MenuDraftRow&{source:string;kitchenId:string};
 export const salesLineSchema=z.object({lineId:z.uuid(),transactionId:z.string().trim().min(1).max(80),lineKey:z.string().trim().min(1).max(80),businessDate:z.iso.date(),menuItemId:z.uuid(),menuCode:posCode,menuName:recordName,mappingRevision:z.number().int().min(1),versionId:z.uuid(),outputPerSale:quantitySchema,quantity:quantitySchema,netAmount:nonNegative});
 export const cashAmountSchema=z.string().regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,2})?$/);
-export const posCheckoutSchema=z.object({channel:z.literal('foodo'),service:z.enum(['counter','takeaway']),cashReceived:cashAmountSchema,note:z.string().trim().max(200),lines:z.array(z.object({lineId:z.uuid(),unitPrice:cashAmountSchema,note:z.string().trim().max(200)})).min(1).max(200)});
+export const posCheckoutSchema=z.object({channel:z.literal('foodo'),service:z.enum(['counter','takeaway','table','delivery']),cashReceived:cashAmountSchema,note:z.string().trim().max(200),lines:z.array(z.object({lineId:z.uuid(),unitPrice:cashAmountSchema,note:z.string().trim().max(200)})).min(1).max(200)});
 export const posCartLineSchema=salesLineSchema.omit({transactionId:true,lineKey:true,businessDate:true,netAmount:true}).extend({unitPrice:cashAmountSchema,note:z.string().trim().max(200)});
 export const posCartSchema=z.object({id:z.uuid(),organizationId:z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),generation:z.uuid().optional(),revision:z.number().int().min(0),sourceDeviceId:z.uuid(),posId:recordId,posRevision:z.number().int().min(1),kitchenId:recordId,locationId:recordId,source:posCode,state:z.enum(['current','held']),service:z.enum(['counter','takeaway']),label:z.string().trim().max(80),note:z.string().trim().max(200),createdAt:z.iso.datetime(),updatedAt:z.iso.datetime(),lines:z.array(posCartLineSchema).max(200)}).refine(c=>new Set(c.lines.map(l=>l.lineId)).size===c.lines.length,'معرفات المواد لا تتكرر');
 export type POSCart=z.infer<typeof posCartSchema>;
@@ -211,8 +254,9 @@ export type SalesImportDocument=z.infer<typeof salesImportSchema>;
 export type SalesStockDeduction={movementId:string;itemId:string;businessDate:string;quantity:string;amount:string};
 export type SalesStockShortage={itemId:string;businessDate:string;requiredQuantity:string;deductedQuantity:string;shortageQuantity:string};
 export type SalesRouting={posId:string;posName:string;posRevision:number;kitchenId:string;kitchenName:string;locationId:string};
-export type ImportedSales={routing?:SalesRouting;document:SalesImportDocument;acceptedLineIds:string[];duplicateLineIds:string[];netAmount:string;postedAt:string;stockDeductions?:SalesStockDeduction[];stockDeductionAmount?:string;stockShortages?:SalesStockShortage[]};
+export type ImportedSales={posOrderId?:string;routing?:SalesRouting;document:SalesImportDocument;acceptedLineIds:string[];duplicateLineIds:string[];netAmount:string;postedAt:string;stockDeductions?:SalesStockDeduction[];stockDeductionAmount?:string;stockShortages?:SalesStockShortage[]};
 
+export * from './pos-orders';
 export * from './reports';
 
 export * from './kitchen-display';

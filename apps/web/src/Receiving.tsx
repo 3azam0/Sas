@@ -1,5 +1,8 @@
 'use client';
-import {correctAcceptedDocument,CorrectionReason,CorrectionLink,canCorrectDocument} from './document-correction-client';
+import {formatMoney} from './money-format';
+import {CorrectionLink,canCorrectDocument} from './document-correction-client';
+import {saveReceiptEdit,voidReceipt} from './receipt-edit-client';
+import VoidStockDocument from './VoidStockDocument';
 import {receiptExport} from './document-export';
 import {HelpButton} from './ClientGuide';
 import PrintPreview,{PrintHeader,PrintTable} from './PrintPreview';
@@ -10,7 +13,7 @@ import {focusControl,SearchableSelect,KeyboardForm,FormKeyboardHelp} from './For
 import Collection,{syncStatusOptions} from './Collection';
 import {operationLabels,OperationStatus,reviewFirst,DocumentLink} from './OperationStatus';
 import {useEffect,useRef,useState,type FormEvent,type KeyboardEvent,type FocusEvent} from 'react';
-import {receiptDocumentSchema,type ReceiptDocument,type Snapshot} from '@saas/contracts';
+import {receiptDocumentSchema,type ReceiptDocument,type ReceiptEdit,type Snapshot} from '@saas/contracts';
 import {decimal} from '@saas/domain';
 import {receivingUnitFactor} from '../../../packages/domain/receiving';
 import {normalizeNumber} from '../../../packages/domain/opening-import';
@@ -22,18 +25,96 @@ const number=(v:string|number)=>new Intl.NumberFormat('ar-EG',{maximumFractionDi
 const valid=(v:string)=>/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/.test(v);
 const statuses:Record<LocalReceipt['status'],string>=operationLabels;
 export function ReceiptHistory({snapshot,location,rows,expired,synchronize,edit}:{snapshot:Snapshot;location?:string;rows:LocalReceipt[];expired:boolean;synchronize:()=>Promise<void>;edit:(row:LocalReceipt)=>void}){
- const [error,setError]=useState(''),[printing,setPrinting]=useState<LocalReceipt|null>(null);const docs=new Map(rows.map(r=>[r.id,r]));
- for(const posted of snapshot.receipts??[])docs.set(posted.document.operationId,{...docs.get(posted.document.operationId),id:posted.document.operationId,scope:snapshot.organizationId,document:posted.document,status:'accepted',error:undefined,createdAt:posted.postedAt});
- async function resolve(row:LocalReceipt,action:'retry'|'cancel'){try{setError('');await resolveReceipt(row.scope,row.id,action);if(action==='retry')await synchronize();}catch(e){setError(e instanceof Error?e.message:'تعذرت معالجة الاستلام');}}
+ const [error,setError]=useState(''),[printing,setPrinting]=useState<string|null>(null);
+ const [voiding,setVoiding]=useState<{row:LocalReceipt;revision:number}|null>(null);
+ const docs=new Map(rows.map(r=>[r.id,r]));
+ const postedById=new Map((snapshot.receipts??[]).map(row=>[row.document.operationId,row]));
+ for(const [id,posted] of postedById)docs.set(id,{...docs.get(id),id,scope:snapshot.organizationId,document:posted.document,status:'accepted',error:undefined,createdAt:posted.postedAt});
+ async function resolve(row:LocalReceipt,action:'retry'|'cancel'){
+  try{setError('');await resolveReceipt(row.scope,row.id,action);if(action==='retry')await synchronize();}
+  catch(e){setError(e instanceof Error?e.message:'تعذرت معالجة الاستلام');}
+ }
  const visible=[...docs.values()].filter(r=>!location||r.document.locationId===location).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
- return <><CollapsibleSection className="panel"><div className="panel-heading"><div><h2>مستندات الاستلام المباشر</h2><p>استلام عدة مواد في مستند واحد، مع المورد أو بدونه.</p></div><span className="pill">{visible.length} مستند</span></div>{error&&<p role="alert" className="error">{error}</p>}<Collection rows={(reviewFirst(visible))??[]} title="مستندات الاستلام المباشر" resetKey={location??"all"} searchText={r=>[r.document.reason,snapshot.suppliers?.find(s=>s.id===r.document.supplierId)?.name,r.document.lines.map(l=>snapshot.items.find(i=>i.id===l.itemId)?.name).join(" ")].join(" ")} dateValue={r=>r.document.businessDate} filters={[{key:"status",label:"حالة المزامنة",value:r=>r.status,options:syncStatusOptions},{key:"supplier",label:"المورد",value:r=>r.document.supplierId??"none",options:[{value:"none",label:"بدون مورد"},...(snapshot.suppliers??[]).map(s=>({value:s.id,label:s.name}))]}]} rowIds={r=>[r.id]}>{pageRows=>pageRows.map(row=><details className="opening-document" key={row.id} id={`operation-${row.id}`} tabIndex={-1}><summary><strong>{row.document.reason||'استلام مواد'}</strong> · {row.document.businessDate} · {row.document.lines.length} مادة · {number(row.document.lines.reduce((s,l)=>s.add(decimal(l.quantity).mul(l.unitCost)),decimal('0')).toString())} ج.م <span className={'pill '+(row.status==='accepted'?'good':'warning')}><OperationStatus status={row.status}/></span></summary><p>الموقع: {snapshot.locations.find(l=>l.id===row.document.locationId)?.name??row.document.locationId}</p><p>المورد: {snapshot.suppliers?.find(s=>s.id===row.document.supplierId)?.name??'بدون مورد محدد'}</p><small dir="ltr">{row.id}</small>{row.status==='accepted'&&canCorrectDocument(snapshot,row.id)&&<button type="button" className="secondary" disabled={expired} onClick={()=>edit(row)}>تعديل المواد والكميات</button>}<p><button type="button" className="secondary" onClick={()=>setPrinting(row)}>عرض وطباعة مستند الاستلام</button></p><Collection rows={row.document.lines} title={"مواد الاستلام — "+(row.document.reason||row.id)} searchText={l=>snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}>{pageRows=>(<div className="table-scroll"><table><thead><tr><th>المادة</th><th>كمية المخزون</th><th>تكلفة الوحدة</th><th>القيمة</th></tr></thead><tbody>{pageRows.map(l=><tr key={l.lineId}><td>{snapshot.items.find(i=>i.id===l.itemId)?.name??l.itemId}</td><td>{number(l.quantity)} {l.receivingUnit?.baseName??snapshot.units?.find(u=>u.id===l.unitId)?.name??l.unitId}<ReceiptLivestockDetails line={l}/>{l.lot&&<small>تشغيلة: <bdi>{l.lot.code}</bdi>{l.lot.expiresOn&&<> · الصلاحية: <bdi>{l.lot.expiresOn}</bdi></>}</small>}{l.enteredQuantity&&<small className="setup-subline">{number(l.enteredQuantity)} {l.receivingUnit?.name??snapshot.items.find(i=>i.id===l.itemId)?.purchaseUnits?.find(p=>p.id===l.purchaseUnitId)?.name}{l.receivingUnit&&<> · ١ {l.receivingUnit.name} = {number(l.receivingUnit.factor)} {l.receivingUnit.baseName}</>}</small>}</td><td>{number(l.unitCost)}</td><td>{number(decimal(l.quantity).mul(l.unitCost).toString())}</td></tr>)}</tbody></table></div>)}</Collection>{row.error&&<p className="error" role="alert">{row.error}</p>}{row.replacesId&&<p>تصحيح للمستند: <span dir="ltr"><DocumentLink id={row.replacesId} view="activity" location={row.document.locationId} label={row.replacesId}/></span></p>}{row.replacementId&&<p>المستند البديل: <span dir="ltr"><DocumentLink id={row.replacementId} view="activity" location={row.document.locationId} label={row.replacementId}/></span></p>}<CorrectionLink snapshot={snapshot} id={row.id}/>{row.status==='needsReview'&&<div className="review-actions"><button className="secondary" disabled={expired} onClick={()=>void resolve(row,'retry')}>إعادة محاولة الاستلام</button><button className="secondary" disabled={expired} onClick={()=>edit(row)}>تصحيح الاستلام</button><button className="text-button" onClick={()=>void resolve(row,'cancel')}>إلغاء الاستلام المرفوض</button></div>}</details>)}</Collection></CollapsibleSection>{printing&&<PrintPreview organizationId={snapshot.organizationId} documentId={printing.id} title="طباعة مستند استلام" exportRows={receiptExport(snapshot,printing.document,printing.status)} close={()=>setPrinting(null)}><ReceiptPrintSheet snapshot={snapshot} row={printing}/></PrintPreview>}</>;
+ const printed=printing?docs.get(printing):undefined;
+ const itemName=(id:string)=>snapshot.items.find(i=>i.id===id)?.name??id;
+ const supplierName=(id?:string)=>snapshot.suppliers?.find(s=>s.id===id)?.name??'بدون مورد محدد';
+ return <>
+  <CollapsibleSection className="panel">
+   <div className="panel-heading"><div><h2>مستندات الاستلام المباشر</h2><p>استلام عدة مواد في مستند واحد، مع المورد أو بدونه.</p></div><span className="pill">{visible.length} مستند</span></div>
+   {error&&<p role="alert" className="error">{error}</p>}
+   <Collection rows={reviewFirst(visible)} title="مستندات الاستلام المباشر" resetKey={location??'all'}
+    searchText={r=>[r.document.reason,supplierName(r.document.supplierId),...r.document.lines.map(l=>itemName(l.itemId))].join(' ')}
+    dateValue={r=>r.document.businessDate} filters={[
+     {key:'status',label:'حالة المزامنة',value:r=>postedById.get(r.id)?.edits?.[0]?.updated===null?'voided':r.status,options:[...syncStatusOptions,{value:'voided',label:'ملغى'}]},
+     {key:'supplier',label:'المورد',value:r=>r.document.supplierId??'none',options:[{value:'none',label:'بدون مورد'},...(snapshot.suppliers??[]).map(s=>({value:s.id,label:s.name}))]},
+    ]} rowIds={r=>[r.id]}>
+    {pageRows=>pageRows.map(row=>{
+     const posted=postedById.get(row.id),edits=posted?.edits??[],cancelled=edits[0]?.updated===null;
+     const editable=row.status==='accepted'&&!cancelled&&canCorrectDocument(snapshot,row.id);
+     const d=row.document;
+     return <details className="opening-document" key={row.id} id={'operation-'+row.id} tabIndex={-1}>
+      <summary><strong>{d.reason||'استلام مواد'}</strong> · {d.businessDate} · {cancelled?<span className="pill">ملغى</span>:<>
+       {d.lines.length} مادة · {formatMoney(posted?.amount??d.lines.reduce((s,l)=>s.add(decimal(l.quantity).mul(l.unitCost)),decimal('0')).toString())} ج.م <span className={'pill '+(row.status==='accepted'?'good':'warning')}><OperationStatus status={row.status}/></span>
+      </>}</summary>
+      <p>الموقع: {snapshot.locations.find(l=>l.id===d.locationId)?.name??d.locationId}</p>
+      <p>المورد: {supplierName(d.supplierId)}</p>
+      <small dir="ltr">{row.id}</small>
+      <div className="heading-actions">
+       {editable&&<><button type="button" className="secondary" disabled={expired} onClick={()=>edit(row)}>تعديل المواد والكميات</button><button type="button" className="text-button" disabled={expired} onClick={()=>setVoiding({row,revision:edits[0]?.revision??0})}>إلغاء المستند</button></>}
+       {!cancelled&&<button type="button" className="secondary" onClick={()=>setPrinting(row.id)}>عرض وطباعة مستند الاستلام</button>}
+      </div>
+      <ReceiptEditTimeline edits={edits} itemName={itemName} supplierName={supplierName}/>
+      {!cancelled&&<Collection rows={d.lines} title={'مواد الاستلام — '+(d.reason||row.id)} searchText={l=>itemName(l.itemId)}>
+       {lineRows=><div className="table-scroll"><table><thead><tr><th>المادة</th><th>كمية المخزون</th><th>تكلفة الوحدة</th><th>القيمة</th></tr></thead><tbody>{lineRows.map(l=><tr key={l.lineId}>
+        <td>{itemName(l.itemId)}</td><td>{number(l.quantity)} {l.receivingUnit?.baseName??snapshot.units?.find(u=>u.id===l.unitId)?.name??l.unitId}<ReceiptLivestockDetails line={l}/>
+         {l.lot&&<small>تشغيلة: <bdi>{l.lot.code}</bdi>{l.lot.expiresOn&&<> · الصلاحية: <bdi>{l.lot.expiresOn}</bdi></>}</small>}
+         {l.enteredQuantity&&<small className="setup-subline">{number(l.enteredQuantity)} {l.receivingUnit?.name??snapshot.items.find(i=>i.id===l.itemId)?.purchaseUnits?.find(p=>p.id===l.purchaseUnitId)?.name}{l.receivingUnit&&<> · ١ {l.receivingUnit.name} = {number(l.receivingUnit.factor)} {l.receivingUnit.baseName}</>}</small>}
+        </td><td>{formatMoney(l.unitCost)}</td><td>{formatMoney(decimal(l.quantity).mul(l.unitCost).toString())}</td>
+       </tr>)}</tbody></table></div>}
+      </Collection>}
+      {row.error&&<p className="error" role="alert">{row.error}</p>}
+      {row.replacesId&&<p>تصحيح للمستند: <span dir="ltr"><DocumentLink id={row.replacesId} view="activity" location={d.locationId} label={row.replacesId}/></span></p>}
+      {row.replacementId&&<p>المستند البديل: <span dir="ltr"><DocumentLink id={row.replacementId} view="activity" location={d.locationId} label={row.replacementId}/></span></p>}
+      <CorrectionLink snapshot={snapshot} id={row.id}/>
+      {row.status==='needsReview'&&<div className="review-actions">
+       <button className="secondary" disabled={expired} onClick={()=>void resolve(row,'retry')}>إعادة محاولة الاستلام</button><button className="secondary" disabled={expired} onClick={()=>edit(row)}>تصحيح الاستلام</button><button className="text-button" onClick={()=>void resolve(row,'cancel')}>إلغاء الاستلام المرفوض</button>
+      </div>}
+     </details>;
+    })}
+   </Collection>
+  </CollapsibleSection>
+  {printed&&postedById.get(printed.id)?.edits?.[0]?.updated!==null&&<PrintPreview organizationId={snapshot.organizationId} documentId={printed.id} title="طباعة مستند استلام" exportRows={receiptExport(snapshot,printed.document,printed.status)} close={()=>setPrinting(null)}><ReceiptPrintSheet snapshot={snapshot} row={printed}/></PrintPreview>}
+  {voiding&&<VoidStockDocument title="إلغاء مستند الاستلام" reference={voiding.row.document.reason||voiding.row.id} close={()=>setVoiding(null)} confirm={async reason=>{
+   await voidReceipt(snapshot,{sourceId:voiding.row.id,expectedRevision:voiding.revision,reason});
+   await synchronize();
+   setVoiding(null);
+  }}/>}
+ </>;
+}
+
+function ReceiptEditTimeline({edits,itemName,supplierName}:{edits:ReceiptEdit[];itemName:(id:string)=>string;supplierName:(id?:string)=>string}){
+ if(!edits.length)return null;
+ const time=new Intl.DateTimeFormat('ar-EG',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Cairo'});
+ const describe=(line:ReceiptDocument['lines'][number]|undefined)=>line?number(line.quantity)+' · '+formatMoney(line.unitCost)+' ج.م / وحدة':'—';
+ return <details className="transfer-edit-timeline"><summary>سجل التعديلات ({number(edits.length)})</summary><ol>{edits.map(({operationId,postedAt,reason,previous,updated})=>{
+  const before=new Map(previous.lines.map(line=>[line.itemId,line]));
+  const after=new Map(updated?.lines.map(line=>[line.itemId,line]));
+  const changed=[...new Set([...before.keys(),...after.keys()])].filter(id=>before.get(id)?.lineId!==after.get(id)?.lineId);
+  return <li key={operationId}>
+   <p><time dateTime={postedAt}>{time.format(new Date(postedAt))}</time> · {updated?'تعديل المستند':'إلغاء المستند'} · {reason}</p>
+   {updated&&previous.businessDate!==updated.businessDate&&<p>التاريخ: <bdi>{previous.businessDate}</bdi> ← <bdi>{updated.businessDate}</bdi></p>}
+   {updated&&previous.supplierId!==updated.supplierId&&<p>المورد: {supplierName(previous.supplierId)} ← {supplierName(updated.supplierId)}</p>}
+   {updated&&previous.reason!==updated.reason&&<p>المرجع: {previous.reason||'—'} ← {updated.reason||'—'}</p>}
+   {!!changed.length&&<ul>{changed.map(id=><li key={id}>{itemName(id)} · {describe(before.get(id))} ← {describe(after.get(id))}</li>)}</ul>}
+  </li>;
+ })}</ol></details>;
 }
 
 export function ReceiptPrintSheet({snapshot,row}:{snapshot:Snapshot;row:LocalReceipt}){
  const d=row.document,posted=snapshot.receipts?.find(r=>r.document.operationId===row.id),amount=posted?.amount??d.lines.reduce((s,l)=>s.add(decimal(l.quantity).mul(l.unitCost)),decimal('0')).toString();
  return <><PrintHeader snapshot={snapshot} title="مستند استلام مواد" number={'RC-'+row.id.toUpperCase()}/><div className="document-print-meta"><p>المخزن: {snapshot.locations.find(l=>l.id===d.locationId)?.name??d.locationId}</p><p>التاريخ: {d.businessDate}</p><p>المورد: {snapshot.suppliers?.find(s=>s.id===d.supplierId)?.name??'بدون مورد محدد'}</p><p>المرجع: {d.reason||'—'}</p></div>{!posted&&<p className="document-print-warning">غير مقبول بعد — حالة المزامنة: <OperationStatus status={row.status}/> · هذا المستند غير نهائي حتى قبول المزامنة.</p>}
- <PrintTable columns={['المادة','كمية المخزون','تكلفة وحدة المخزون ج.م','القيمة ج.م']} rows={d.lines.map(l=>{const item=snapshot.items.find(i=>i.id===l.itemId),pack=item?.purchaseUnits?.find(p=>p.id===l.purchaseUnitId),unit=l.receivingUnit?.baseName??snapshot.units?.find(u=>u.id===l.unitId)?.name??item?.unit??l.unitId,enteredUnit=l.receivingUnit?.name??pack?.name,factor=l.receivingUnit?.factor??pack?.factor;return {id:l.lineId,cells:[<><strong>{item?.name??l.itemId}</strong><small><bdi>{item?.sku}</bdi></small></>,<>{number(l.quantity)} {unit}<ReceiptLivestockDetails line={l}/>{l.lot&&<small>تشغيلة: <bdi>{l.lot.code}</bdi>{l.lot.expiresOn&&<> · الصلاحية: <bdi>{l.lot.expiresOn}</bdi></>}</small>}{l.enteredQuantity&&enteredUnit&&<small>{number(l.enteredQuantity)} {enteredUnit}{factor&&<> · ١ {enteredUnit} = {number(factor)} {unit}</>}</small>}</>,number(l.unitCost),number(decimal(l.quantity).mul(l.unitCost).toString())]};})}/>
- <p className="document-print-total">{posted?'إجمالي الاستلام':'إجمالي غير نهائي'}: <strong>{number(amount)} ج.م</strong></p><p className="document-print-note">تكلفة الوحدة معروضة لكل وحدة مخزون أساسية. مستند استلام مخزون؛ ليس فاتورة ضريبية أو إثبات سداد.</p><div className="document-print-signatures"><p>توقيع مسؤول الاستلام: __________________</p><p>توقيع المورد / المسلّم: __________________</p></div><footer className="document-print-footer">FooDo · مستند استلام مواد</footer></>;
+ <PrintTable columns={['المادة','كمية المخزون','تكلفة وحدة المخزون ج.م','القيمة ج.م']} rows={d.lines.map(l=>{const item=snapshot.items.find(i=>i.id===l.itemId),pack=item?.purchaseUnits?.find(p=>p.id===l.purchaseUnitId),unit=l.receivingUnit?.baseName??snapshot.units?.find(u=>u.id===l.unitId)?.name??item?.unit??l.unitId,enteredUnit=l.receivingUnit?.name??pack?.name,factor=l.receivingUnit?.factor??pack?.factor;return {id:l.lineId,cells:[<><strong>{item?.name??l.itemId}</strong><small><bdi>{item?.sku}</bdi></small></>,<>{number(l.quantity)} {unit}<ReceiptLivestockDetails line={l}/>{l.lot&&<small>تشغيلة: <bdi>{l.lot.code}</bdi>{l.lot.expiresOn&&<> · الصلاحية: <bdi>{l.lot.expiresOn}</bdi></>}</small>}{l.enteredQuantity&&enteredUnit&&<small>{number(l.enteredQuantity)} {enteredUnit}{factor&&<> · ١ {enteredUnit} = {number(factor)} {unit}</>}</small>}</>,formatMoney(l.unitCost),formatMoney(decimal(l.quantity).mul(l.unitCost).toString())]};})}/>
+ <p className="document-print-total">{posted?'إجمالي الاستلام':'إجمالي غير نهائي'}: <strong>{formatMoney(amount)} ج.م</strong></p><p className="document-print-note">تكلفة الوحدة معروضة لكل وحدة مخزون أساسية. مستند استلام مخزون؛ ليس فاتورة ضريبية أو إثبات سداد.</p><div className="document-print-signatures"><p>توقيع مسؤول الاستلام: __________________</p><p>توقيع المورد / المسلّم: __________________</p></div><footer className="document-print-footer">FooDo · مستند استلام مواد</footer></>;
 }
 
 function ReceiptLivestockDetails({line}:{line:ReceiptDocument['lines'][number]}){return line.headCount===undefined?null:<small className="setup-subline">{number(line.headCount)} رأس · متوسط الرأس {number(decimal(line.quantity).div(line.headCount).toString())} كجم</small>;}
@@ -49,11 +130,14 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
  const isLiveSheep=(id:string)=>snapshot.butcheryCatalog?.some(c=>c.itemId===id&&c.meatKind==='sheep_live')??false;
  const fresh=(id=''):EditorLine=>({lineId:crypto.randomUUID(),itemId:id,selection:'',factor:'',enteredQuantity:'',unitCost:'',...(isLiveSheep(id)?{headCount:''}:{})});
  const [correctionReason,setCorrectionReason]=useState('');
- const [lines,setLines]=useState<EditorLine[]>(()=>initial?initial.document.lines.map(l=>({
-  lineId:crypto.randomUUID(),itemId:l.itemId,
+ const [originalLines]=useState<EditorLine[]>(()=>initial?initial.document.lines.map(l=>({
+  lineId:initial.status==='accepted'?l.lineId:crypto.randomUUID(),itemId:l.itemId,
   selection:l.purchaseUnitId??(l.receivingUnit&&l.receivingUnit.unitId!==l.unitId?'unit:'+l.receivingUnit.unitId:''),
   lot:l.lot,factor:l.receivingUnit?.factor??'',enteredQuantity:l.enteredQuantity??l.quantity,unitCost:l.unitCost,...(l.headCount!==undefined?{headCount:String(l.headCount)}:{})
  })):[]);
+ const [lines,setLines]=useState(originalLines);
+ const [expectedRevision]=useState(()=>snapshot.receipts?.find(row=>row.document.operationId===initial?.id)?.edits?.[0]?.revision??0);
+ const originalLine=(line:EditorLine)=>initial?.status==='accepted'&&originalLines.includes(line)?initial.document.lines.find(old=>old.lineId===line.lineId):undefined;
  const [entry,setEntry]=useState<EditorLine>(()=>fresh(itemId)),[editingId,setEditingId]=useState<string|null>(null);
  const [entrySubmitted,setEntrySubmitted]=useState(false),[entryVersion,setEntryVersion]=useState(0),[listVersion,setListVersion]=useState(0),[notice,setNotice]=useState(''),[lastChanged,setLastChanged]=useState('');
  const [businessDate,setDate]=useState(initial?.document.businessDate??today());
@@ -81,6 +165,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
   return {item,unit,pack,name:unit?.name??pack?.name??item?.unit,factor:unit?automatic??l.factor:pack?.factor??(l.selection?'':'1'),manual:!!unit&&automatic===undefined};
  }
  function base(l:EditorLine){
+  const original=originalLine(l);if(original)return decimal(original.quantity);
   const {factor}=selected(l);
   if(!valid(l.enteredQuantity)||!valid(factor)||decimal(l.enteredQuantity).lte(0)||decimal(factor).lte(0))return null;
   const quantity=decimal(l.enteredQuantity).mul(factor);
@@ -150,19 +235,25 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
   if(invalidField){setDetailsOpen(true);setError(fieldErrors[invalidField]);requestAnimationFrame(()=>focusControl(form.current?.querySelector<HTMLInputElement>('[data-field="'+invalidField+'"]'),form.current));return;}
   if(dirty){setError(editingId?'احفظ تعديل المادة أو ألغِه قبل حفظ المستند.':'أضف المادة الحالية إلى القائمة أو امسح الإدخال قبل حفظ المستند.');focusEntry(entry.itemId?'enteredQuantity':'itemId');return;}
   if(!lines.length){setError('أضف مادة واحدة على الأقل إلى القائمة.');focusEntry();return;}
-  const invalidLine=lines.find(l=>Object.keys(lineErrors(l)).length>0);
+  if(initial?.status==='accepted'&&correctionReason.trim().length<2){setError('أدخل سبب تعديل المستند.');form.current?.querySelector<HTMLInputElement>('input[aria-label="سبب تعديل المستند"]')?.focus();return;}
+  const invalidLine=lines.find(l=>!originalLine(l)&&Object.keys(lineErrors(l)).length>0);
   if(invalidLine){editLine(invalidLine);setEntrySubmitted(true);setError('راجع بيانات المادة: '+selected(invalidLine).item?.name);return;}
   locked.current=true;setBusy(true);
   try{
    const receiptLines=lines.map((l,index)=>{
+    const original=originalLine(l);if(original)return original;
     const choice=selected(l),quantity=base(l);
     if(!quantity)throw new Error('راجع كمية السطر '+(index+1)+' ومعامل التحويل.');
     return {lineId:l.lineId,itemId:l.itemId,unitId:choice.item?.unitId,quantity:quantity.toString(),unitCost:l.unitCost,lot:l.lot,purchaseUnitId:choice.pack?.id,
      receivingUnit:choice.unit?{unitId:choice.unit.id,name:choice.unit.name,baseName:choice.item?.unit,factor:choice.factor}:undefined,
      enteredQuantity:l.selection?l.enteredQuantity:undefined,headCount:isLiveSheep(l.itemId)?Number(l.headCount):undefined};
    });
-   const document:ReceiptDocument=receiptDocumentSchema.parse({operationId:crypto.randomUUID(),organizationId:snapshot.organizationId,generation:snapshot.generation,locationId:location,type:'receipt.document',businessDate,reason,supplierId:supplierId||undefined,capturedAt:new Date().toISOString(),schemaVersion:receiptLines.some(l=>l.headCount!==undefined)?2:1,currency:'EGP',lines:receiptLines});
-   if(initial?.status==='accepted'){const id=await correctAcceptedDocument(snapshot,initial.id,'receipt',document,correctionReason);saved(id);}else{await saveReceipt(document,initial?.id);saved(document.operationId);}
+   const accepted=initial?.status==='accepted'?initial:undefined;
+   const document:ReceiptDocument=receiptDocumentSchema.parse({operationId:accepted?.id??crypto.randomUUID(),organizationId:snapshot.organizationId,generation:snapshot.generation,locationId:location,type:'receipt.document',businessDate,reason,supplierId:supplierId||undefined,capturedAt:accepted?.document.capturedAt??new Date().toISOString(),schemaVersion:receiptLines.some(l=>l.headCount!==undefined)?2:1,currency:'EGP',lines:receiptLines});
+   if(accepted){
+    await saveReceiptEdit(snapshot,{sourceId:accepted.id,expectedRevision,reason:correctionReason},document);
+   }else await saveReceipt(document,initial?.id);
+   saved(document.operationId);
   }catch(e){locked.current=false;setError(e instanceof Error&&e.name!=='ZodError'?e.message:'راجع المواد والكميات وتكلفة وحدة المخزون.');}
   finally{setBusy(false);}
  }
@@ -172,7 +263,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
  const choice=selected(entry),quantity=base(entry),item=choice.item,liveSheep=isLiveSheep(entry.itemId);
  return <><dialog ref={dialog} className={`modal receipt-modal${expanded?' form-expanded':''}`} aria-labelledby="receipt-title" onCancel={e=>{e.preventDefault();if(!busy&&!newMaterial)close();}}>
   <KeyboardForm busy={busy||!!newMaterial} ref={form} className="modal-form" noValidate onKeyDown={keyboard} onSubmit={e=>void submit(e)}>
-   <div className="modal-header receiving-header"><div className="receiving-header-title"><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?'تصحيح استلام مواد':'استلام مواد'}</h2></div>
+   <div className="modal-header receiving-header"><div className="receiving-header-title"><span className="eyebrow">{snapshot.locations.find(l=>l.id===location)?.name}</span><h2 id="receipt-title">{initial?.status==='accepted'?'تعديل مستند الاستلام':initial?'تصحيح استلام مواد':'استلام مواد'}</h2></div>
      <div className="receiving-document-essential receiving-header-details">
       <label><span className="form-label">تاريخ الاستلام <span className="field-required" aria-hidden="true">*</span></span><input aria-label="تاريخ الاستلام" type="date" required disabled={busy||!!newMaterial} max={today()} value={businessDate} {...fieldProps('businessDate')} onChange={e=>{setDate(e.target.value);setError('');}}/>{fieldError('businessDate')}</label>
      </div>
@@ -186,7 +277,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
       <label><span className="form-label">مرجع الاستلام <small>اختياري</small></span><input aria-label="مرجع الاستلام" minLength={2} maxLength={200} placeholder="فاتورة ١٢٣ أو توريد اليوم" value={reason} {...fieldProps('reason')} onChange={e=>{setReason(e.target.value);setError('');}}/>{fieldError('reason')}</label>
      </DocumentFields>
     </section>
-    {initial?.status==='accepted'&&<CorrectionReason reason={correctionReason} setReason={setCorrectionReason}/>}<div className="receiving-workspace">
+    {initial?.status==='accepted'&&<label className="accepted-correction-reason">سبب تعديل المستند<input aria-label="سبب تعديل المستند" required minLength={2} maxLength={500} value={correctionReason} onChange={e=>{setCorrectionReason(e.target.value);setError('');}}/><small>يُحفظ التعديل بنفس رقم المستند ويظهر في سجل التعديلات.</small></label>}<div className="receiving-workspace">
     <CollapsibleSection data-form-scroll key={entryVersion} className={'receiving-composer'+(editingId?' receiving-composer-editing':'')} aria-labelledby="receiving-entry-title">
      <div className="form-section-heading"><div><h3 id="receiving-entry-title">{editingId?'تعديل المادة':'إضافة مادة'}</h3></div>{editingId&&<span className="pill warning">تعديل</span>}<button type="button" className="text-button" aria-label="إضافة مادة جديدة" disabled={busy||!!editingId} onClick={()=>setNewMaterial({name:''})}>＋ إضافة مادة جديدة</button></div>
      <div className="receiving-composer-row"><div className={"receiving-composer-main"+(liveSheep?" receiving-composer-livestock":"")}>
@@ -205,7 +296,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
       <button data-keyboard-add type="button" className="primary receiving-entry-add" onClick={addEntry}>{editingId?'حفظ تعديل المادة':'إضافة إلى القائمة'} <kbd aria-hidden="true">↵</kbd></button>
      </div></div>
 
-     <div className="receiving-entry-preview">{(choice.unit||choice.pack)&&!choice.manual&&<span className="receiving-conversion">١ {choice.name} = {number(choice.factor)} {item?.unit}</span>}{liveSheep&&<span>متوسط الرأس: <strong>{quantity&&/^[1-9]\d{0,5}$/.test(entry.headCount??'')&&Number(entry.headCount)<=100000?number(quantity.div(entry.headCount!).toString())+' كجم':'—'}</strong></span>}{item&&<><span>إضافة للمخزون: <strong>{quantity?number(quantity.toString()):'—'} {item.unit}</strong></span><span>قيمة المادة: <strong>{quantity&&valid(entry.unitCost)?number(quantity.mul(entry.unitCost).toString())+' ج.م':'—'}</strong></span></>}{dirty&&<button type="button" className="text-button" onClick={clearEntry}>{editingId?'إلغاء تعديل المادة':'مسح الإدخال'}</button>}</div>
+     <div className="receiving-entry-preview">{(choice.unit||choice.pack)&&!choice.manual&&<span className="receiving-conversion">١ {choice.name} = {number(choice.factor)} {item?.unit}</span>}{liveSheep&&<span>متوسط الرأس: <strong>{quantity&&/^[1-9]\d{0,5}$/.test(entry.headCount??'')&&Number(entry.headCount)<=100000?number(quantity.div(entry.headCount!).toString())+' كجم':'—'}</strong></span>}{item&&<><span>إضافة للمخزون: <strong>{quantity?number(quantity.toString()):'—'} {item.unit}</strong></span><span>قيمة المادة: <strong>{quantity&&valid(entry.unitCost)?formatMoney(quantity.mul(entry.unitCost).toString())+' ج.م':'—'}</strong></span></>}{dirty&&<button type="button" className="text-button" onClick={clearEntry}>{editingId?'إلغاء تعديل المادة':'مسح الإدخال'}</button>}</div>
      <p role="status" aria-live="polite" className="kitchen-entry-notice">{notice}</p>
     </CollapsibleSection>
     <CollapsibleSection className={'form-section receipt-items-section kitchen-receipt-section receiving-receipt-pane'+(lines.length<=10?' kitchen-compact-receipt':'')} aria-labelledby="receipt-items-title">
@@ -214,7 +305,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
       const c=selected(l),q=base(l),amount=q&&valid(l.unitCost)?q.mul(l.unitCost):null;
       return <li key={l.lineId}><article data-receiving-line={l.lineId} className={'kitchen-receipt-line'+(lastChanged===l.lineId?' kitchen-receipt-latest':'')} aria-label={'مادة الاستلام: '+c.item?.name}>
        <div className="kitchen-receipt-item"><strong>{c.item?.name??l.itemId}</strong><small>{c.item?.sku} · {c.item?.category}</small><span>الرصيد بعد القبول، تقديري: {q?number(decimal(snapshot.balances.find(b=>b.locationId===location&&b.itemId===l.itemId)?.quantity??'0').sub(initial?.status==='accepted'?(initial.document.lines.find(old=>old.itemId===l.itemId)?.quantity??'0'):'0').add(q).toString()):'—'} {c.item?.unit}</span></div>
-       <StockLotFields label={'تشغيلة '+(c.item?.name??l.itemId)} value={l.lot} disabled={busy||!snapshot.capabilities?.stockLots} onChange={lot=>setLines(old=>old.map(row=>row.lineId===l.lineId?{...row,lot}:row))}/><dl className="kitchen-receipt-details"><div><dt>{l.headCount!==undefined?'الوزن الحي المستلم':'الكمية المستلمة'}</dt><dd className="kitchen-receipt-quantity">{number(l.enteredQuantity)} <small>{c.name}</small></dd>{l.headCount!==undefined&&<small className="field-hint">{number(l.headCount)} رأس · متوسط الرأس {q?number(q.div(l.headCount).toString()):'—'} كجم</small>}{l.selection&&<small className="field-hint">{q?number(q.toString()):'—'} {c.item?.unit} للمخزون · ١ {c.name} = {number(c.factor)} {c.item?.unit}</small>}</div><div><dt>تكلفة وحدة المخزون</dt><dd>{number(l.unitCost)} ج.م / {c.item?.unit}</dd></div><div><dt>قيمة المادة</dt><dd>{amount?number(amount.toString()):'—'} ج.م</dd></div></dl>
+       <StockLotFields label={'تشغيلة '+(c.item?.name??l.itemId)} value={l.lot} disabled={busy||!snapshot.capabilities?.stockLots} onChange={lot=>setLines(old=>old.map(row=>row.lineId===l.lineId?{...row,lot}:row))}/><dl className="kitchen-receipt-details"><div><dt>{l.headCount!==undefined?'الوزن الحي المستلم':'الكمية المستلمة'}</dt><dd className="kitchen-receipt-quantity">{number(l.enteredQuantity)} <small>{c.name}</small></dd>{l.headCount!==undefined&&<small className="field-hint">{number(l.headCount)} رأس · متوسط الرأس {q?number(q.div(l.headCount).toString()):'—'} كجم</small>}{l.selection&&<small className="field-hint">{q?number(q.toString()):'—'} {c.item?.unit} للمخزون · ١ {c.name} = {number(c.factor)} {c.item?.unit}</small>}</div><div><dt>تكلفة وحدة المخزون</dt><dd>{formatMoney(l.unitCost)} ج.م / {c.item?.unit}</dd></div><div><dt>قيمة المادة</dt><dd>{amount?formatMoney(amount.toString()):'—'} ج.م</dd></div></dl>
        <div className="kitchen-receipt-actions"><button type="button" className="text-button" aria-label={'تعديل '+c.item?.name} onClick={()=>editLine(l)}>تعديل</button><button type="button" className="text-button kitchen-receipt-remove" aria-label={'حذف '+c.item?.name} onClick={()=>removeLine(l)}>حذف</button></div>
       </article></li>;
      })}</ol>}</Collection></div>
@@ -223,7 +314,7 @@ export default function ReceiptDialog({snapshot,location,itemId,initial,close,sa
    </fieldset></div>
    <div className="modal-footer">
     {error&&<p className="error form-error-summary" role="alert">{error}</p>}
-    <div className="document-actions"><DocumentSummary label="إجمالي الاستلام المتوقع" value={number(total.toString())+' ج.م'} detail={number(lines.length)+' مادة · يُحدّث الرصيد بعد قبول المستند بالمزامنة'}/><div className="document-buttons"><div className="modal-actions"><button type="submit" className="primary" disabled={busy||!!newMaterial}>{busy?'جارٍ الحفظ…':'حفظ الاستلام'}</button><button type="button" className="secondary" disabled={busy||!!newMaterial} onClick={close}>إلغاء</button></div></div></div>
+    <div className="document-actions"><DocumentSummary label="إجمالي الاستلام المتوقع" value={formatMoney(total.toString())+' ج.م'} detail={number(lines.length)+' مادة · يُحدّث الرصيد بعد قبول المستند بالمزامنة'}/><div className="document-buttons"><div className="modal-actions"><button type="submit" className="primary" disabled={busy||!!newMaterial}>{busy?'جارٍ الحفظ…':'حفظ الاستلام'}</button><button type="button" className="secondary" disabled={busy||!!newMaterial} onClick={close}>إلغاء</button></div></div></div>
    </div>
   </KeyboardForm>
  </dialog>{newMaterial&&<SetupEditor section="items" snapshot={{...snapshot,items:catalog}} composeAvailable={false} saved={()=>{}} close={()=>returnToEntry('itemId')} quickCreate={{name:newMaterial.name,created:record=>{

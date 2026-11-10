@@ -18,16 +18,18 @@ beforeAll(async()=>{
  await postRecipe(db,access,{...base,operationId:randomUUID(),expectedRevision:0,type:'recipe.save',definition:{code:recipeId,name:'Rice meal',outputMode:'non_stocked',outputQuantity:'2',outputUnitId:'portion',effectiveDate:'2026-10-09',salesStockItemIds:['rice'],lines:[{lineId:randomUUID(),kind:'material',itemId:'rice',unitId:'kg',inputUnit:'base',enteredQuantity:'1',quantity:'1'}]}});
  await postRecipe(db,access,{...base,operationId:randomUUID(),expectedRevision:1,type:'recipe.publish',versionId});
  menuId=randomUUID();await postMenuItem(db,access,{operationId:randomUUID(),organizationId:'grills',expectedRevision:0,type:'menu.save',record:{id:menuId,source:'POS',code:'RICE',name:'Rice meal',versionId,outputPerSale:'1',active:true},capturedAt:now(),schemaVersion:1});
-});afterAll(async()=>db.close());
+},120000);afterAll(async()=>db.close());
 it('aggregates all history beyond the 100-record snapshot and pages independently of complete totals',async()=>{
  const report=await getReport(db,access,query()),page2=await getReport(db,access,query({page:2,pageSize:100,sort:'amount_desc'}));
  expect(report.total).toBe(121);expect(report.rows).toHaveLength(25);expect(decimal(report.current.received).toNumber()).toBe(1210);expect(decimal(report.previous.received).toNumber()).toBe(10);expect(decimal(report.charts.daily[0].received).toNumber()).toBe(1210);expect(page2.rows).toHaveLength(21);expect(page2.current).toEqual(report.current);expect(new Set(page2.rows.map(r=>r.id)).size).toBe(21);expect((await getSnapshot(db,access)).entries).toHaveLength(100);
 });
-it('supports category/material/no-supplier/search filters and clamps pages without claiming a historical balance',async()=>{
+it('supports category/material/no-supplier/search filters and clamps pages and uses the end date for inventory balances',async()=>{
  const r=await getReport(db,access,query({supplierId:'__none__',search:'BI receipt 120',page:20}));
  expect(r.total).toBe(1);expect(r.page).toBe(1);expect(r.rows[0].reference).toBe('BI receipt 120');expect(decimal(r.current.received).toNumber()).toBe(10);
  const inventory=await getReport(db,access,query({kind:'inventory',itemId:'rice',category:'Grains',from:'2026-10-09',to:'2026-10-09'}));
- expect(decimal(inventory.stock.value).toNumber()).toBe(1220);expect(inventory.rows[0].unitCost).not.toBeNull();expect(inventory.rows[0].date).not.toBe('2026-10-09');
+ expect(decimal(inventory.stock.value).toNumber()).toBe(10);expect(inventory.stock.asOf).toBe('2026-10-09');expect(Number(inventory.rows[0].unitCost)).toBe(10);expect(Number(inventory.rows[0].quantity)).toBe(1);expect(Number(inventory.rows[0].amount)).toBe(10);expect(Number(inventory.charts.inventory[0].value)).toBe(10);expect(inventory.rows[0].date).toBe('2026-10-09');
+ const inventoryFull=await getReport(db,access,query({kind:'inventory',itemId:'rice',category:'Grains',from:'2026-10-09',to:'2026-10-10'}));
+ expect(decimal(inventoryFull.stock.value).toNumber()).toBe(1220);expect(inventoryFull.rows[0].date).toBe('2026-10-10');expect(Number(inventoryFull.rows[0].amount)).toBe(1220);
 });
 it('keeps kitchen issues, waste and count adjustments separate with posted costs and legacy kitchen drilldowns',async()=>{
  const issue=await postKitchenIssue(db,access,{operationId:randomUUID(),organizationId:'grills',locationId:'central',type:'kitchen.issue',kitchen:'Kitchen A',businessDate:'2026-10-10',reference:'',notes:'',capturedAt:now(),schemaVersion:1,currency:'EGP',lines:[{lineId:randomUUID(),itemId:'rice',unitId:'kg',quantity:'2'}]});
@@ -93,4 +95,6 @@ it('shows immutable selected-material shortages by base unit and does not backfi
  const r=await getReport(db,access,query({kind:'sales'}));expect(r.shortages).toHaveLength(1);expect(r.shortages![0].unit).toBe('كجم');expect(Number(r.shortages![0].required)).toBe(250);expect(decimal(r.shortages![0].deducted).eq(quantity)).toBe(true);expect(decimal(r.shortages![0].missing).eq(decimal('250').sub(quantity))).toBe(true);
  await postCommand(db,access,{operationId:randomUUID(),organizationId:'grills',locationId:'central',type:'receipt.post',itemId:'rice',quantity:'2',unitCost:'10',reason:'After shortage',businessDate:'2026-10-10',capturedAt:now(),schemaVersion:1});
  expect((await getReport(db,access,query({kind:'sales'}))).shortages).toEqual(r.shortages);
+ const filtered=await getReport(db,access,query({kind:'sales',itemId:menuId,search:'Rice meal'}));
+ expect(filtered.total).toBeGreaterThan(0);expect(filtered.shortages).toEqual(r.shortages);
 });

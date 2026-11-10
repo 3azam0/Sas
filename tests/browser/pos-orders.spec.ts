@@ -1,0 +1,36 @@
+import {test,expect} from '@playwright/test';
+import {counterPOSFixture} from '../fixtures/counter-pos';
+import {getSnapshot,postPOSOrder,getReport} from '@saas/server';
+import {selectCatalog} from './catalog-control';
+
+test('Qibli tables, split checkout, paid amendments and mobile cashier',async({page})=>{
+ test.setTimeout(240000);const f=await counterPOSFixture();
+ try{
+ await page.route('**/api/v1/bootstrap',async route=>route.fulfill({json:await getSnapshot(f.db,f.access)}));
+ await page.route('**/api/v1/pos-orders',async route=>{try{await route.fulfill({json:await postPOSOrder(f.db,f.access,route.request().postDataJSON())});}catch(e){const error=e as {status?:number;code?:string;message:string};await route.fulfill({status:error.status??409,json:{code:error.code,message:error.message}});}});
+ await page.route('**/api/v1/reports',async route=>route.fulfill({json:await getReport(f.db,f.access,route.request().postDataJSON())}));
+ await page.goto('/');
+ await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible({timeout:90000});
+ const nav=page.getByRole('navigation',{name:'التنقل الرئيسي'}),posButton=nav.getByRole('button',{name:'نقطة البيع',exact:true});
+ if(!await posButton.isVisible())await nav.locator('summary').filter({hasText:/المبيعات/}).click();
+ await posButton.click();
+ await selectCatalog(page,page.getByRole('combobox',{name:'نقطة البيع الحالية'}),'p2');
+ await page.getByRole('button',{name:'الوردية',exact:true}).click();
+ await page.getByLabel('رصيد الدرج أول الوردية').fill('100');await page.getByRole('button',{name:'فتح وردية',exact:true}).click();
+ await expect(page.getByRole('button',{name:'إقفال الوردية وحفظ الفرق'})).toBeVisible();
+ await page.getByRole('button',{name:'الطاولات',exact:true}).click();await page.getByRole('button',{name:'إضافة طاولة',exact:true}).click();
+ const tableDialog=page.getByRole('dialog',{name:'تعريف الطاولة'});await tableDialog.getByLabel('اسم الطاولة').fill('طاولة اختبار');await tableDialog.getByRole('button',{name:'حفظ الطاولة'}).click();await expect(tableDialog).not.toBeVisible();
+ await page.getByRole('button',{name:'فتح طلب',exact:true}).click();await expect(page.getByText('محفوظ على السيرفر',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:/وجبة أرز/}).click();await page.getByRole('button',{name:'حفظ الطلب على السيرفر'}).click();await expect(page.getByText('محفوظ على السيرفر',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'تحصيل الفاتورة',exact:true}).click();
+ const checkout=page.getByRole('dialog',{name:'تحصيل الفاتورة'});await checkout.getByRole('textbox',{name:'نقدي',exact:true}).fill('30.25');await checkout.getByRole('textbox',{name:'InstaPay',exact:true}).fill('20');await checkout.getByRole('textbox',{name:'Visa',exact:true}).fill('30');await checkout.getByRole('textbox',{name:'المستلم نقدًا',exact:true}).fill('50');
+ await expect(checkout).toContainText('١٩٫٧٥');await checkout.getByRole('button',{name:'تأكيد التحصيل',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'فاتورة نقطة البيع'})).toBeVisible();
+ const s=await getSnapshot(f.db,f.access);expect(s.posOrders!.collections).toHaveLength(3);expect(s.posOrders!.orders[0].state).toBe('paid');
+ await page.screenshot({path:'outputs/pos-development/cashier-desktop.png',fullPage:true});
+ await page.getByRole('dialog',{name:'فاتورة نقطة البيع'}).getByRole('button',{name:/إغلاق/}).first().click();
+ await page.getByRole('button',{name:'الطاولات',exact:true}).click();await expect(page.getByText('متاحة',{exact:false})).toBeVisible();
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'outputs/pos-development/tables-mobile.png',fullPage:true});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ }finally{await f.db.close();}
+});

@@ -1,5 +1,35 @@
 import {test,expect,type Locator} from '@playwright/test';
+import {readFile} from 'node:fs/promises';
 import {selectCatalog} from './catalog-control';
+import {parseXLSX} from '../../packages/domain/spreadsheet-import';
+
+test('inventory Excel exports the displayed table for the selected location',async({page})=>{
+ test.setTimeout(120000);
+ await page.goto('/');
+ await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();
+ await page.getByRole('button',{name:/^عرض المخزون/}).click();
+ const locations=page.getByLabel('الموقع',{exact:true});
+ await locations.selectOption({index:1});
+ const locationName=await locations.locator('option:checked').innerText();
+ const table=page.getByLabel('جدول مواد المخزون',{exact:true}).getByRole('table');
+ await page.getByLabel('ترتيب حسب — مواد المخزون',{exact:true}).selectOption('valueDesc');
+ const checkDownload=async()=>{
+  const rows=await table.getByRole('row').evaluateAll(rows=>rows.map(row=>Array.from(row.querySelectorAll('th,td'),cell=>(cell as HTMLElement).innerText.trim())));
+  expect(rows[0]).toHaveLength(8);
+  const download=page.waitForEvent('download');
+  await page.getByRole('button',{name:'تصدير Excel',exact:true}).click();
+  const file=await download;
+  expect(file.suggestedFilename()).toContain(locationName);
+  expect(file.suggestedFilename()).toMatch(/\.xlsx$/);
+  expect(parseXLSX(await readFile((await file.path())!))).toEqual(rows);
+ };
+ await expect(table.getByRole('row')).toHaveCount(6);
+ await checkDownload();
+ await page.getByRole('searchbox',{name:'بحث المواد',exact:true}).fill('أرز');
+ await expect(table.getByRole('row')).toHaveCount(2);
+ await expect(table.getByRole('button',{name:/^أرز/})).toBeVisible();
+ await checkDownload();
+});
 
 async function fillItem(dialog:Locator,name:string,sku:string){
  await dialog.getByLabel('اسم السجل',{exact:true}).fill(name);

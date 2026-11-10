@@ -40,3 +40,63 @@ it('enforces tenant/source references, distinct sites, units, inactive dispatch 
 it('preserves fractional cost exactly and additive migrations preserve accepted transfer history',async()=>{
  const d=await fixture();await receipt(d.sourceId,'0.123456','0.123456','pepper');d.lines=[{movementId:randomUUID(),itemId:'pepper',unitId:'جم',quantity:'0.123456'}];await postTransfer(db,access,d);const r=action(d,'0.1');expect((await postTransfer(db,access,r)).amount).toBe('0.012345600000');let s=await getSnapshot(db,access);expect(s.transfers?.find(t=>t.transferId===d.transferId)?.lines[0].remainingValue).toBe('0.002895783936');const {schema}=await import('../packages/server/schema');await db.exec(schema);s=await getSnapshot(db,access);expect(s.balances.find(b=>b.locationId===d.destinationId)?.value).toBe('0.012345600000');
 });
+
+it('amends a completed transfer atomically under its original ID and audits the before and after',async()=>{
+ const d=await fixture();
+ const manager={...access,role:'manager' as const};
+ await postTransfer(db,access,d);
+ await postTransfer(db,access,action(d,'3'));
+ await postTransfer(db,access,action(d,'2',2));
+ const {generation}=await getSnapshot(db,access);
+ const edit={type:'transfer.edit',operationId:randomUUID(),organizationId:d.organizationId,generation,transferId:d.transferId,expectedRevision:3,businessDate:'2026-10-08',reference:d.reason,reason:'Correct dispatched quantity',lines:[{itemId:'rice',unitId:'كجم',quantity:'4'}]};
+ await expect(postTransfer(db,{...access,role:'operator'},edit)).rejects.toMatchObject({code:'FORBIDDEN'});
+ await expect(postTransfer(db,manager,{...edit,lines:[edit.lines[0],edit.lines[0]]})).rejects.toMatchObject({code:'INVALID_COMMAND'});
+ await expect(postTransfer(db,manager,{...edit,businessDate:'2026-10-10'})).rejects.toMatchObject({code:'INVALID_DATE'});
+ const accepted=await postTransfer(db,manager,edit);
+ expect(await postTransfer(db,manager,edit)).toEqual(accepted);
+ const s=await getSnapshot(db,access);
+ expect(s.transfers?.filter(t=>t.transferId===d.transferId)).toMatchObject([{document:{operationId:d.operationId,businessDate:'2026-10-08',lines:[{quantity:'4'}]},state:'completed',lines:[{received:'4.000000',remaining:'0.000000'}]}]);
+ expect(s.balances.find(b=>b.locationId===d.sourceId)).toMatchObject({quantity:'6.000000',value:'180.000000000000'});
+ expect(s.balances.find(b=>b.locationId===d.destinationId)).toMatchObject({quantity:'4.000000',value:'100.000000000000'});
+ expect(s.transferActions?.filter(a=>a.document.transferId===d.transferId)).toHaveLength(2);
+ expect(s.transferEdits?.filter(e=>e.transferId===d.transferId)).toMatchObject([{reason:edit.reason,previous:{lines:[{quantity:'5'}]},updated:{lines:[{quantity:'4'}]}}]);
+ expect(s.reconciliation?.filter(r=>[d.sourceId,d.destinationId].includes(r.locationId)).every(r=>r.matches)).toBe(true);
+ const revision=s.transfers!.find(t=>t.transferId===d.transferId)!.revision;
+ await expect(postTransfer(db,manager,{...edit,operationId:randomUUID(),lines:[{...edit.lines[0],quantity:'3'}]})).rejects.toMatchObject({code:'STALE_REVISION'});
+ await postCommand(db,access,{...env(),locationId:d.destinationId,type:'waste.post',itemId:'rice',quantity:'1'});
+ await expect(postTransfer(db,manager,{...edit,operationId:randomUUID(),expectedRevision:revision,lines:[{...edit.lines[0],quantity:'3'}]})).rejects.toMatchObject({code:'SOURCE_ALREADY_USED'});
+ const after=await getSnapshot(db,access);
+ expect(after.transferEdits?.filter(e=>e.transferId===d.transferId)).toHaveLength(1);
+ expect(after.balances.find(b=>b.locationId===d.sourceId)).toMatchObject({quantity:'6.000000',value:'180.000000000000'});
+});
+
+it('preserves partial receipt and loss and prevents amendments below the settled quantity',async()=>{
+ const d=await fixture();
+ const manager={...access,role:'manager' as const};
+ await postTransfer(db,access,d);
+ await postTransfer(db,access,action(d,'2'));
+ await postTransfer(db,access,action(d,'1',2,'transfer.loss'));
+ const {generation}=await getSnapshot(db,access);
+ const edit={type:'transfer.edit',operationId:randomUUID(),organizationId:d.organizationId,generation,transferId:d.transferId,expectedRevision:3,businessDate:d.businessDate,reference:d.reason,reason:'Correct remaining transit quantity',lines:[{itemId:'rice',unitId:'كجم',quantity:'2'}]};
+ await expect(postTransfer(db,manager,edit)).rejects.toMatchObject({code:'BELOW_SETTLED_QUANTITY'});
+ await postTransfer(db,manager,{...edit,lines:[{...edit.lines[0],quantity:'4'}]});
+ const s=await getSnapshot(db,access);
+ expect(s.transfers?.find(t=>t.transferId===d.transferId)).toMatchObject({state:'partial',lines:[{quantity:'4',received:'2.000000',lost:'1.000000',remaining:'1.000000'}]});
+});
+
+it('cancels a partially received transfer once, reverses its stock, and retains the original document',async()=>{
+ const d=await fixture();
+ await postTransfer(db,access,d);
+ await postTransfer(db,access,action(d,'3'));
+ const {generation}=await getSnapshot(db,access);
+ const manager={...access,role:'manager' as const};
+ const command={type:'transfer.void',operationId:randomUUID(),organizationId:d.organizationId,generation,transferId:d.transferId,expectedRevision:2,reason:'Cancel mistaken transfer'};
+ const result=await postTransfer(db,manager,command);
+ expect(await postTransfer(db,manager,command)).toEqual(result);
+ const s=await getSnapshot(db,access);
+ expect(s.transfers?.filter(t=>t.transferId===d.transferId)).toMatchObject([{state:'voided',document:{operationId:d.operationId,lines:[]}}]);
+ expect(s.transferEdits?.filter(t=>t.transferId===d.transferId)).toMatchObject([{reason:command.reason,previous:{lines:[{quantity:'5'}]},updated:{lines:[]}}]);
+ expect(s.balances.find(b=>b.locationId===d.sourceId)).toMatchObject({quantity:'10.000000',value:'280.000000000000'});
+ expect(s.balances.find(b=>b.locationId===d.destinationId)).toMatchObject({quantity:'0.000000',value:'0.000000000000'});
+ expect(s.reconciliation?.every(r=>r.matches)).toBe(true);
+});

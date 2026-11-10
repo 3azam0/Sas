@@ -1,8 +1,8 @@
-import {assertInventoryWrite,assertInventoryManager} from './inventory-permissions';
+import {assertInventoryWrite} from './inventory-permissions';
 import {assertGeneration} from './valuation';
-import type {Database} from './database';
+import type {Database,QueryDatabase} from './database';
 import {createHash} from 'node:crypto';
-import {receiptDocumentSchema,BusinessError,type Access,type CommandResult} from '@saas/contracts';
+import {receiptDocumentSchema,BusinessError,type Access,type CommandResult,type ReceiptDocument} from '@saas/contracts';
 import {decimal} from '@saas/domain';
 import {validateReceiptLineConversion,validateReceiptLivestock} from '../domain/receiving';
 import {addIncomingStock} from './incoming';
@@ -21,36 +21,51 @@ export async function postReceiptDocument(db:Database,access:Access,input:unknow
   if(prior){if(prior.payload_hash!==hash)throw new BusinessError('PAYLOAD_CONFLICT','معرّف المستند مستخدم لبيانات مختلفة.');return prior.result;}
   const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   if(doc.businessDate>today)throw new BusinessError('FUTURE_DATE','تاريخ الاستلام لا يمكن أن يكون في المستقبل.');
+  await validateReceiptDestination(tx,doc);
+  const ids=[doc.operationId,...doc.lines.map(l=>l.lineId)];
+  const collision=await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND operation_id=ANY($2::uuid[]) UNION ALL SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=ANY($2::uuid[])',[doc.organizationId,ids]);
+  if(collision.rows.length)throw new BusinessError('PAYLOAD_CONFLICT','أحد معرّفات السطور مستخدم بالفعل.');
+  await validateReceiptLines(tx,doc,doc.lines);
+  const amount=receiptTotal(doc.lines);
+  await tx.query('INSERT INTO receipt_documents(organization_id,operation_id,payload,amount) VALUES($1,$2,$3,$4)',[doc.organizationId,doc.operationId,JSON.stringify(doc),amount]);
+  await postReceiptLines(tx,doc,doc.lines);
+  await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[doc.organizationId,access.userId,doc.operationId,doc.type]);
+  const result:CommandResult={operationId:doc.operationId,outcome:'accepted',amount};
+  await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[doc.organizationId,doc.operationId,hash,JSON.stringify(result)]);
+  return result;
+ });
+}
+
+export function receiptTotal(lines:ReceiptDocument['lines']){
+ return lines.reduce((sum,line)=>sum.add(decimal(line.quantity).mul(line.unitCost)),decimal('0')).toFixed(12);
+}
+
+export async function validateReceiptDestination(tx:QueryDatabase,doc:ReceiptDocument){
   const site=(await tx.query<{active:boolean}>('SELECT active FROM locations WHERE organization_id=$1 AND id=$2',[doc.organizationId,doc.locationId])).rows[0];
   if(!site)throw new BusinessError('INVALID_REFERENCE','الموقع خارج نطاق المؤسسة أو لم تتم مزامنته.');
   if(!site.active)throw new BusinessError('INACTIVE_RECORD','الموقع غير نشط.');
   if(doc.supplierId&&!(await tx.query('SELECT 1 FROM suppliers WHERE organization_id=$1 AND id=$2 AND active',[doc.organizationId,doc.supplierId])).rows.length)throw new BusinessError('INVALID_SUPPLIER','المورد غير نشط أو غير متاح في المؤسسة.');
-  const ids=[doc.operationId,...doc.lines.map(l=>l.lineId)];
-  const collision=await tx.query('SELECT 1 FROM stock_entries WHERE organization_id=$1 AND operation_id=ANY($2::uuid[]) UNION ALL SELECT 1 FROM command_receipts WHERE organization_id=$1 AND operation_id=ANY($2::uuid[])',[doc.organizationId,ids]);
-  if(collision.rows.length)throw new BusinessError('PAYLOAD_CONFLICT','أحد معرّفات السطور مستخدم بالفعل.');
+}
+
+export async function validateReceiptLines(tx:QueryDatabase,doc:ReceiptDocument,lines:ReceiptDocument['lines']){
+  if(!lines.length)return;
   const units=(await tx.query<import('@saas/contracts').Unit>('SELECT id,name,revision FROM units WHERE organization_id=$1',[doc.organizationId])).rows;
   const catalog=(await tx.query<{item_id:string;meat_kind:import('../contracts/butchery').MeatKind}>('SELECT item_id,meat_kind FROM butchery_catalog WHERE organization_id=$1',[doc.organizationId])).rows;
-  let total=decimal('0');
-  for(const line of doc.lines){
+  for(const line of lines){
    const item=(await tx.query<{active:boolean;unit_id:string;purchase_units: import('@saas/contracts').PurchaseUnit[]}>('SELECT active,unit_id,purchase_units FROM items WHERE organization_id=$1 AND id=$2',[doc.organizationId,line.itemId])).rows[0];
    if(!item)throw new BusinessError('INVALID_REFERENCE','إحدى المواد خارج نطاق المؤسسة أو لم تتم مزامنتها.');
    if(!item.active)throw new BusinessError('INACTIVE_RECORD','إحدى المواد غير نشطة.');
    if(item.unit_id!==line.unitId)throw new BusinessError('INVALID_UNIT','وحدة أحد السطور لا تطابق وحدة المخزون الأساسية.');
    validateReceiptLineConversion(line,{unitId:item.unit_id,unit:units.find(u=>u.id===item.unit_id)?.name??'',purchaseUnits:item.purchase_units},units);
    validateReceiptLivestock(line,units.find(u=>u.id===item.unit_id)?.name??'',catalog.find(c=>c.item_id===line.itemId)?.meat_kind,doc.schemaVersion);
-   total=total.add(decimal(line.quantity).mul(line.unitCost));
   }
-  const amount=total.toFixed(12);
-  await tx.query('INSERT INTO receipt_documents(organization_id,operation_id,payload,amount) VALUES($1,$2,$3,$4)',[doc.organizationId,doc.operationId,JSON.stringify(doc),amount]);
-  for(const line of doc.lines){
+}
+
+export async function postReceiptLines(tx:QueryDatabase,doc:ReceiptDocument,lines:ReceiptDocument['lines']){
+  for(const line of lines){
    const lineAmount=await addIncomingStock(tx,{...doc,reason:doc.reason||'استلام مواد',operationId:line.lineId,itemId:line.itemId,quantity:line.quantity,unitCost:line.unitCost,lot:line.lot,type:'receipt.post',receiptDocumentId:doc.operationId});
    await tx.query('UPDATE stock_entries SET supplier_id=$3,purchase_unit_id=$4,entered_quantity=$5 WHERE organization_id=$1 AND operation_id=$2',[doc.organizationId,line.lineId,doc.supplierId??null,line.purchaseUnitId??null,line.enteredQuantity??null]);
    const lineHash=createHash('sha256').update(JSON.stringify({receiptDocumentId:doc.operationId,...line})).digest('hex');
    await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[doc.organizationId,line.lineId,lineHash,JSON.stringify({operationId:line.lineId,outcome:'accepted',amount:lineAmount})]);
   }
-  await tx.query('INSERT INTO audit_events(organization_id,actor,operation_id,action) VALUES($1,$2,$3,$4)',[doc.organizationId,access.userId,doc.operationId,doc.type]);
-  const result:CommandResult={operationId:doc.operationId,outcome:'accepted',amount};
-  await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[doc.organizationId,doc.operationId,hash,JSON.stringify(result)]);
-  return result;
- });
 }

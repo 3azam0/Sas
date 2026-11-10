@@ -1,5 +1,29 @@
 import {selectCatalog} from './catalog-control';
 import {test,expect,type Page} from '@playwright/test';
+test('selects grams for a stock balance and opens the same item editor without losing the draft',async({page})=>{
+ await page.goto('/');
+ await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'نظرة عامة',exact:true})).toBeVisible({timeout:45000});
+ const data=await (await page.request.get('/api/v1/bootstrap')).json();
+ const item=data.items.find((row:{id:string})=>row.id==='rice');
+ const nav=page.getByRole('navigation',{name:'التنقل الرئيسي'});
+ const stock=nav.getByRole('button',{name:'المخزون',exact:true});
+ if(!await stock.isVisible())await nav.locator('summary').filter({hasText:/^المخزون/}).click();
+ await stock.click();
+ await page.getByRole('button',{name:`تعديل بيانات ${item.name}`,exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'تعديل مادة'}).getByLabel('اسم السجل')).toHaveValue(item.name);
+ await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:`تعديل رصيد ${item.name}`,exact:true}).click();
+ const balance=page.getByRole('dialog',{name:'تعديل الرصيد',exact:true});
+ await balance.getByLabel('وحدة إدخال الرصيد',{exact:true}).selectOption('g');
+ await balance.getByLabel('الرصيد الجديد',{exact:true}).fill('1125');
+ await balance.getByRole('button',{name:'تعديل بيانات المادة',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'تعديل مادة'}).getByLabel('اسم السجل')).toHaveValue(item.name);
+ await page.keyboard.press('Escape');
+ await expect(balance.getByLabel('الرصيد الجديد',{exact:true})).toHaveValue('1125');
+ await balance.getByLabel('وحدة إدخال الرصيد',{exact:true}).selectOption('base');
+ await expect(balance.getByLabel('الرصيد الجديد',{exact:true})).toHaveValue('1.125');
+});
 async function fixture(page:Page){
  await page.goto('/');await page.getByRole('button',{name:'فتح مجموعة المشاوي',exact:true}).click();await expect(page.getByText('التطبيق جاهز للفتح دون اتصال',{exact:false})).toBeVisible({timeout:30000});
  const origin=new URL(page.url()).origin,locationId=crypto.randomUUID();const bootstrap=async()=>await(await page.request.get('/api/v1/bootstrap')).json();

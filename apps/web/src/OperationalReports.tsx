@@ -1,10 +1,11 @@
 'use client';
+import {formatMoney} from './money-format';
 import type {ReactNode} from 'react';
 import type {ReportRow,StockCardSummary,ButcheryModeSummary} from '@saas/contracts';
 import CollapsibleSection from './CollapsibleSection';
 import {butcheryModeLabel} from '../../../packages/domain/operational-reporting';
 const n=(value:string|number|null|undefined,digits=4)=>value==null?'—':new Intl.NumberFormat('ar-EG',{maximumFractionDigits:digits}).format(Number(value));
-const money=(value:string|null|undefined)=>value==null?'—':n(value,2)+' ج.م';
+const money=(value:string|null|undefined)=>value==null?'—':formatMoney(value)+' ج.م';
 
 export function StockCardBalances({summary,printing=false}:{summary?:StockCardSummary;printing?:boolean}){
  if(!summary)return <p className="notice">اختر مادة لعرض بطاقة الصنف وأرصدة الفترة.</p>;
@@ -29,6 +30,6 @@ export function ButcheryTable({rows}:{rows:ReportRow[]}){
 }
 export function operationalPrintColumns(kind:'stockCard'|'butchery'){return kind==='stockCard'?['التاريخ / التسلسل','الموقع','الحركة / المرجع','الرصيد قبل الحركة','وارد','صادر','الرصيد بعد الحركة','القيمة المرحّلة ج.م']:['الدفعة / الخام','التاريخ / الموقع','المدخل / الناتج كجم','الفاقد والمردود','التكلفة المقبولة ج.م','المنتجات والتكاليف المخصصة'];}
 export function operationalPrintCells(r:ReportRow,kind:'stockCard'|'butchery',typeLabel:(type:string)=>string):ReactNode[]{
- if(kind==='stockCard')return [<>{r.date}<small>#{r.stockCard?.sequence}</small></>,r.locationName,<>{typeLabel(r.type)}<small>{r.reference}</small><small><bdi>{r.id}</bdi></small></>,n(r.stockCard?.before),n(r.stockCard?.incoming),n(r.stockCard?.outgoing),<>{n(r.stockCard?.running)} {r.unit}</>,<>{n(r.amount,2)}<small>تكلفة الوحدة: {n(r.unitCost,6)} / {r.unit}</small></>];
- const b=r.butchery;return [<>{r.name}<small>{b&&butcheryModeLabel(b.mode)}</small><small><bdi>{r.id}</bdi></small><small>{r.reference}</small></>,<>{r.date}<small>{r.locationName}</small></>,<>{n(b?.inputWeight)} / {n(b?.outputWeight)}{b?.mode==='lamb'&&<small>{n(b.headCount)} رأس · ذبيحة {n(b.carcassWeight)} كجم</small>}</>,<>تقطيع: {n(b?.cuttingLoss)}<small>ذبح: {n(b?.slaughterLoss)}</small><small>الناتج إلى المدخل: {n(b?.yieldPercent,2)}٪</small>{b?.mode==='lamb'&&<small>الذبيحة: {n(b.carcassYieldPercent,2)}٪ · التقطيع: {n(b.cuttingYieldPercent,2)}٪</small>}</>,<>{n(r.amount,2)}<small>مدخل {n(b?.inputCost,2)} · تجهيز {n(b?.processingCost,2)}</small><small>متوسط الناتج {n(r.unitCost,6)} / كجم</small></>,<>{b?.outputs.map(o=><div key={o.itemId}><strong>{o.name}</strong><small>{n(o.quantity)} كجم · {n(o.costShare,2)}٪ · {money(o.amount)} · {money(o.unitCost)} / كجم</small></div>)}</>];
+ if(kind==='stockCard')return [<>{r.date}<small>#{r.stockCard?.sequence}</small></>,r.locationName,<>{typeLabel(r.type)}<small>{r.reference}</small><small><bdi>{r.id}</bdi></small></>,n(r.stockCard?.before),n(r.stockCard?.incoming),n(r.stockCard?.outgoing),<>{n(r.stockCard?.running)} {r.unit}</>,<>{formatMoney(r.amount)}<small>تكلفة الوحدة: {formatMoney(r.unitCost)} / {r.unit}</small></>];
+ const b=r.butchery;return [<>{r.name}<small>{b&&butcheryModeLabel(b.mode)}</small><small><bdi>{r.id}</bdi></small><small>{r.reference}</small></>,<>{r.date}<small>{r.locationName}</small></>,<>{n(b?.inputWeight)} / {n(b?.outputWeight)}{b?.mode==='lamb'&&<small>{n(b.headCount)} رأس · ذبيحة {n(b.carcassWeight)} كجم</small>}</>,<>تقطيع: {n(b?.cuttingLoss)}<small>ذبح: {n(b?.slaughterLoss)}</small><small>الناتج إلى المدخل: {n(b?.yieldPercent,2)}٪</small>{b?.mode==='lamb'&&<small>الذبيحة: {n(b.carcassYieldPercent,2)}٪ · التقطيع: {n(b.cuttingYieldPercent,2)}٪</small>}</>,<>{formatMoney(r.amount)}<small>مدخل {formatMoney(b?.inputCost)} · تجهيز {formatMoney(b?.processingCost)}</small><small>متوسط الناتج {formatMoney(r.unitCost)} / كجم</small></>,<>{b?.outputs.map(o=><div key={o.itemId}><strong>{o.name}</strong><small>{n(o.quantity)} كجم · {n(o.costShare,2)}٪ · {money(o.amount)} · {money(o.unitCost)} / كجم</small></div>)}</>];
 }
