@@ -108,5 +108,6 @@ import {financeTables} from './finance';
 import {kitchenDisplayTables} from './kitchen-display';
 import {transferEditTables} from './transfer-edits-schema';
 import {receiptEditTables} from './receipt-edit-schema';
+import {kitchenDocumentRevisionTables,kitchenQuantityRevisionTables} from './kitchen-quantity-schema';
 import {posOrdersTables} from './pos-orders-schema';
-export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables+butcheryTables+inventoryOperationsTables+centralKitchenTables+hrTables+hrShiftTables+documentCorrectionTables+menuDraftTables+productionRecipeSourceTables+transferEditTables+receiptEditTables+posOrdersTables;
+export const schema=hostedBaselineSchema+organizationProfileMigration+kitchenIssueMigration+kitchenDirectoryMigration+kitchenInventoryMigration+financeTables+kitchenDisplayTables+butcheryTables+inventoryOperationsTables+centralKitchenTables+hrTables+hrShiftTables+documentCorrectionTables+menuDraftTables+productionRecipeSourceTables+transferEditTables+receiptEditTables+posOrdersTables+kitchenQuantityRevisionTables+kitchenDocumentRevisionTables;

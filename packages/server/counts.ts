@@ -21,10 +21,12 @@ CREATE INDEX IF NOT EXISTS stock_location_item_lookup ON stock_entries(organizat
 `;
 
 // Aggregate each independent source first; joining raw rows would multiply values.
-export async function reconcileStock(tx:Pick<Database,'query'>,org:string):Promise<StockReconciliation[]>{
- const balances=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",quantity::text,value::text FROM stock_balances WHERE organization_id=$1',[org])).rows;
- const ledger=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",sum(quantity)::text AS quantity,sum(amount)::text AS value FROM stock_entries WHERE organization_id=$1 GROUP BY location_id,item_id',[org])).rows;
- const layers=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>('SELECT location_id AS "locationId",item_id AS "itemId",sum(remaining)::text AS quantity,sum(COALESCE(remaining_value,remaining*unit_cost))::text AS value FROM cost_layers WHERE organization_id=$1 GROUP BY location_id,item_id',[org])).rows;
+export async function reconcileStock(tx:Pick<Database,'query'>,org:string,scope?:{itemId:string;locationIds:string[]}):Promise<StockReconciliation[]>{
+ const filter=scope?'organization_id=$1 AND item_id=$2 AND location_id=ANY($3::text[])':'organization_id=$1';
+ const params=scope?[org,scope.itemId,scope.locationIds]:[org];
+ const balances=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>(`SELECT location_id AS "locationId",item_id AS "itemId",quantity::text,value::text FROM stock_balances WHERE ${filter}`,params)).rows;
+ const ledger=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>(`SELECT location_id AS "locationId",item_id AS "itemId",sum(quantity)::text AS quantity,sum(amount)::text AS value FROM stock_entries WHERE ${filter} GROUP BY location_id,item_id`,params)).rows;
+ const layers=(await tx.query<{locationId:string;itemId:string;quantity:string;value:string}>(`SELECT location_id AS "locationId",item_id AS "itemId",sum(remaining)::text AS quantity,sum(COALESCE(remaining_value,remaining*unit_cost))::text AS value FROM cost_layers WHERE ${filter} GROUP BY location_id,item_id`,params)).rows;
  const key=(r:{locationId:string;itemId:string})=>JSON.stringify([r.locationId,r.itemId]);const b=new Map(balances.map(r=>[key(r),r])),e=new Map(ledger.map(r=>[key(r),r])),l=new Map(layers.map(r=>[key(r),r]));
  return [...new Set([...b.keys(),...e.keys(),...l.keys()])].map(k=>{const row=b.get(k)??e.get(k)??l.get(k)!;const balanceQuantity=b.get(k)?.quantity??'0',balanceValue=b.get(k)?.value??'0',ledgerQuantity=e.get(k)?.quantity??'0',ledgerValue=e.get(k)?.value??'0',layerQuantity=l.get(k)?.quantity??'0',layerValue=l.get(k)?.value??'0';return {locationId:row.locationId,itemId:row.itemId,balanceQuantity,balanceValue,ledgerQuantity,ledgerValue,layerQuantity,layerValue,matches:decimal(balanceQuantity).eq(ledgerQuantity)&&decimal(balanceQuantity).eq(layerQuantity)&&decimal(balanceValue).eq(ledgerValue)&&decimal(balanceValue).eq(layerValue)};});
 }

@@ -7,6 +7,7 @@ import {decimal} from '@saas/domain';
 import type {Database,QueryDatabase} from './database';
 import {assertGeneration,planIssue,applyIssue,costingMethod} from './valuation';
 import {reconcileStock} from './counts';
+import {readKitchenIssues} from './kitchen-revision-state';
 
 export async function postKitchenIssue(db:Database,access:Access,input:unknown):Promise<CommandResult>{
  assertInventoryWrite(access);
@@ -64,4 +65,6 @@ export async function postKitchenIssue(db:Database,access:Access,input:unknown):
   const result:CommandResult={operationId:d.operationId,outcome:'accepted',amount};await tx.query('INSERT INTO command_receipts VALUES($1,$2,$3,$4)',[org,d.operationId,hash,JSON.stringify(result)]);return result;
  });
 }
-export async function kitchenIssueSnapshot(tx:QueryDatabase,org:string){return {kitchenIssues:(await tx.query<PostedKitchenIssue>('SELECT payload AS document,amount::text,method,lines,actor,posted_at::text AS "postedAt" FROM kitchen_issues WHERE organization_id=$1 ORDER BY posted_at DESC LIMIT 100',[org])).rows};}
+export async function kitchenIssueSnapshot(tx:QueryDatabase,org:string){
+ return {kitchenIssues:await readKitchenIssues(tx,org)};
+}

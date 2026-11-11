@@ -7,6 +7,7 @@ import {assertGeneration} from './valuation';
 import type {Database} from './database';
 import {consumptionReconciliation} from './consumption-reconciliation';
 import {stockCardReport,butcheryReport} from './operational-reports';
+import {kitchenSupplyByItem} from './kitchen-supply-summary';
 
 const paramsCte=`args AS (SELECT $1::text,$2::date,$3::date,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text)`;
 const joins=`FROM stock_entries e JOIN items i ON i.organization_id=e.organization_id AND i.id=e.item_id JOIN locations l ON l.organization_id=e.organization_id AND l.id=e.location_id
@@ -52,7 +53,7 @@ export async function getReport(db:Database,access:Access,input:unknown):Promise
  if(q.to>egyptDate())throw new BusinessError('INVALID_REPORT','اختر اليوم أو تاريخاً سابقاً.',400);
  // Supply reports count the source side once, but a destination location can also select the document.
  const movementSql=q.kind==='kitchenSupply'?movementCte
-  .replace('SELECT e.*,',`SELECT e.*,COALESCE((SELECT (line->>'unitPrice')::numeric FROM jsonb_array_elements(CASE WHEN jsonb_typeof(k.payload->'lines')='array' THEN k.payload->'lines' ELSE '[]'::jsonb END) line WHERE lower(line->>'lineId')=e.operation_id::text AND line->>'itemId'=e.item_id LIMIT 1),CASE WHEN e.type IN ('kitchen.transfer.reverse.out','kitchen.reverse') AND e.quantity<>0 THEN e.reference_amount/e.quantity END) AS document_unit_price,`)
+  .replace('SELECT e.*,',`SELECT e.*,COALESCE((SELECT (line->>'unitPrice')::numeric FROM jsonb_array_elements(CASE WHEN jsonb_typeof(k.payload->'lines')='array' THEN k.payload->'lines' ELSE '[]'::jsonb END) line WHERE lower(line->>'lineId')=e.operation_id::text AND line->>'itemId'=e.item_id LIMIT 1),CASE WHEN e.type IN ('kitchen.transfer.out','kitchen.transfer.reverse.out','kitchen.reverse') AND e.quantity<>0 THEN e.reference_amount/e.quantity END) AS document_unit_price,`)
   .replace("($4='' OR e.location_id=$4)","($4='' OR e.location_id=$4 OR k.payload->>'destinationLocationId'=$4)")
   .replaceAll("COALESCE(ki.id,k.kitchen_id,k.payload->>'kitchenId',k.payload->>'kitchen'", "COALESCE(k.kitchen_id,k.payload->>'kitchenId',k.payload->>'kitchen',ki.id")
   .replace("COALESCE(ki.name,k.payload->>'kitchen','')", "COALESCE(k.payload->>'kitchen',ki.name,'')")
@@ -66,10 +67,15 @@ export async function getReport(db:Database,access:Access,input:unknown):Promise
   const checkpoint=(await tx.query<{value:string}>(`SELECT (SELECT COALESCE(max(sequence),0)::text FROM stock_entries WHERE organization_id=$1)||':'||(SELECT COALESCE(max(id),0)::text FROM audit_events WHERE organization_id=$1) AS value`,[org])).rows[0].value;
   if(q.kind==='stockCard')return stockCardReport(tx,q,organization.generation,checkpoint);
   if(q.kind==='butchery')return butcheryReport(tx,q,organization.generation,checkpoint);
-  if(q.kind==='reconciliation'){
-   const result=await consumptionReconciliation(tx,q);
+  if(q.kind==='reconciliation'||q.kind==='kitchenSupplyByItem'){
    const empty:PeriodMetrics={received:'0',reversed:'0',returned:'0',returnReference:'0',netReceived:'0',kitchen:'0',waste:'0',countIncrease:'0',countDecrease:'0',sales:'0',salesDeduction:'0',productionInput:'0',productionWaste:'0',estimatedSalesCost:null,estimatedMargin:null,foodCostPercent:null};
-   return {schemaVersion:1,organizationId:org,generation:organization.generation,checkpoint,generatedAt:new Date().toISOString(),query:q,previousRange,current:empty,previous:empty,stock:{value:'0',items:0,low:0},charts:{daily:[],inventory:[],kitchens:[],suppliers:[],waste:[],sales:[],production:[]},reconciliation:result.summary,rows:result.rows,total:result.total,page:result.page};
+   const base={schemaVersion:1 as const,organizationId:org,generation:organization.generation,checkpoint,generatedAt:new Date().toISOString(),query:q,previousRange,current:empty,previous:empty,stock:{value:'0',items:0,low:0},charts:{daily:[],inventory:[],kitchens:[],suppliers:[],waste:[],sales:[],production:[]}};
+   if(q.kind==='reconciliation'){
+    const {summary,...page}=await consumptionReconciliation(tx,q);
+    return {...base,...page,reconciliation:summary};
+   }
+   const {cost,...page}=await kitchenSupplyByItem(tx,q);
+   return {...base,...page,current:{...empty,kitchenSupplyCost:cost}};
   }
   const invCte=q.kind==='inventory'?historicalInventoryCte:inventoryCte;
   const stockRow=(await tx.query<{value:string;items:string;low:string}>(`WITH ${paramsCte},${invCte} SELECT COALESCE(sum(amount),0)::text AS value,count(DISTINCT item_id)::text AS items,count(*) FILTER(WHERE active AND quantity<minimum)::text AS low FROM inv`,params)).rows[0];
@@ -92,6 +98,7 @@ export async function getReport(db:Database,access:Access,input:unknown):Promise
    const args=[...params];args[1]=from;args[2]=to;
    const r=(await tx.query<Omit<PeriodMetrics,'netReceived'|'sales'|'productionWaste'|'productionInput'|'estimatedSalesCost'|'estimatedMargin'|'foodCostPercent'>>(`WITH ${paramsCte},${movementSql} SELECT
     ${q.kind==='kitchenSupply'?`COALESCE(sum(-quantity*document_unit_price) FILTER(WHERE type IN ('kitchen.transfer.out','kitchen.issue','kitchen.transfer.reverse.out','kitchen.reverse')),0)::text AS "kitchenDocumentAmount",
+    COALESCE(sum(-amount) FILTER(WHERE type IN ('kitchen.transfer.out','kitchen.issue','kitchen.transfer.reverse.out','kitchen.reverse')),0)::text AS "kitchenSupplyCost",
     COALESCE(sum(-amount) FILTER(WHERE type IN ('kitchen.transfer.out','kitchen.issue','kitchen.transfer.reverse.out','kitchen.reverse') AND document_unit_price IS NOT NULL),0)::text AS "kitchenDocumentCost",
     count(*) FILTER(WHERE type IN ('kitchen.transfer.out','kitchen.issue','kitchen.transfer.reverse.out','kitchen.reverse') AND document_unit_price IS NULL)::int AS "kitchenDocumentUnpriced",`:''}
     COALESCE(sum(amount) FILTER(WHERE type IN ('receipt.post','purchase.receive')),0)::text AS received,

@@ -10,6 +10,7 @@ import {postOpening} from './opening';
 import {postReceiptDocument} from './receipts';
 import {postReceiptRevision} from './receipt-edits';
 import {postKitchenIssue} from './kitchen-issues';
+import {postKitchenIssueRevision} from './kitchen-quantity-corrections';
 import {reconcileStock} from './counts';
 export const documentCorrectionTables=`CREATE TABLE IF NOT EXISTS document_corrections(organization_id text NOT NULL REFERENCES organizations(id),operation_id uuid NOT NULL,kind text NOT NULL CHECK(kind IN('opening','receipt','kitchen')),source_id uuid NOT NULL,replacement_id uuid NOT NULL,reason text NOT NULL,actor text NOT NULL,reversal_ids jsonb NOT NULL,posted_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(organization_id,operation_id),UNIQUE(organization_id,source_id),UNIQUE(organization_id,replacement_id));`;
 function reject(code:string,message:string):never{throw new BusinessError(code,message,409);}
@@ -17,6 +18,7 @@ export async function postDocumentCorrection(db:Database,access:Access,input:unk
  if(!['owner','manager'].includes(access.role??''))throw new BusinessError('FORBIDDEN','تصحيح المستندات المقبولة متاح للمالك والمدير.',403);
  if(!Number.isFinite(Date.parse(access.expiresAt))||Date.parse(access.expiresAt)<=Date.now())throw new BusinessError('AUTH_REQUIRED','جدد جلسة الدخول.',401);
  if(typeof input==='object'&&input!==null&&'kind' in input&&(input.kind==='receipt_edit'||input.kind==='receipt_void'))return postReceiptRevision(db,access,input);
+ if(typeof input==='object'&&input!==null&&'kind' in input&&(input.kind==='kitchen_quantity'||input.kind==='kitchen_edit'))return postKitchenIssueRevision(db,access,input);
  const parsed=documentCorrectionSchema.safeParse(input);if(!parsed.success)throw new BusinessError('INVALID_CORRECTION','راجع سبب التصحيح وبيانات المستند.',400);const c=parsed.data,voiding=c.kind==='kitchen_void',d=voiding?undefined:c.replacement,org=c.organizationId;
  const kind=voiding?'kitchen':c.kind,replacementId=d?.operationId??c.operationId;
  if(org!==access.organizationId||d&&(d.organizationId!==org||d.generation!==c.generation))throw new BusinessError('FORBIDDEN','المستند يخص نطاقاً آخر.',403);
@@ -27,6 +29,7 @@ export async function postDocumentCorrection(db:Database,access:Access,input:unk
   const table={opening:'opening_documents',receipt:'receipt_documents',kitchen:'kitchen_issues'}[kind],link={opening:'opening_document_id',receipt:'receipt_document_id',kitchen:'kitchen_issue_id'}[kind];
   const source=(await tx.query<{payload:DocumentReplacementCommand['replacement']}>(`SELECT payload FROM ${table} WHERE organization_id=$1 AND operation_id=$2`,[org,c.sourceId])).rows[0]?.payload;
   if(!source)reject('SOURCE_NOT_FOUND','المستند الأصلي غير متاح.');
+  if(kind==='kitchen'&&(await tx.query('SELECT 1 FROM kitchen_quantity_revisions WHERE organization_id=$1 AND kitchen_issue_id=$2 UNION ALL SELECT 1 FROM kitchen_document_revisions WHERE organization_id=$1 AND kitchen_issue_id=$2 LIMIT 1',[org,c.sourceId])).rows.length)reject('QUANTITY_CORRECTION_EXISTS','يحتوي المستند على تعديلات معتمدة. استخدم شاشة تعديل المستند.');
   if((await tx.query('SELECT 1 FROM document_corrections WHERE organization_id=$1 AND source_id=$2',[org,c.sourceId])).rows.length)reject('ALREADY_CORRECTED','تم تصحيح هذا المستند؛ افتح المستند البديل.');
   if(kind==='receipt'&&(await tx.query('SELECT 1 FROM receipt_edits WHERE organization_id=$1 AND receipt_id=$2',[org,c.sourceId])).rows.length)reject('STALE_REVISION','زامن التطبيق وافتح أحدث نسخة من مستند الاستلام.');
   const ids=[c.operationId,...(d?[d.operationId,...d.lines.map(l=>l.lineId)]:[])];if(new Set(ids).size!==ids.length||ids.includes(c.sourceId))reject('PAYLOAD_CONFLICT','يجب استخدام معرفات جديدة للتصحيح والسطور.');
